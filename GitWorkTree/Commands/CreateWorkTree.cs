@@ -24,7 +24,7 @@ namespace GitWorkTree
             }
             catch (Exception ex)
             {
-                commandExecution.outputWindow?.WriteToOutputWindow(ex.Message);
+                commandExecution.outputWindow?.WriteToOutputWindowAsync(ex.Message);
             }
         }
     }

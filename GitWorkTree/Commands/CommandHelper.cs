@@ -60,13 +60,15 @@ namespace GitWorkTree.Commands
 
                 return true;
             }
-            catch (Exception ex) { outputWindow?.WriteToOutputWindow(ex.Message); return false; }
+            catch (Exception ex) { outputWindow?.WriteToOutputWindowAsync(ex.Message); return false; }
         }
 
         public bool GetDataRequired()
         {
             try
             {
+                ThreadHelper.ThrowIfNotOnUIThread();
+
                 dialogViewModel = new WorkTreeDialogViewModel(ActiveRepositories, _commandType, defaultBranchPath, outputWindow);
                 WorkTreeDialogWindow dialog = new WorkTreeDialogWindow
                 {
@@ -84,7 +86,7 @@ namespace GitWorkTree.Commands
 
                 return true;
             }
-            catch (Exception ex) { outputWindow?.WriteToOutputWindow(ex.Message); return false; }
+            catch (Exception ex) { outputWindow?.WriteToOutputWindowAsync(ex.Message); return false; }
         }
 
         public async Task<bool> RunGitCommandAsync()
@@ -102,13 +104,13 @@ namespace GitWorkTree.Commands
 
                 if (_commandType == CommandType.Add)
                 {
-                    outputWindow?.WriteToOutputWindow($"Create worktree for branch {BranchName} - Enter");
+                    outputWindow?.WriteToOutputWindowAsync($"Create worktree for branch {BranchName} - Enter");
                     await Task.Run(() =>
                     {
                         GitBuddy.CreateWorkTree(RepoPath, BranchName, WorkTreePath, shouldForce, (line, type) =>
                         {
                             isError = (type == GitOutputType.Error);
-                            outputWindow?.WriteToOutputWindow(line, isError);
+                            outputWindow?.WriteToOutputWindowAsync(line, isError);
                         });
                     });
 
@@ -117,39 +119,39 @@ namespace GitWorkTree.Commands
                 {
                     if (dialogViewModel.IsPrune)
                     {
-                        outputWindow?.WriteToOutputWindow($"Prune Worktree - Enter");
+                        outputWindow?.UpdateStatusBar($"Prune Worktree Executing");
 
                         await Task.Run(() =>
                         {
                             GitBuddy.Prune(RepoPath, (line, type) =>
                             {
                                 isError = (type == GitOutputType.Error);
-                                outputWindow?.WriteToOutputWindow(line, isError);
+                                outputWindow?.WriteToOutputWindowAsync(line, isError);
                             });
                         });
-                        outputWindow?.WriteToOutputWindow($"Prune Worktree - Exit");
+                        outputWindow?.UpdateStatusBar($"Prune Worktree Executed");
                     }
 
                     if (dialogViewModel.SelectedBranch != null)
                     {
-                        outputWindow?.WriteToOutputWindow($"Remove worktree for branch {BranchName} - Enter");
+                        outputWindow?.WriteToOutputWindowAsync($"Remove worktree for branch {BranchName} - Enter");
 
                         await Task.Run(() =>
                         {
                             GitBuddy.RemoveWorkTree(RepoPath, BranchName, shouldForce, (line, type) =>
                             {
                                 isError = (type == GitOutputType.Error);
-                                outputWindow?.WriteToOutputWindow(line, isError);
+                                outputWindow?.WriteToOutputWindowAsync(line, isError);
                             });
                         });
                     }
 
                 }
                 var status = isError ? "Failed" : "Completed";
-                outputWindow?.WriteToOutputWindow($"Worktree command - {status}");
+                outputWindow?.WriteToOutputWindowAsync($"Worktree command - {status}");
                 return !isError;
             }
-            catch (Exception ex) { outputWindow?.WriteToOutputWindow(ex.Message); return false; }
+            catch (Exception ex) { outputWindow?.WriteToOutputWindowAsync(ex.Message); return false; }
 
         }
 
@@ -157,12 +159,12 @@ namespace GitWorkTree.Commands
         {
             try
             {
-                outputWindow?.WriteToOutputWindow($"Loade Solution set to True, Opening Worktree Solution");
+                outputWindow?.WriteToOutputWindowAsync($"Loade Solution set to True, Opening Worktree Solution");
 
                 var newSolutionPath = dialogViewModel?.FolderPath;
                 if (string.IsNullOrEmpty(newSolutionPath) || !Directory.Exists(newSolutionPath))
                 {
-                    outputWindow?.WriteToOutputWindow("Please provide a valid folder path.");
+                    outputWindow?.WriteToOutputWindowAsync("Please provide a valid folder path.");
                     return false;
                 }
 
@@ -173,7 +175,7 @@ namespace GitWorkTree.Commands
 
                 if (solutionService == null)
                 {
-                    outputWindow?.WriteToOutputWindow("Unable to obtain IVsSolution service.");
+                    outputWindow?.WriteToOutputWindowAsync("Unable to obtain IVsSolution service.");
                     return false;
                 }
 
@@ -182,7 +184,7 @@ namespace GitWorkTree.Commands
                 // Check if any solution files exist
                 if (solutionFiles.Length == 0)
                 {
-                    outputWindow?.WriteToOutputWindow($"No solution file found in the folder: {newSolutionPath}");
+                    outputWindow?.WriteToOutputWindowAsync($"No solution file found in the folder: {newSolutionPath}");
                     return false;
                 }
 
@@ -200,7 +202,7 @@ namespace GitWorkTree.Commands
             }
             catch (Exception ex)
             {
-                outputWindow?.WriteToOutputWindow(ex.Message);
+                outputWindow?.WriteToOutputWindowAsync(ex.Message);
                 return false;
             }
         }

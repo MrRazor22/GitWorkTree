@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading;
+using EnvDTE;
+using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
@@ -10,15 +12,16 @@ namespace GitWorkTree
         private static readonly Lazy<VsOutputWindow> lazyInstance = new Lazy<VsOutputWindow>(() => new VsOutputWindow(), LazyThreadSafetyMode.ExecutionAndPublication);
 
         private IVsOutputWindowPane outputPane;
+        private DTE2 dte;
 
         public static VsOutputWindow Instance => lazyInstance.Value;
 
         public VsOutputWindow()
         {
-            // Constructor logic, if any
+            dte = Package.GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
         }
 
-        public async void WriteToOutputWindow(string message, bool isError = false)
+        public async Task WriteToOutputWindowAsync(string message, bool isError = false)
         {
             await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
             {
@@ -40,6 +43,8 @@ namespace GitWorkTree
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     //outputPane?.OutputStringThreadSafe(isError ? $"\x1B[31m{formattedMessage}\x1B[0m" : formattedMessage);
                     outputPane?.OutputTaskItemString(formattedMessage, VSTASKPRIORITY.TP_HIGH, VSTASKCATEGORY.CAT_BUILDCOMPILE, null, 0, null, 0, null);
+
+                    dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput).Visible = true;
                 });
             });
         }
@@ -49,16 +54,13 @@ namespace GitWorkTree
             ThreadHelper.JoinableTaskFactory.Run(async () =>
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-                var dte = Package.GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
                 if (dte != null) dte.StatusBar.Text = message;
             });
         }
 
         private string GetLogPrefix()
         {
-            // Customize this method to return the desired log prefix
-            return $">- ";
+            return $">";
         }
 
         private IVsOutputWindowPane CreatePane()

@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<Extern href="stdidcmd.h" />
+	<Extern href="vsshlids.h" />
+	<Include href="KnownImageIds.vsct"/>
+
+	<Commands package="guidGitWorkTreePackage">
+
+		<Groups>
+			<Group guid="guidGitWorkTreePackageCmdSet" id="GitWorkTreeMenu" priority="0x0600">
+				<Parent guid="PackageCommandSetGuid" id="GitRootMenu"/>
+			</Group>
+
+			<Group guid="guidGitWorkTreePackageCmdSet" id="SubMenuGroup" priority="0x0000">
+				<Parent guid="guidGitWorkTreePackageCmdSet" id="SubMenu"/>
+			</Group>
+		</Groups>
+
+		<Menus>
+			<Menu guid="guidGitWorkTreePackageCmdSet" id="SubMenu" type="Menu" priority="0x0000">
+				<Parent guid="guidGitWorkTreePackageCmdSet" id="GitWorkTreeMenu" />
+				<Strings>
+					<ButtonText>Git WorkTree</ButtonText>
+				</Strings>
+			</Menu>
+		</Menus>
+
+
+		<Buttons>
+			<Button guid="guidGitWorkTreePackageCmdSet" id="CreateWorkTreeCommand" priority="0x0100" type="Button">
+				<Parent guid="guidGitWorkTreePackageCmdSet" id="SubMenuGroup" />
+				<Icon guid="ImageCatalogGuid" id="CreatePropertyBrush" />
+				<CommandFlag>IconIsMoniker</CommandFlag>
+				<Strings>
+					<ButtonText>Create WorkTree</ButtonText>
+				</Strings>
+			</Button>
+			<Button guid="guidGitWorkTreePackageCmdSet" id="RemoveWorkTreeCommand" priority="0x0200" type="Button">
+				<Parent guid="guidGitWorkTreePackageCmdSet" id="SubMenuGroup" />
+				<Icon guid="ImageCatalogGuid" id="DeleteListItem" />
+				<CommandFlag>IconIsMoniker</CommandFlag>
+				<Strings>
+					<ButtonText>Remove WorkTree</ButtonText>
+				</Strings>
+			</Button>
+		</Buttons>
+
+	</Commands>
+
+	<Symbols>
+		<GuidSymbol name="guidGitWorkTreePackage" value="{f5cfcdcd-f0ac-4140-bd08-4b122f188161}" />
+
+		<GuidSymbol name="guidGitWorkTreePackageCmdSet" value="{22cfbf67-12c4-4ab9-9ce7-99e7bd912228}">
+			<IDSymbol name ="GitWorkTreeMenu" value="0x0001"/>
+			<IDSymbol name="SubMenu" value="0x0002" />
+			<IDSymbol name="SubMenuGroup" value="0x0003" />
+			<IDSymbol name="CreateWorkTreeCommand" value="0x0100" />
+			<IDSymbol name="RemoveWorkTreeCommand" value="0x0200" />
+		</GuidSymbol>
+
+		<GuidSymbol name="PackageCommandSetGuid" value="{57735d06-c920-4415-a2e0-7d6e6fbdfa99}">
+			<IDSymbol value="0xF000" name="GitRootMenu" />
+		</GuidSymbol>
+	</Symbols>
+</CommandTable>

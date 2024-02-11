@@ -1,0 +1,77 @@
+﻿using System;
+using System.Threading;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+
+namespace GitWorkTree
+{
+    public class VsOutputWindow
+    {
+        private static readonly Lazy<VsOutputWindow> lazyInstance = new Lazy<VsOutputWindow>(() => new VsOutputWindow(), LazyThreadSafetyMode.ExecutionAndPublication);
+
+        private IVsOutputWindowPane outputPane;
+
+        public static VsOutputWindow Instance => lazyInstance.Value;
+
+        public VsOutputWindow()
+        {
+            // Constructor logic, if any
+        }
+
+        public async void WriteToOutputWindow(string message, bool isError = false)
+        {
+            await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                if (outputPane == null)
+                {
+                    LazyInitializer.EnsureInitialized(ref outputPane, () => CreatePane());
+                }
+
+                // Ensure the output pane is visible
+                outputPane?.Activate();
+
+                // Check for null before writing to the output pane
+                string formattedMessage = $"{GetLogPrefix()} {message}\r";
+
+                await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    //outputPane?.OutputStringThreadSafe(isError ? $"\x1B[31m{formattedMessage}\x1B[0m" : formattedMessage);
+                    outputPane?.OutputTaskItemString(formattedMessage, VSTASKPRIORITY.TP_HIGH, VSTASKCATEGORY.CAT_BUILDCOMPILE, null, 0, null, 0, null);
+                });
+            });
+        }
+
+        public void UpdateStatusBar(string message)
+        {
+            ThreadHelper.JoinableTaskFactory.Run(async () =>
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                var dte = Package.GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
+                if (dte != null) dte.StatusBar.Text = message;
+            });
+        }
+
+        private string GetLogPrefix()
+        {
+            // Customize this method to return the desired log prefix
+            return $">- ";
+        }
+
+        private IVsOutputWindowPane CreatePane()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            var outputWindow = Package.GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
+            var paneGuid = Guid.NewGuid();
+            outputWindow.CreatePane(ref paneGuid, "GitWorkTree", 1, 1);
+            outputWindow.GetPane(ref paneGuid, out var pane);
+            return pane;
+        }
+    }
+
+
+}

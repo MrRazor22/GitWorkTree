@@ -171,7 +171,10 @@ namespace GitWorkTree.ToolWindows.ViewModel
         private async Task LoadBranchesAsync()
         {
             if (string.IsNullOrEmpty(SelectedRepository))
+            {
+                _OutputWindow.UpdateStatusBar("Select a Repository");
                 return;
+            }
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -240,11 +243,11 @@ namespace GitWorkTree.ToolWindows.ViewModel
         public ICommand CancelCommand => new RelayCommand(obj => Cancel());
         public ICommand PruneCommand => new RelayCommand(obj => Prune());
 
-        public bool IsCommandInitiated { get; private set; }
+        public bool IsDataValid { get; private set; }
 
         private void Prune()
         {
-            IsCommandInitiated = true;
+            IsDataValid = true;
             IsPrune = true;
             CloseDialog();
         }
@@ -254,13 +257,13 @@ namespace GitWorkTree.ToolWindows.ViewModel
             {
                 return;
             }
-            IsCommandInitiated = true;
+            IsDataValid = true;
             CloseDialog();
         }
 
         private void Cancel()
         {
-            IsCommandInitiated = false;
+            IsDataValid = false;
             CloseDialog();
         }
 

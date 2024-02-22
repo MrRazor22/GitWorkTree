@@ -40,23 +40,24 @@ namespace GitWorkTree.Commands
         {
             try
             {
+                outputWindow = VsOutputWindow.Instance;
+                //Get services nneded
                 serviceProvider = package as IServiceProvider;
                 Assumes.Present(serviceProvider);
                 dte = serviceProvider.GetService(typeof(DTE)) as DTE2;
                 Assumes.Present(dte);
-
                 var gitExt = serviceProvider.GetService(typeof(IGitExt3)) as IGitExt3;
+                Assumes.Present(gitExt);
 
                 ActiveRepositories = gitExt.ActiveRepositories.Select(i => i.RepositoryPath).ToList();
                 if (ActiveRepositories == null || ActiveRepositories.Count == 0)
                 {
+                    outputWindow?.UpdateStatusBar("No Repository loaded!");
                     return false;
                 }
 
                 isLoadSolution = optionsSaved != null ? optionsSaved.IsLoadSolution : false;
                 defaultBranchPath = optionsSaved?.DefaultBranchPath != null ? optionsSaved.DefaultBranchPath : ActiveRepositories.FirstOrDefault();
-
-                outputWindow = VsOutputWindow.Instance;
 
                 return true;
             }
@@ -79,7 +80,7 @@ namespace GitWorkTree.Commands
                 helper.Owner = hwnd;
                 dialog.ShowDialog();
 
-                if (dialogViewModel.IsCommandInitiated == false)
+                if (dialogViewModel.IsDataValid == false)
                 {
                     return false;
                 }
@@ -91,8 +92,6 @@ namespace GitWorkTree.Commands
 
         public async Task<bool> RunGitCommandAsync()
         {
-            if (!dialogViewModel.IsCommandInitiated) return false;
-
             var RepoPath = dialogViewModel.SelectedRepository;
             var BranchName = dialogViewModel.SelectedBranch;
             var WorkTreePath = dialogViewModel.FolderPath;
@@ -101,7 +100,7 @@ namespace GitWorkTree.Commands
 
             try
             {
-
+                outputWindow.ShowOutputPane = true;
                 if (_commandType == CommandType.Add)
                 {
                     outputWindow?.WriteToOutputWindowAsync($"Create worktree for branch {BranchName} - Enter");

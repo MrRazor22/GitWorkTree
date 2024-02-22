@@ -1,8 +1,5 @@
-﻿using System;
-using System.Threading;
-using EnvDTE;
+﻿using System.Threading;
 using EnvDTE80;
-using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
 namespace GitWorkTree
@@ -15,6 +12,8 @@ namespace GitWorkTree
         private DTE2 dte;
 
         public static VsOutputWindow Instance => lazyInstance.Value;
+
+        public bool ShowOutputPane { get; set; } = false;
 
         public VsOutputWindow()
         {
@@ -32,20 +31,19 @@ namespace GitWorkTree
                     LazyInitializer.EnsureInitialized(ref outputPane, () => CreatePane());
                 }
 
-                // Ensure the output pane is visible
-                outputPane?.Activate();
-
                 // Check for null before writing to the output pane
-                string formattedMessage = $"{GetLogPrefix()} {message}\r";
+                string formattedMessage = $">{message}\r";
 
-                await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+                if (ShowOutputPane)
                 {
-                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                    //outputPane?.OutputStringThreadSafe(isError ? $"\x1B[31m{formattedMessage}\x1B[0m" : formattedMessage);
-                    outputPane?.OutputTaskItemString(formattedMessage, VSTASKPRIORITY.TP_HIGH, VSTASKCATEGORY.CAT_BUILDCOMPILE, null, 0, null, 0, null);
-
+                    outputPane?.Activate();
                     dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput).Visible = true;
-                });
+                    ShowOutputPane = false;
+                }
+
+                outputPane?.OutputStringThreadSafe(formattedMessage);
+                //outputPane?.OutputTaskItemString(isOutputPaneVisible, VSTASKPRIORITY.TP_HIGH, VSTASKCATEGORY.CAT_BUILDCOMPILE, null, 0, null, 0, null);
+
             });
         }
 
@@ -58,18 +56,13 @@ namespace GitWorkTree
             });
         }
 
-        private string GetLogPrefix()
-        {
-            return $">";
-        }
-
         private IVsOutputWindowPane CreatePane()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
             var outputWindow = Package.GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
-            var paneGuid = Guid.NewGuid();
-            outputWindow.CreatePane(ref paneGuid, "GitWorkTree", 1, 1);
+            var paneGuid = PackageGuids.guidGitWorkTreeOutpane;
+            outputWindow.CreatePane(ref paneGuid, Vsix.Name, 1, 1);
             outputWindow.GetPane(ref paneGuid, out var pane);
             return pane;
         }

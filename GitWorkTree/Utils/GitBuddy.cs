@@ -45,32 +45,30 @@ namespace GitWorkTree
                     RedirectStandardOutput = true
                 };
 
-                using (var process = new Process { StartInfo = startInfo })
+                using var process = new Process { StartInfo = startInfo };
+                process.OutputDataReceived += (sender, e) =>
                 {
-                    process.OutputDataReceived += (sender, e) =>
+                    if (e.Data != null)
                     {
-                        if (e.Data != null)
-                        {
-                            //outputHandler?.Invoke(e.Data, GitOutputType.Standard);
-                            outputHandler?.Invoke(e.Data, e.Data.IndexOf("fatal",
-                                StringComparison.OrdinalIgnoreCase) >= 0 || e.Data.IndexOf("error", StringComparison.OrdinalIgnoreCase) >= 0 ?
-                                GitOutputType.Error : GitOutputType.Standard);
-                        }
-                    };
+                        //outputHandler?.Invoke(e.Data, GitOutputType.Standard);
+                        outputHandler?.Invoke(e.Data, e.Data.IndexOf("fatal",
+                            StringComparison.OrdinalIgnoreCase) >= 0 || e.Data.IndexOf("error", StringComparison.OrdinalIgnoreCase) >= 0 ?
+                            GitOutputType.Error : GitOutputType.Standard);
+                    }
+                };
 
-                    process.ErrorDataReceived += (sender, e) =>
+                process.ErrorDataReceived += (sender, e) =>
+                {
+                    if (e.Data != null)
                     {
-                        if (e.Data != null)
-                        {
-                            outputHandler?.Invoke(e.Data, GitOutputType.Error);
-                        }
-                    };
+                        outputHandler?.Invoke(e.Data, GitOutputType.Error);
+                    }
+                };
 
-                    process.Start();
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
-                    process.WaitForExit();
-                }
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+                process.WaitForExit();
             }
             catch (Exception ex)
             {
@@ -134,7 +132,10 @@ namespace GitWorkTree
             string force = shouldForceCreate ? "-f " : "";
             Execute(new GitCommandArgs()
             {
-                Argument = $"worktree add {force}{workTreePath} {Regex.Replace(branchName.TrimStart(' ', '+').Trim(), @"^.*/\s*([a-zA-Z0-9_\-]+)$", "$1")}",
+                Argument = $"worktree add {force}{workTreePath} {Regex.Match(branchName,
+                @"(?:\+?\s?(?:remotes?\/(?:origin|main|upstream)\/(?:HEAD -> (?:origin|main|upstream)\/)?|remotes?\/(?:origin|main|upstream)\/)?|[^\/]+\/)?([^\/]+(?:\/[^\/]+)*)$")
+                .Groups[1].Value}",
+
                 WorkingDirectory = repositoryPath
             }, outputHandler);
         }

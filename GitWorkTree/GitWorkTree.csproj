@@ -46,7 +46,7 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Commands\CommandHelper.cs" />
+    <Compile Include="Commands\Common\CommandHelper.cs" />
     <Compile Include="Commands\CreateWorkTree.cs" />
     <Compile Include="ToolWindows\ViewModel\RelayCommand.cs" />
     <Compile Include="Utils\GitBuddy.cs" />

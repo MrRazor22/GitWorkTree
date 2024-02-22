@@ -59,8 +59,11 @@
 			<IDSymbol name="RemoveWorkTreeCommand" value="0x0200" />
 		</GuidSymbol>
 
+		<!--the guid of git root menu defined inside visual studio-->
 		<GuidSymbol name="PackageCommandSetGuid" value="{57735d06-c920-4415-a2e0-7d6e6fbdfa99}">
 			<IDSymbol value="0xF000" name="GitRootMenu" />
 		</GuidSymbol>
+
+		<GuidSymbol name="guidGitWorkTreeOutpane" value="{975c7015-667e-4e4b-9bba-b02951d4fac4}" />
 	</Symbols>
 </CommandTable>

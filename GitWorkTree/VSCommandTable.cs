@@ -20,6 +20,9 @@ namespace GitWorkTree
 
         public const string PackageCommandSetGuidString = "57735d06-c920-4415-a2e0-7d6e6fbdfa99";
         public static Guid PackageCommandSetGuid = new Guid(PackageCommandSetGuidString);
+
+        public const string guidGitWorkTreeOutpaneString = "975c7015-667e-4e4b-9bba-b02951d4fac4";
+        public static Guid guidGitWorkTreeOutpane = new Guid(guidGitWorkTreeOutpaneString);
     }
     /// <summary>
     /// Helper class that encapsulates all CommandIDs uses across VS Package.

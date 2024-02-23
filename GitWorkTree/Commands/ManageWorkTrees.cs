@@ -2,8 +2,8 @@
 
 namespace GitWorkTree
 {
-    [Command(PackageGuids.guidGitWorkTreePackageCmdSetString, PackageIds.RemoveWorkTreeCommand)]
-    internal sealed class RemoveWorkTree : BaseCommand<RemoveWorkTree>
+    [Command(PackageGuids.guidGitWorkTreePackageCmdSetString, PackageIds.ManageWorkTreesCommand)]
+    internal sealed class ManageWorkTrees : BaseCommand<ManageWorkTrees>
     {
         protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
         {
@@ -11,13 +11,10 @@ namespace GitWorkTree
             CommandHelper commandExecution = null;
             try
             {
-                commandExecution = new CommandHelper(Package, CommandType.Remove);
+                commandExecution = new CommandHelper(Package, CommandType.Manage);
 
                 if (!commandExecution.PreRequisite()) return;
                 if (!commandExecution.GetDataRequired()) return;
-
-                await commandExecution.RunGitCommandAsync();
-
             }
             catch (Exception ex)
             {

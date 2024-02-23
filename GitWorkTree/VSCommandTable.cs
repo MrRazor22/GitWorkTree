@@ -33,7 +33,7 @@ namespace GitWorkTree
         public const int SubMenu = 0x0002;
         public const int SubMenuGroup = 0x0003;
         public const int CreateWorkTreeCommand = 0x0100;
-        public const int RemoveWorkTreeCommand = 0x0200;
+        public const int ManageWorkTreesCommand = 0x0200;
         public const int GitRootMenu = 0xF000;
     }
 }

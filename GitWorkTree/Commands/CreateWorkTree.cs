@@ -15,10 +15,9 @@ namespace GitWorkTree
 
                 if (!commandExecution.PreRequisite()) return;
                 if (!commandExecution.GetDataRequired()) return;
-                if (await commandExecution.RunGitCommandAsync())
+                if (await commandExecution.RunCreateWorktreeCommandAsync())
                 {
-                    if (CommandHelper.optionsSaved.IsLoadSolution)
-                        await commandExecution.CloseAndOpenSolutionAsync();
+
                 }
 
             }

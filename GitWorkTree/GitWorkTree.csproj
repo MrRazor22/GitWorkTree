@@ -48,11 +48,12 @@
   <ItemGroup>
     <Compile Include="Commands\Common\CommandHelper.cs" />
     <Compile Include="Commands\CreateWorkTree.cs" />
+    <Compile Include="Commands\Common\CommandActionsEventArgs.cs" />
     <Compile Include="ToolWindows\ViewModel\RelayCommand.cs" />
     <Compile Include="Utils\GitHelper.cs" />
     <Compile Include="Options\General.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Commands\RemoveWorkTree.cs" />
+    <Compile Include="Commands\ManageWorkTrees.cs" />
     <Compile Include="GitWorkTreePackage.cs" />
     <Compile Include="source.extension.cs">
       <AutoGen>True</AutoGen>

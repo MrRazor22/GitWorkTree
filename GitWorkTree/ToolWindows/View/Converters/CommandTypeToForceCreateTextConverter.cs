@@ -51,7 +51,7 @@ namespace GitWorkTree.ToolWindows.View.Converters
         {
             if (value is CommandType commandType)
             {
-                return (commandType == CommandType.Add) ? "Branch name:" : "Worktree path:";
+                return (commandType == CommandType.Add) ? "Branch name:" : "Worktrees:";
             }
             return string.Empty;
         }
@@ -79,13 +79,13 @@ namespace GitWorkTree.ToolWindows.View.Converters
         }
     }
 
-    public class RemoveCommandTypeVisibilityConverter : IValueConverter
+    public class ManageCommandTypeVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is CommandType commandType)
             {
-                return (commandType == CommandType.Remove) ? Visibility.Collapsed : Visibility.Visible;
+                return (commandType == CommandType.Manage) ? Visibility.Collapsed : Visibility.Visible;
             }
             return Visibility.Visible; // Default to Visible if the value is not a CommandTypeEnum
         }

@@ -12,7 +12,7 @@ namespace GitWorkTree.ToolWindows.ViewModel
     public class WorkTreeDialogViewModel : INotifyPropertyChanged, IDataErrorInfo
     {
         private readonly VsOutputWindow _OutputWindow;
-
+        public event EventHandler<CommandActionsEventArgs> CommandInvoked;
         public WorkTreeDialogViewModel() { }
 
         private string _defaultPath;
@@ -33,7 +33,7 @@ namespace GitWorkTree.ToolWindows.ViewModel
                 if (columnName == nameof(SelectedBranch))
                 {
                     if (string.IsNullOrEmpty(SelectedBranch))
-                        status = "Please enter a valid branch name";
+                        status = "Please enter a valid branch/Worktree";
                 }
                 else if (columnName == nameof(FolderPath))
                 {
@@ -74,6 +74,8 @@ namespace GitWorkTree.ToolWindows.ViewModel
                 }
             }
         }
+
+        public CommandActions CommandActions { get; private set; }
 
         private string _windowTitle;
         public string WindowTitle
@@ -127,6 +129,17 @@ namespace GitWorkTree.ToolWindows.ViewModel
             }
         }
 
+        private bool _ifOpenInNewVisualStudio;
+        public bool IfOpenInNewVisualStudio
+        {
+            get { return _ifOpenInNewVisualStudio; }
+            set
+            {
+                _ifOpenInNewVisualStudio = value;
+                OnPropertyChanged(nameof(IfOpenInNewVisualStudio));
+            }
+        }
+
         private bool _isForceCreateRemove;
         public bool IsForceCreateRemove
         {
@@ -159,12 +172,21 @@ namespace GitWorkTree.ToolWindows.ViewModel
 
             Branches = new ObservableCollection<string>();
 
-            WindowTitle = (_commandType == CommandType.Add) ? "Create New Worktree" : "Remove Existing Worktrees";
+            if (_commandType == CommandType.Add)
+            {
+                WindowTitle = "Create New Worktree";
+            }
+            else if (commandType == CommandType.Manage)
+            {
+                WindowTitle = "Manage Existing Worktrees";
+                IfOpenInNewVisualStudio = true;
+            }
+
             ActiveRepositoryPath = gitRepositoryPath;
             FolderPath = _defaultPath == "" ? _activeRepositoryPath : _defaultPath;
         }
 
-        private async Task LoadBranchesAsync()
+        public async Task LoadBranchesAsync()
         {
             if (string.IsNullOrEmpty(ActiveRepositoryPath))
             {
@@ -193,7 +215,7 @@ namespace GitWorkTree.ToolWindows.ViewModel
 
                     _OutputWindow?.UpdateStatusBar("Branches Loaded successfully");
                 }
-                else if (_commandType == CommandType.Remove)
+                else if (_commandType == CommandType.Manage)
                 {
                     var workTreePaths = await Task.Run(() => GitHelper.GetWorkTreePaths(ActiveRepositoryPath));
 
@@ -236,6 +258,7 @@ namespace GitWorkTree.ToolWindows.ViewModel
         }
 
         public ICommand CreateCommand => new RelayCommand(obj => CreateRemoveWorkTree());
+        public ICommand OpenCommand => new RelayCommand(obj => OpenWorkTree());
         public ICommand CancelCommand => new RelayCommand(obj => Cancel());
         public ICommand PruneCommand => new RelayCommand(obj => Prune());
 
@@ -245,7 +268,7 @@ namespace GitWorkTree.ToolWindows.ViewModel
         {
             IsDataValid = true;
             IsPrune = true;
-            CloseDialog();
+            CommandInvoked?.Invoke(this, new CommandActionsEventArgs(CommandActions.Prune));
         }
         private void CreateRemoveWorkTree()
         {
@@ -253,14 +276,33 @@ namespace GitWorkTree.ToolWindows.ViewModel
             {
                 return;
             }
-            IsDataValid = true;
-            CloseDialog();
+            CommandActions = CommandType == CommandType.Add ? CommandActions.Create : CommandActions.Remove;
+            if (CommandActions == CommandActions.Create)
+            {
+                IsDataValid = true;
+                CloseDialog();
+            }
+            else if (CommandActions == CommandActions.Remove)
+            {
+                IsDataValid = true;
+                CommandInvoked?.Invoke(this, new CommandActionsEventArgs(CommandActions));
+            }
         }
 
         private void Cancel()
         {
+            CommandActions = CommandActions.Cancel;
             IsDataValid = false;
             CloseDialog();
+        }
+        private void OpenWorkTree()
+        {
+            if (!IsValid)
+            {
+                return;
+            }
+            CommandInvoked?.Invoke(this, new CommandActionsEventArgs(CommandActions.Open));
+            IsDataValid = true;
         }
 
         private void CloseDialog()

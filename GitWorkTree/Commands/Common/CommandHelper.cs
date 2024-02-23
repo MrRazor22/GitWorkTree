@@ -13,12 +13,13 @@ using System.Windows.Interop;
 
 namespace GitWorkTree.Commands
 {
-    public enum CommandType { Add, Remove };
+    public enum CommandType { Add, Manage };
     internal class CommandHelper
     {
         private AsyncPackage package;
         private CommandType _commandType;
 
+        //private CommandActions _commandActions;
         public string ActiveRepositoryPath { get; private set; }
         public VsOutputWindow outputWindow { get; private set; }
 
@@ -89,13 +90,17 @@ namespace GitWorkTree.Commands
                 IntPtr hwnd = new IntPtr((long)dte.MainWindow.HWnd);
                 WindowInteropHelper helper = new WindowInteropHelper(dialog);
                 helper.Owner = hwnd;
-                dialog.ShowDialog();
+                if (_commandType == CommandType.Add) dialog.ShowDialog();
+                else
+                {
+                    dialogViewModel.CommandInvoked += DialogViewModel_CommandInvoked;
+                    dialog.Show();
+                }
 
                 if (dialogViewModel.IsDataValid == false)
                 {
                     return false;
                 }
-
                 return true;
             }
             catch (Exception ex)
@@ -105,7 +110,16 @@ namespace GitWorkTree.Commands
             }
         }
 
-        public async Task<bool> RunGitCommandAsync()
+        private void DialogViewModel_CommandInvoked(object sender, CommandActionsEventArgs e)
+        {
+            RunGitCommandAsync(e.commandAction);
+        }
+        public Task<bool> RunCreateWorktreeCommandAsync()
+        {
+            return RunGitCommandAsync(CommandActions.Create);
+        }
+
+        public async Task<bool> RunGitCommandAsync(CommandActions _commandActions)
         {
             var RepoPath = dialogViewModel.ActiveRepositoryPath;
             var BranchName = dialogViewModel.SelectedBranch;
@@ -116,70 +130,101 @@ namespace GitWorkTree.Commands
             try
             {
                 outputWindow.ShowOutputPane = true;
-                if (_commandType == CommandType.Add)
+                switch (_commandActions)
                 {
-                    outputWindow?.WriteToOutputWindowAsync($"Create worktree for branch {BranchName} - Enter");
-                    await Task.Run(() =>
-                    {
-                        GitHelper.CreateWorkTree(RepoPath, BranchName, WorkTreePath, shouldForce, (line, type) =>
-                        {
-                            isError = (type == GitOutputType.Error);
-                            outputWindow?.WriteToOutputWindowAsync(line, isError);
-                        });
-                    });
+                    case CommandActions.Create:
+                        isError = await CreateWorktree(RepoPath, BranchName, WorkTreePath, shouldForce, isError);
+                        if (!isError)
+                            if (optionsSaved.IsLoadSolution)
+                                await OpenSolutionAsync(dialogViewModel.FolderPath, true);
+                        break;
 
+                    case CommandActions.Remove:
+                        isError = await RemoveWorktree(RepoPath, BranchName, shouldForce, isError);
+                        break;
+
+                    case CommandActions.Prune:
+                        isError = await PruneWorktrees(RepoPath, isError);
+
+                        if (dialogViewModel.SelectedBranch != null)
+                            await RemoveWorktree(RepoPath, BranchName, shouldForce, isError);
+                        break;
+
+                    case CommandActions.Open:
+                        outputWindow?.WriteToOutputWindowAsync($"Opening worktree {BranchName} - Enter");
+                        await OpenSolutionAsync(dialogViewModel.SelectedBranch, !dialogViewModel.IfOpenInNewVisualStudio);
+                        break;
                 }
-                else if (_commandType == CommandType.Remove)
-                {
-                    if (dialogViewModel.IsPrune)
-                    {
-                        outputWindow?.UpdateStatusBar($"Prune Worktree Executing");
 
-                        await Task.Run(() =>
-                        {
-                            GitHelper.Prune(RepoPath, (line, type) =>
-                            {
-                                isError = (type == GitOutputType.Error);
-                                outputWindow?.WriteToOutputWindowAsync(line, isError);
-                            });
-                        });
-                        outputWindow?.UpdateStatusBar($"Prune Worktree Executed");
-                    }
-
-                    if (dialogViewModel.SelectedBranch != null)
-                    {
-                        outputWindow?.WriteToOutputWindowAsync($"Remove worktree for branch {BranchName} - Enter");
-
-                        await Task.Run(() =>
-                        {
-                            GitHelper.RemoveWorkTree(RepoPath, BranchName, shouldForce, (line, type) =>
-                            {
-                                isError = (type == GitOutputType.Error);
-                                outputWindow?.WriteToOutputWindowAsync(line, isError);
-                            });
-                        });
-                    }
-
-                }
-                var status = isError ? "Failed" : "Completed";
+                var status = isError ? "Failed" : "Executed";
                 outputWindow?.WriteToOutputWindowAsync($"Worktree command - {status}");
                 return !isError;
             }
             catch (Exception ex)
             {
                 outputWindow.ShowOutputPane = true;
-                outputWindow?.WriteToOutputWindowAsync(ex.Message); return false;
+                outputWindow?.WriteToOutputWindowAsync(ex.Message);
+                return false;
             }
-
         }
 
-        public async Task<bool> CloseAndOpenSolutionAsync()
+        private async Task<bool> CreateWorktree(string RepoPath, string BranchName, string WorkTreePath, bool shouldForce, bool isError)
+        {
+            outputWindow?.WriteToOutputWindowAsync($"Create worktree for branch {BranchName} - Enter");
+            await Task.Run(() =>
+            {
+                GitHelper.CreateWorkTree(RepoPath, BranchName, WorkTreePath, shouldForce, (line, type) =>
+                {
+                    isError = (type == GitOutputType.Error);
+                    outputWindow?.WriteToOutputWindowAsync(line, isError);
+                });
+            });
+
+            return isError;
+        }
+
+        private async Task<bool> PruneWorktrees(string RepoPath, bool isError)
+        {
+            outputWindow?.UpdateStatusBar($"Prune Worktree Executing");
+            await Task.Run(() =>
+            {
+                GitHelper.Prune(RepoPath, (line, type) =>
+                {
+                    if (type == GitOutputType.Error)
+                    {
+                        isError = true;
+                        outputWindow?.WriteToOutputWindowAsync(line, isError);
+                    }
+                });
+            });
+            outputWindow?.UpdateStatusBar($"Prune Worktree Executed");
+            return isError;
+        }
+
+        private async Task<bool> RemoveWorktree(string RepoPath, string BranchName, bool shouldForce, bool isError)
+        {
+            if (dialogViewModel.SelectedBranch != null)
+            {
+                outputWindow?.WriteToOutputWindowAsync($"Remove worktree for branch {BranchName} - Enter");
+                await Task.Run(() =>
+                {
+                    GitHelper.RemoveWorkTree(RepoPath, BranchName, shouldForce, (line, type) =>
+                    {
+                        isError = (type == GitOutputType.Error);
+                        outputWindow?.WriteToOutputWindowAsync(line, isError);
+                    });
+                });
+            }
+            if (!isError) await dialogViewModel.LoadBranchesAsync();
+            return isError;
+        }
+
+        public async Task<bool> OpenSolutionAsync(string newSolutionPath, bool openInCurrentInstance)
         {
             try
             {
                 outputWindow?.WriteToOutputWindowAsync($"Load Solution set to True, Opening Worktree Solution");
 
-                var newSolutionPath = dialogViewModel?.FolderPath;
                 if (string.IsNullOrEmpty(newSolutionPath) || !Directory.Exists(newSolutionPath))
                 {
                     outputWindow?.WriteToOutputWindowAsync("Please provide a valid folder path.");
@@ -203,17 +248,24 @@ namespace GitWorkTree.Commands
                 if (solutionFiles.Length == 0)
                 {
                     outputWindow?.WriteToOutputWindowAsync($"No solution file found in the folder: {newSolutionPath}");
-                    return false;
+                    solutionFiles = [newSolutionPath];
                 }
 
-                // Close current solution
-                solutionService.CloseSolutionElement((uint)__VSSLNSAVEOPTIONS.SLNSAVEOPT_PromptSave, null, 0);
+                if (openInCurrentInstance)
+                {
+                    // Close current solution
+                    solutionService.CloseSolutionElement((uint)__VSSLNSAVEOPTIONS.SLNSAVEOPT_PromptSave, null, 0);
 
-                // Get all solution files in the folder
+                    // Get all solution files in the folder
 
 
-                // Open the first solution file found
-                solutionService.OpenSolutionFile(0, solutionFiles[0]);
+                    // Open the first solution file found
+                    solutionService.OpenSolutionFile(0, solutionFiles[0]);
+                }
+                else
+                {
+                    System.Diagnostics.Process.Start("devenv.exe", solutionFiles[0]);
+                }
 
                 outputWindow?.UpdateStatusBar($"The worktree solution in path {newSolutionPath} is loaded");
                 return true;

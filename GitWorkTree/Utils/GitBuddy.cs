@@ -72,7 +72,8 @@ namespace GitWorkTree
             }
             catch (Exception ex)
             {
-                throw new Exception($"An error occurred during Git command execution: {ex.Message}");
+                outputHandler?.Invoke($"An error occurred during Git command execution: {ex.Message}", GitOutputType.Error);
+                throw;
             }
         }
 
@@ -132,7 +133,7 @@ namespace GitWorkTree
             string force = shouldForceCreate ? "-f " : "";
             Execute(new GitCommandArgs()
             {
-                Argument = $"worktree add {force}{workTreePath} {Regex.Match(branchName,
+                Argument = $"worktree add --lock {force}{workTreePath} {Regex.Match(branchName,
                 @"(?:\+?\s?(?:remotes?\/(?:origin|main|upstream)\/(?:HEAD -> (?:origin|main|upstream)\/)?|remotes?\/(?:origin|main|upstream)\/)?|[^\/]+\/)?([^\/]+(?:\/[^\/]+)*)$")
                 .Groups[1].Value}",
 
@@ -158,6 +159,34 @@ namespace GitWorkTree
                 Argument = $"worktree remove {force}{branchName}",
                 WorkingDirectory = repositoryPath
             }, outputHandler);
+        }
+
+        public static string GetMainRepositoryDirectory(Action<string, GitOutputType> outputHandler = null)
+        {
+            string commandoutput = "";
+            GitOutputType outputType = GitOutputType.Standard;
+            var currentPath = Directory.GetCurrentDirectory();
+
+            Execute(new GitCommandArgs() { WorkingDirectory = currentPath, Argument = "rev-parse --git-dir", }, (line, type) =>
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    commandoutput = line.Trim();
+                }
+                outputType = type;
+            });
+
+            string gitFileName = Path.GetFileName(commandoutput);
+
+            if (gitFileName.Equals(".git")) // It's the main repository
+                return currentPath;
+            else if (commandoutput.Contains(".git/worktrees")) // It's a worktree, get the main repository path - two step outside
+                return Path.GetFullPath(Path.Combine(currentPath, ".."));
+            else
+            {
+                outputHandler?.Invoke(commandoutput, outputType);
+                return null;
+            }
         }
     }
 }

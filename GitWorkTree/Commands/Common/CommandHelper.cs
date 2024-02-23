@@ -46,13 +46,20 @@ namespace GitWorkTree.Commands
                 Assumes.Present(serviceProvider);
                 dte = serviceProvider.GetService(typeof(DTE)) as DTE2;
                 Assumes.Present(dte);
-                var gitExt = serviceProvider.GetService(typeof(IGitExt3)) as IGitExt3;
-                Assumes.Present(gitExt);
 
-                ActiveRepositories = gitExt.ActiveRepositories.Select(i => i.RepositoryPath).ToList();
-                if (ActiveRepositories == null || ActiveRepositories.Count == 0)
+                bool isError = false;
+                ActiveRepositories = [GitBuddy.GetMainRepositoryDirectory((line, type) =>
                 {
-                    outputWindow?.UpdateStatusBar("No Repository loaded!");
+                    if (type == GitOutputType.Error)
+                    {
+                        isError = true;
+                        outputWindow?.UpdateStatusBar(line);
+                    }
+                })];
+
+                if (string.IsNullOrEmpty(ActiveRepositories.FirstOrDefault()) || isError)
+                {
+                    if (!isError) outputWindow?.UpdateStatusBar("No Repository loaded!");
                     return false;
                 }
 
@@ -61,7 +68,11 @@ namespace GitWorkTree.Commands
 
                 return true;
             }
-            catch (Exception ex) { outputWindow?.WriteToOutputWindowAsync(ex.Message); return false; }
+            catch (Exception ex)
+            {
+                outputWindow.ShowOutputPane = true;
+                outputWindow?.WriteToOutputWindowAsync(ex.Message); return false;
+            }
         }
 
         public bool GetDataRequired()
@@ -87,7 +98,11 @@ namespace GitWorkTree.Commands
 
                 return true;
             }
-            catch (Exception ex) { outputWindow?.WriteToOutputWindowAsync(ex.Message); return false; }
+            catch (Exception ex)
+            {
+                outputWindow.ShowOutputPane = true;
+                outputWindow?.WriteToOutputWindowAsync(ex.Message); return false;
+            }
         }
 
         public async Task<bool> RunGitCommandAsync()
@@ -150,7 +165,11 @@ namespace GitWorkTree.Commands
                 outputWindow?.WriteToOutputWindowAsync($"Worktree command - {status}");
                 return !isError;
             }
-            catch (Exception ex) { outputWindow?.WriteToOutputWindowAsync(ex.Message); return false; }
+            catch (Exception ex)
+            {
+                outputWindow.ShowOutputPane = true;
+                outputWindow?.WriteToOutputWindowAsync(ex.Message); return false;
+            }
 
         }
 
@@ -158,7 +177,7 @@ namespace GitWorkTree.Commands
         {
             try
             {
-                outputWindow?.WriteToOutputWindowAsync($"Loade Solution set to True, Opening Worktree Solution");
+                outputWindow?.WriteToOutputWindowAsync($"Load Solution set to True, Opening Worktree Solution");
 
                 var newSolutionPath = dialogViewModel?.FolderPath;
                 if (string.IsNullOrEmpty(newSolutionPath) || !Directory.Exists(newSolutionPath))
@@ -201,8 +220,8 @@ namespace GitWorkTree.Commands
             }
             catch (Exception ex)
             {
-                outputWindow?.WriteToOutputWindowAsync(ex.Message);
-                return false;
+                outputWindow.ShowOutputPane = true;
+                outputWindow?.WriteToOutputWindowAsync(ex.Message); return false;
             }
         }
     }

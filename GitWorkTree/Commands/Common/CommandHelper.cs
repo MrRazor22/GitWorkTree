@@ -49,7 +49,14 @@ namespace GitWorkTree.Commands
                 Assumes.Present(dte);
 
                 bool isError = false;
-                ActiveRepositoryPath = GitHelper.GetMainRepositoryDirectory((line, type) =>
+
+                string solutionPath = dte.Solution?.FullName;
+                if (System.IO.File.Exists(solutionPath))
+                {
+                    solutionPath = System.IO.Path.GetDirectoryName(solutionPath);
+                }
+
+                ActiveRepositoryPath = GitHelper.GetMainRepositoryDirectory(solutionPath, (line, type) =>
                 {
                     if (type == GitOutputType.Error)
                     {
@@ -148,6 +155,9 @@ namespace GitWorkTree.Commands
 
                         if (dialogViewModel.SelectedBranch != null)
                             await RemoveWorktree(RepoPath, BranchName, shouldForce, isError);
+
+                        if (!isError)
+                            await dialogViewModel.LoadBranchesAsync();
                         break;
 
                     case CommandActions.Open:

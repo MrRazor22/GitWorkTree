@@ -161,13 +161,12 @@ namespace GitWorkTree
             }, outputHandler);
         }
 
-        public static string GetMainRepositoryDirectory(Action<string, GitOutputType> outputHandler = null)
+        public static string GetMainRepositoryDirectory(string currentSolutionPath, Action<string, GitOutputType> outputHandler = null)
         {
             string commandoutput = "";
             GitOutputType outputType = GitOutputType.Standard;
-            var currentPath = Directory.GetCurrentDirectory();
 
-            Execute(new GitCommandArgs() { WorkingDirectory = currentPath, Argument = "rev-parse --git-dir", }, (line, type) =>
+            Execute(new GitCommandArgs() { WorkingDirectory = currentSolutionPath, Argument = "rev-parse --git-dir", }, (line, type) =>
             {
                 if (!string.IsNullOrWhiteSpace(line))
                 {
@@ -186,7 +185,7 @@ namespace GitWorkTree
 
             string gitFileName = Path.GetFileName(commandoutput);
             if (gitFileName.Equals(".git")) // It's the main repository
-                return currentPath;
+                return currentSolutionPath;
             else if (commandoutput.Contains(".git/worktrees")) // It's a worktree, get the main repository path - three step outside
                 return Path.GetFullPath(Path.Combine(commandoutput, "..", "..", ".."));
             return null;

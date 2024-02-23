@@ -15,10 +15,8 @@ namespace GitWorkTree.ToolWindows.ViewModel
 
         public WorkTreeDialogViewModel() { }
 
-        private List<string> _gitRepositories;
         private string _defaultPath;
 
-        public ObservableCollection<string> GitRepositories { get; set; }
         public ObservableCollection<string> Branches { get; set; }
 
         public string this[string columnName]
@@ -27,10 +25,10 @@ namespace GitWorkTree.ToolWindows.ViewModel
             {
                 string status = "";
                 // Add data validation logic here
-                if (columnName == nameof(SelectedRepository))
+                if (columnName == nameof(ActiveRepositoryPath))
                 {
-                    if (string.IsNullOrEmpty(SelectedRepository))
-                        status = "Please select a repository.";
+                    if (string.IsNullOrEmpty(ActiveRepositoryPath))
+                        status = "No repository available";
                 }
                 if (columnName == nameof(SelectedBranch))
                 {
@@ -55,7 +53,7 @@ namespace GitWorkTree.ToolWindows.ViewModel
             get
             {
                 // Check if all properties are valid
-                return string.IsNullOrEmpty(this[nameof(SelectedRepository)])
+                return string.IsNullOrEmpty(this[nameof(ActiveRepositoryPath)])
                     && string.IsNullOrEmpty(this[nameof(SelectedBranch)])
                     && string.IsNullOrEmpty(this[nameof(FolderPath)]);
                 // Add validation for other properties as needed
@@ -91,14 +89,14 @@ namespace GitWorkTree.ToolWindows.ViewModel
             }
         }
 
-        private string _selectedRepository;
-        public string SelectedRepository
+        private string _activeRepositoryPath;
+        public string ActiveRepositoryPath
         {
-            get { return _selectedRepository; }
+            get { return _activeRepositoryPath; }
             set
             {
-                _selectedRepository = value;
-                OnPropertyChanged(nameof(SelectedRepository));
+                _activeRepositoryPath = value;
+                OnPropertyChanged(nameof(ActiveRepositoryPath));
                 _ = LoadBranchesAsync();
             }
         }
@@ -153,24 +151,22 @@ namespace GitWorkTree.ToolWindows.ViewModel
         }
 
 
-        public WorkTreeDialogViewModel(List<string> gitRepositories, CommandType commandType, string defaultPath = "", VsOutputWindow OutputWindow = null)
+        public WorkTreeDialogViewModel(string gitRepositoryPath, CommandType commandType, string defaultPath = "", VsOutputWindow OutputWindow = null)
         {
-            _gitRepositories = gitRepositories;
             _commandType = commandType;
             _defaultPath = defaultPath;
             _OutputWindow = OutputWindow;
 
-            GitRepositories = new ObservableCollection<string>(_gitRepositories);
             Branches = new ObservableCollection<string>();
 
             WindowTitle = (_commandType == CommandType.Add) ? "Create New Worktree" : "Remove Existing Worktrees";
-            SelectedRepository = GitRepositories.FirstOrDefault();
-            FolderPath = _defaultPath == "" ? _selectedRepository : _defaultPath;
+            ActiveRepositoryPath = gitRepositoryPath;
+            FolderPath = _defaultPath == "" ? _activeRepositoryPath : _defaultPath;
         }
 
         private async Task LoadBranchesAsync()
         {
-            if (string.IsNullOrEmpty(SelectedRepository))
+            if (string.IsNullOrEmpty(ActiveRepositoryPath))
             {
                 _OutputWindow.UpdateStatusBar("Select a Repository");
                 return;
@@ -183,7 +179,7 @@ namespace GitWorkTree.ToolWindows.ViewModel
                 _OutputWindow.UpdateStatusBar("Breanches are Loading...");
                 if (_commandType == CommandType.Add)
                 {
-                    var branches = await Task.Run(() => GitBuddy.GetBranches(SelectedRepository));
+                    var branches = await Task.Run(() => GitHelper.GetBranches(ActiveRepositoryPath));
 
                     // Use ThreadHelper.JoinableTaskFactory.RunAsync to update UI on the UI thread
                     await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
@@ -199,7 +195,7 @@ namespace GitWorkTree.ToolWindows.ViewModel
                 }
                 else if (_commandType == CommandType.Remove)
                 {
-                    var workTreePaths = await Task.Run(() => GitBuddy.GetWorkTreePaths(SelectedRepository));
+                    var workTreePaths = await Task.Run(() => GitHelper.GetWorkTreePaths(ActiveRepositoryPath));
 
                     // Use ThreadHelper.JoinableTaskFactory.RunAsync to update UI on the UI thread
                     await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
@@ -234,7 +230,7 @@ namespace GitWorkTree.ToolWindows.ViewModel
                 string cleanedBranchName = Regex.Match(branchName, @"(?:.*\/)?(?:head -> |origin\/|remote\/)?\+?\s*([^'/]+)").Groups[1].Value;
 
 
-                string pathPrefix = string.IsNullOrEmpty(_defaultPath) ? _selectedRepository : _defaultPath;
+                string pathPrefix = string.IsNullOrEmpty(_defaultPath) ? _activeRepositoryPath : _defaultPath;
                 FolderPath = $@"{pathPrefix}\{cleanedBranchName}";
             }
         }

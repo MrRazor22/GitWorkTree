@@ -1,6 +1,7 @@
 ﻿using GitWorkTree.ToolWindows.ViewModel;
 using Microsoft.VisualStudio.PlatformUI;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,6 +44,12 @@ namespace GitWorkTree.ToolWindows.View
                 return Branches
                 .Where(p => string.IsNullOrEmpty(filter) || p.ToLower().Contains(filter.ToLower())).ToList();
             }, cancellationToken);
+        }
+
+        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri));
+            e.Handled = true;
         }
     }
 }

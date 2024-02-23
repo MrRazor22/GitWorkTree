@@ -46,16 +46,11 @@
             </Grid.RowDefinitions>
             <TextBlock FontWeight="SemiBold" Text="Repository: " d:Background="White" Grid.Row="0" Grid.Column="0" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Left">
             </TextBlock>
-            <ComboBox Name="RepositoryComboBox" 
-                       ItemsSource="{Binding GitRepositories}" SelectedItem="{Binding SelectedRepository, UpdateSourceTrigger=PropertyChanged}" SelectedIndex="0"
-                      Padding="5" d:Background="White" Grid.Row="0" Grid.Column="1" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"
-                      VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True">
-                <ComboBox.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <VirtualizingStackPanel/>
-                    </ItemsPanelTemplate>
-                </ComboBox.ItemsPanel>
-            </ComboBox>
+            <TextBlock  Padding="5" d:Background="White" Grid.Row="0" Grid.Column="1" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch">
+            <Hyperlink NavigateUri="{Binding ActiveRepositoryPath}" RequestNavigate="Hyperlink_RequestNavigate">
+                <Run Text="{Binding ActiveRepositoryPath}" />
+            </Hyperlink>
+            </TextBlock>
             <TextBlock FontWeight="SemiBold" Text="{Binding CommandType, Converter={StaticResource CommandTypeToBranchWorktreeLableConverter}}" 
                        d:Background="White" Grid.Row="1" Grid.Column="0" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left">
             </TextBlock>

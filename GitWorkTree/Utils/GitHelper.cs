@@ -14,7 +14,7 @@ namespace GitWorkTree
         public string WorkingDirectory { get; set; }
     }
 
-    public static class GitBuddy
+    public static class GitHelper
     {
         private static string GitPath = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory,
             @"CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe");
@@ -133,7 +133,7 @@ namespace GitWorkTree
             string force = shouldForceCreate ? "-f " : "";
             Execute(new GitCommandArgs()
             {
-                Argument = $"worktree add --lock {force}{workTreePath} {Regex.Match(branchName,
+                Argument = $"worktree add {force}{workTreePath} {Regex.Match(branchName,
                 @"(?:\+?\s?(?:remotes?\/(?:origin|main|upstream)\/(?:HEAD -> (?:origin|main|upstream)\/)?|remotes?\/(?:origin|main|upstream)\/)?|[^\/]+\/)?([^\/]+(?:\/[^\/]+)*)$")
                 .Groups[1].Value}",
 
@@ -176,17 +176,20 @@ namespace GitWorkTree
                 outputType = type;
             });
 
-            string gitFileName = Path.GetFileName(commandoutput);
 
-            if (gitFileName.Equals(".git")) // It's the main repository
-                return currentPath;
-            else if (commandoutput.Contains(".git/worktrees")) // It's a worktree, get the main repository path - two step outside
-                return Path.GetFullPath(Path.Combine(currentPath, ".."));
-            else
+            if (outputType == GitOutputType.Error)
             {
                 outputHandler?.Invoke(commandoutput, outputType);
                 return null;
             }
+
+
+            string gitFileName = Path.GetFileName(commandoutput);
+            if (gitFileName.Equals(".git")) // It's the main repository
+                return currentPath;
+            else if (commandoutput.Contains(".git/worktrees")) // It's a worktree, get the main repository path - three step outside
+                return Path.GetFullPath(Path.Combine(commandoutput, "..", "..", ".."));
+            return null;
         }
     }
 }

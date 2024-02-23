@@ -19,7 +19,7 @@ namespace GitWorkTree.Commands
         private AsyncPackage package;
         private CommandType _commandType;
 
-        public List<string> ActiveRepositories { get; private set; }
+        public string ActiveRepositoryPath { get; private set; }
         public VsOutputWindow outputWindow { get; private set; }
 
         public static Action<General> OnSettingsSaved = general => optionsSaved = general;
@@ -48,23 +48,23 @@ namespace GitWorkTree.Commands
                 Assumes.Present(dte);
 
                 bool isError = false;
-                ActiveRepositories = [GitBuddy.GetMainRepositoryDirectory((line, type) =>
+                ActiveRepositoryPath = GitHelper.GetMainRepositoryDirectory((line, type) =>
                 {
                     if (type == GitOutputType.Error)
                     {
                         isError = true;
                         outputWindow?.UpdateStatusBar(line);
                     }
-                })];
+                });
 
-                if (string.IsNullOrEmpty(ActiveRepositories.FirstOrDefault()) || isError)
+                if (string.IsNullOrEmpty(ActiveRepositoryPath) || isError)
                 {
                     if (!isError) outputWindow?.UpdateStatusBar("No Repository loaded!");
                     return false;
                 }
 
                 isLoadSolution = optionsSaved != null ? optionsSaved.IsLoadSolution : false;
-                defaultBranchPath = optionsSaved?.DefaultBranchPath != null ? optionsSaved.DefaultBranchPath : ActiveRepositories.FirstOrDefault();
+                defaultBranchPath = optionsSaved?.DefaultBranchPath != null ? optionsSaved.DefaultBranchPath : ActiveRepositoryPath;
 
                 return true;
             }
@@ -81,7 +81,7 @@ namespace GitWorkTree.Commands
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
 
-                dialogViewModel = new WorkTreeDialogViewModel(ActiveRepositories, _commandType, defaultBranchPath, outputWindow);
+                dialogViewModel = new WorkTreeDialogViewModel(ActiveRepositoryPath, _commandType, defaultBranchPath, outputWindow);
                 WorkTreeDialogWindow dialog = new WorkTreeDialogWindow
                 {
                     DataContext = dialogViewModel
@@ -107,7 +107,7 @@ namespace GitWorkTree.Commands
 
         public async Task<bool> RunGitCommandAsync()
         {
-            var RepoPath = dialogViewModel.SelectedRepository;
+            var RepoPath = dialogViewModel.ActiveRepositoryPath;
             var BranchName = dialogViewModel.SelectedBranch;
             var WorkTreePath = dialogViewModel.FolderPath;
             var shouldForce = dialogViewModel.IsForceCreateRemove;
@@ -121,7 +121,7 @@ namespace GitWorkTree.Commands
                     outputWindow?.WriteToOutputWindowAsync($"Create worktree for branch {BranchName} - Enter");
                     await Task.Run(() =>
                     {
-                        GitBuddy.CreateWorkTree(RepoPath, BranchName, WorkTreePath, shouldForce, (line, type) =>
+                        GitHelper.CreateWorkTree(RepoPath, BranchName, WorkTreePath, shouldForce, (line, type) =>
                         {
                             isError = (type == GitOutputType.Error);
                             outputWindow?.WriteToOutputWindowAsync(line, isError);
@@ -137,7 +137,7 @@ namespace GitWorkTree.Commands
 
                         await Task.Run(() =>
                         {
-                            GitBuddy.Prune(RepoPath, (line, type) =>
+                            GitHelper.Prune(RepoPath, (line, type) =>
                             {
                                 isError = (type == GitOutputType.Error);
                                 outputWindow?.WriteToOutputWindowAsync(line, isError);
@@ -152,7 +152,7 @@ namespace GitWorkTree.Commands
 
                         await Task.Run(() =>
                         {
-                            GitBuddy.RemoveWorkTree(RepoPath, BranchName, shouldForce, (line, type) =>
+                            GitHelper.RemoveWorkTree(RepoPath, BranchName, shouldForce, (line, type) =>
                             {
                                 isError = (type == GitOutputType.Error);
                                 outputWindow?.WriteToOutputWindowAsync(line, isError);

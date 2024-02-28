@@ -64,7 +64,7 @@
                        d:Background="White" Grid.Row="1" Grid.Column="0" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left">
                 </TextBlock>
                 <ComboBox Name="BranchName" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
-                      ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=Explicit, ValidatesOnDataErrors=True}"
+                      ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
                       Padding="5" d:Background="White" Grid.Row="1" Grid.Column="1" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
                       VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True" >
                     <ComboBox.ItemsPanel>

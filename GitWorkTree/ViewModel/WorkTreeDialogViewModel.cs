@@ -12,7 +12,7 @@ namespace GitWorkTree.ViewModel
     public class WorkTreeDialogViewModel : INotifyPropertyChanged, IDataErrorInfo
     {
         private readonly LoggingHelper outputWindow = LoggingHelper.Instance;
-        private string _defaultPath;
+        private General optionsSaved;
 
         #region IDataErrorInfo Props
         public string this[string columnName]
@@ -58,16 +58,16 @@ namespace GitWorkTree.ViewModel
         }
 
 
-        private CommandType _commandType;
+        private CommandType commandType;
         public CommandType CommandType
         {
-            get { return _commandType; }
+            get { return commandType; }
             set
             {
-                if (_commandType != value)
+                if (commandType != value)
                 {
-                    _commandType = value;
-                    OnPropertyChanged(nameof(_commandType));
+                    commandType = value;
+                    OnPropertyChanged(nameof(commandType));
                 }
             }
         }
@@ -148,15 +148,15 @@ namespace GitWorkTree.ViewModel
         #endregion
 
         public WorkTreeDialogViewModel() { }
-        public WorkTreeDialogViewModel(string gitRepositoryPath, CommandType commandType, string defaultPath = "")
+        public WorkTreeDialogViewModel(string gitRepositoryPath, CommandType commandType, General optionsSaved)
         {
             //init fields
-            _commandType = commandType;
-            _defaultPath = defaultPath;
+            this.commandType = commandType;
+            this.optionsSaved = optionsSaved;
             Branches_Worktrees = new ObservableCollection<string>();
 
             //set title
-            if (_commandType == CommandType.Add)
+            if (this.commandType == CommandType.Create)
             {
                 WindowTitle = "Create New Worktree";
             }
@@ -168,7 +168,7 @@ namespace GitWorkTree.ViewModel
 
             //set repo and folder path (branch/worktree updated based on repo set)
             ActiveRepositoryPath = gitRepositoryPath;
-            FolderPath = _defaultPath == "" ? _activeRepositoryPath : _defaultPath;
+            FolderPath = optionsSaved.DefaultBranchPath == "" ? _activeRepositoryPath : optionsSaved.DefaultBranchPath;
         }
 
         private async Task LoadBranches_WorktreesAsync()
@@ -180,13 +180,13 @@ namespace GitWorkTree.ViewModel
             }
             List<string> branches_Worktrees = null;
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var status = $"Loading {(_commandType == CommandType.Add ? "Branches" : "Worktrees")}...";
+            var status = $"Loading {(commandType == CommandType.Create ? "Branches" : "Worktrees")}...";
             try
             {
                 outputWindow.UpdateStatusBar(status);
-                if (_commandType == CommandType.Add)
+                if (commandType == CommandType.Create)
                     branches_Worktrees = await GitHelper.GetBranchesAsync(ActiveRepositoryPath);
-                else if (_commandType == CommandType.Manage)
+                else if (commandType == CommandType.Manage)
                     branches_Worktrees = await GitHelper.GetWorkTreePathsAsync(ActiveRepositoryPath);
 
                 await PopulateBranches_Worktrees(branches_Worktrees);
@@ -219,8 +219,8 @@ namespace GitWorkTree.ViewModel
         {
             if (!string.IsNullOrEmpty(SelectedBranch_Worktree))
             {
-                string cleanedBranchName = SelectedBranch_Worktree.ToFolderFormat();//Regex.Match(branchName, @"(?:.*\/)?(?:head -> |origin\/|remote\/)?\+?\s*([^'/]+)").Groups[1].Value;
-                string pathPrefix = string.IsNullOrEmpty(_defaultPath) ? _activeRepositoryPath : _defaultPath;
+                string cleanedBranchName = SelectedBranch_Worktree.ToFolderFormat();
+                string pathPrefix = string.IsNullOrEmpty(optionsSaved.DefaultBranchPath) ? _activeRepositoryPath : optionsSaved.DefaultBranchPath;
                 FolderPath = $@"{pathPrefix}\{cleanedBranchName}";
             }
         }
@@ -240,10 +240,11 @@ namespace GitWorkTree.ViewModel
         private async Task CreateRemoveWorkTree()
         {
             if (!IsValid) return;
-            if (CommandType == CommandType.Add)
+            if (CommandType == CommandType.Create)
             {
                 CloseDialog();
-                await GitHelper.CreateWorkTreeAsync(ActiveRepositoryPath, SelectedBranch_Worktree, FolderPath, IsForceCreateRemove);
+                if (await GitHelper.CreateWorkTreeAsync(ActiveRepositoryPath, SelectedBranch_Worktree, FolderPath, IsForceCreateRemove))
+                    if (optionsSaved.IsLoadSolution) await SolutionHelper.OpenSolutionAsync(FolderPath, true);
             }
             else if (CommandType == CommandType.Manage)
             {

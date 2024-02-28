@@ -11,7 +11,7 @@ namespace GitWorkTree.View.Converters
         {
             if (value is CommandType commandType)
             {
-                return (commandType == CommandType.Add) ? "Force create" : "Force remove";
+                return (commandType == CommandType.Create) ? "Force create" : "Force remove";
             }
             return string.Empty;
         }
@@ -28,7 +28,7 @@ namespace GitWorkTree.View.Converters
         {
             if (value is CommandType commandType)
             {
-                return (commandType == CommandType.Add) ? "Create" : "Remove";
+                return (commandType == CommandType.Create) ? "Create" : "Remove";
             }
             return string.Empty;
         }
@@ -45,7 +45,7 @@ namespace GitWorkTree.View.Converters
         {
             if (value is CommandType commandType)
             {
-                return (commandType == CommandType.Add) ? "Branch name:" : "Worktrees:";
+                return (commandType == CommandType.Create) ? "Branch name:" : "Worktrees:";
             }
             return string.Empty;
         }
@@ -62,7 +62,7 @@ namespace GitWorkTree.View.Converters
         {
             if (value is CommandType commandType)
             {
-                return (commandType == CommandType.Add) ? Visibility.Collapsed : Visibility.Visible;
+                return (commandType == CommandType.Create) ? Visibility.Collapsed : Visibility.Visible;
             }
             return Visibility.Visible; // Default to Visible if the value is not a CommandTypeEnum
         }

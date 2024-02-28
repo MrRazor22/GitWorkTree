@@ -12,7 +12,7 @@ namespace GitWorkTree
             CommandExecutor commandExecution = null;
             try
             {
-                commandExecution = new CommandExecutor(CommandType.Add);
+                commandExecution = new CommandExecutor(CommandType.Create);
 
                 if (commandExecution.PreRequisite())
                     commandExecution.Execute();

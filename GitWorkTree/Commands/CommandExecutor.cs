@@ -8,7 +8,7 @@ using GitWorkTree.View;
 
 namespace GitWorkTree.Commands
 {
-    public enum CommandType { Add, Manage };
+    public enum CommandType { Create, Manage };
     internal class CommandExecutor
     {
         private CommandType _commandType;
@@ -59,7 +59,7 @@ namespace GitWorkTree.Commands
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
 
-                dialogViewModel = new WorkTreeDialogViewModel(ActiveRepositoryPath, _commandType, defaultBranchPath);
+                dialogViewModel = new WorkTreeDialogViewModel(ActiveRepositoryPath, _commandType, optionsSaved);
                 WorkTreeDialogWindow dialog = new WorkTreeDialogWindow
                 {
                     DataContext = dialogViewModel

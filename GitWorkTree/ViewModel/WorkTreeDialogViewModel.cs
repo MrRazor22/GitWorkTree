@@ -12,53 +12,50 @@ namespace GitWorkTree.ViewModel
     public class WorkTreeDialogViewModel : INotifyPropertyChanged, IDataErrorInfo
     {
         private readonly LoggingHelper outputWindow = LoggingHelper.Instance;
-        public WorkTreeDialogViewModel() { }
-
         private string _defaultPath;
 
-        public ObservableCollection<string> Branches_Worktrees { get; set; }
-
+        #region IDataErrorInfo Props
         public string this[string columnName]
         {
             get
             {
-                string status = "";
-                // Add data validation logic here
+                string errorStatus = "";
+                // data validation logic here
                 if (columnName == nameof(ActiveRepositoryPath))
                 {
                     if (string.IsNullOrEmpty(ActiveRepositoryPath))
-                        status = "No repository available";
+                        errorStatus = "No repository available";
                 }
                 if (columnName == nameof(SelectedBranch_Worktree))
                 {
                     if (string.IsNullOrEmpty(SelectedBranch_Worktree))
-                        status = "Please enter a valid branch/Worktree";
+                        errorStatus = "Please enter a valid branch/Worktree";
                 }
                 else if (columnName == nameof(FolderPath))
                 {
                     if (string.IsNullOrEmpty(FolderPath))
-                        status = "Please enter a valid path for worktree";
+                        errorStatus = "Please enter a valid path for worktree";
                 }
 
-                outputWindow.UpdateStatusBar(status);
-                return status;
+                outputWindow.UpdateStatusBar(errorStatus);
+                return errorStatus;
             }
         }
+        public string Error => null;
+        #endregion
 
         #region UI Related Properties
-        public string Error => null;
-
-        //private bool IsValid
-        //{
-        //    get
-        //    {
-        //        // Check if all properties are valid
-        //        return string.IsNullOrEmpty(this[nameof(ActiveRepositoryPath)])
-        //            && string.IsNullOrEmpty(this[nameof(SelectedBranch)])
-        //            && string.IsNullOrEmpty(this[nameof(FolderPath)]);
-        //        // Add validation for other properties as needed
-        //    }
-        //}
+        public ObservableCollection<string> Branches_Worktrees { get; set; }
+        private bool IsValid
+        {
+            get
+            {
+                // Check if all properties are valid
+                return string.IsNullOrEmpty(this[nameof(ActiveRepositoryPath)])
+                    && string.IsNullOrEmpty(this[nameof(SelectedBranch_Worktree)])
+                    && string.IsNullOrEmpty(this[nameof(FolderPath)]);
+            }
+        }
 
 
         private CommandType _commandType;
@@ -150,13 +147,15 @@ namespace GitWorkTree.ViewModel
         }
         #endregion
 
+        public WorkTreeDialogViewModel() { }
         public WorkTreeDialogViewModel(string gitRepositoryPath, CommandType commandType, string defaultPath = "")
         {
+            //init fields
             _commandType = commandType;
             _defaultPath = defaultPath;
-
             Branches_Worktrees = new ObservableCollection<string>();
 
+            //set title
             if (_commandType == CommandType.Add)
             {
                 WindowTitle = "Create New Worktree";
@@ -167,6 +166,7 @@ namespace GitWorkTree.ViewModel
                 IfOpenInNewVisualStudio = true;
             }
 
+            //set repo and folder path (branch/worktree updated based on repo set)
             ActiveRepositoryPath = gitRepositoryPath;
             FolderPath = _defaultPath == "" ? _activeRepositoryPath : _defaultPath;
         }
@@ -202,7 +202,7 @@ namespace GitWorkTree.ViewModel
 
         private async Task PopulateBranches_Worktrees(List<string> branches_Worktrees)
         {
-            if (branches_Worktrees == null) { outputWindow?.UpdateStatusBar("No Branches available for this repository"); return; }
+            if (branches_Worktrees == null) { outputWindow?.UpdateStatusBar("No Branches/Worktrees available for this repository"); return; }
             await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -211,6 +211,7 @@ namespace GitWorkTree.ViewModel
                 {
                     Branches_Worktrees.Add(item);
                 }
+                SelectedBranch_Worktree = Branches_Worktrees.FirstOrDefault();
             });
         }
 
@@ -238,7 +239,7 @@ namespace GitWorkTree.ViewModel
         }
         private async Task CreateRemoveWorkTree()
         {
-            //if (!IsValid) return;
+            if (!IsValid) return;
             if (CommandType == CommandType.Add)
             {
                 CloseDialog();
@@ -256,7 +257,7 @@ namespace GitWorkTree.ViewModel
 
         private async Task OpenWorkTree()
         {
-            //if (!IsValid) return;
+            if (!IsValid) return;
             if (!IfOpenInNewVisualStudio) CloseDialog();
             await SolutionHelper.OpenSolutionAsync(SelectedBranch_Worktree, !IfOpenInNewVisualStudio);
         }

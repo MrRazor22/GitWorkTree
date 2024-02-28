@@ -227,7 +227,7 @@ namespace GitWorkTree.Helpers
         private static bool LogResult(bool isCompleted)
         {
             var result = isCompleted ? "completed" : "failed";
-            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Git worktree command execution - {result}");
+            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Command execution - {result}");
             return isCompleted;
         }
 

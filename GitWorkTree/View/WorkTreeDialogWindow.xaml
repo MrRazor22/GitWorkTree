@@ -63,8 +63,8 @@
                 <TextBlock FontWeight="SemiBold" Text="{Binding CommandType, Converter={StaticResource CommandTypeToBranchWorktreeLableConverter}}" 
                        d:Background="White" Grid.Row="1" Grid.Column="0" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left">
                 </TextBlock>
-                <ComboBox Name="BranchName" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown" 
-                      ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=PropertyChanged}"
+                <ComboBox Name="BranchName" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
+                      ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=Explicit, ValidatesOnDataErrors=True}"
                       Padding="5" d:Background="White" Grid.Row="1" Grid.Column="1" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
                       VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True" >
                     <ComboBox.ItemsPanel>
@@ -88,7 +88,8 @@
                        d:Background="White" Grid.Row="2" Grid.Column="0" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Left" >
                     </TextBlock>
                     <usercontrols:FolderEntry x:Name="folderEntry" d:Visibility="Visible"
-                    FolderPath="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged}"  Grid.Row="2" Grid.Column="1"  Description="Folder for branch worktree" VerticalAlignment="Center" />
+                    FolderPath="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" 
+                     Grid.Row="2" Grid.Column="1"  Description="Folder for branch worktree" VerticalAlignment="Center" />
                 </Grid>
 
                 <Grid d:Visibility="Collapsed"

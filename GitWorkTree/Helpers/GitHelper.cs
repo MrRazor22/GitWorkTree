@@ -87,10 +87,10 @@ namespace GitWorkTree.Helpers
             LoggingHelper outputWindow = LoggingHelper.Instance;
             bool isError = false;
             if (gitCommandArgs == null || string.IsNullOrEmpty(gitCommandArgs.WorkingDirectory))
-                throw new ArgumentException("The working directory is not valid");
+                outputWindow?.WriteToOutputWindowAsync("The working directory is invalid or not loaded yet");
 
             if (!File.Exists(GitPath))
-                throw new FileNotFoundException($"Git executable not found at: {GitPath}");
+                outputWindow?.WriteToOutputWindowAsync($"Git executable not found at: {GitPath}", true);
 
             try
             {
@@ -151,9 +151,8 @@ namespace GitWorkTree.Helpers
             }
             catch (Exception ex)
             {
-                isError = outputWindow.ShowOutputPane = true;
-                outputWindow?.WriteToOutputWindowAsync($"An error occurred during Git command execution: {ex.Message}");
-                return !isError;
+                outputWindow?.WriteToOutputWindowAsync($"An error occurred during Git command execution: {ex.Message}", true);
+                return true;
             }
         }
 
@@ -205,48 +204,47 @@ namespace GitWorkTree.Helpers
             (string repositoryPath, string branchName, string workTreePath, bool shouldForceCreate)
         {
             string force = shouldForceCreate ? "-f " : "";
-            LoggingHelper.Instance?.WriteToOutputWindowAsync("Executing create git worktree command");
+            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Creating git worktree for branch {branchName}", true);
             var isCompleted = await ExecuteAsync(new GitCommandArgs()
             {
                 Argument = $"worktree add {force}{workTreePath} {branchName.ToGitCommandExecutableFormat()}",
 
                 WorkingDirectory = repositoryPath
-            });//Regex.Match(branchName,
-               // @"(?:\+?\s?(?:remotes?\/(?:origin|main|upstream)\/(?:HEAD -> (?:origin|main|upstream)\/)?|remotes?\/(?:origin|main|upstream)\/)?|[^\/]+\/)?([^\/]+(?:\/[^\/]+)*)$")
-               // .Groups[1].Value
-            var result = isCompleted ? "completed" : "failed";
-            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Git command execution - {result}");
-            return isCompleted;
+            });
+            return LogResult(isCompleted);
         }
 
         public static async Task<bool> RemoveWorkTreeAsync(string repositoryPath, string workTreePath, bool shouldForceCreate)
         {
             string force = shouldForceCreate ? "-f " : "";
-            LoggingHelper.Instance?.WriteToOutputWindowAsync("Executing remove git worktree command");
+            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Removing git worktree at {workTreePath}", true);
             var isCompleted = await ExecuteAsync(new GitCommandArgs()
             {
                 Argument = $"worktree remove {force}{workTreePath}",
                 WorkingDirectory = repositoryPath
             });
-            var result = isCompleted ? "completed" : "failed";
-            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Git command execution - {result}");
-            return isCompleted;
+            return LogResult(isCompleted);
         }
 
         public static async Task<bool> PruneAsync(string repositoryPath)
         {
-            LoggingHelper.Instance?.WriteToOutputWindowAsync("Executing prune git worktree command");
+            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Pruning git worktree for repository {repositoryPath}", true);
             var isCompleted = await ExecuteAsync(new GitCommandArgs()
             {
                 Argument = "prune",
                 WorkingDirectory = repositoryPath
             });
+            return LogResult(isCompleted);
+        }
+
+        private static bool LogResult(bool isCompleted)
+        {
             var result = isCompleted ? "completed" : "failed";
-            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Git command execution - {result}");
+            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Git wroktree command execution - {result}");
             return isCompleted;
         }
 
-        public static async Task<string> GetgitFolderDirectoryAsync(string currentSolutionPath)
+        public static async Task<string> GetGitFolderDirectoryAsync(string currentSolutionPath)
         {
             string commandoutput = "";
             var isCompleted = await ExecuteAsync(new GitCommandArgs() { WorkingDirectory = currentSolutionPath, Argument = "rev-parse --git-dir", },

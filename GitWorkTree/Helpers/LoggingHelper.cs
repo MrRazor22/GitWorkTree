@@ -17,8 +17,6 @@ namespace GitWorkTree.Helpers
 
         public static LoggingHelper Instance => lazyInstance.Value;
 
-        public bool ShowOutputPane { get; set; } = false;
-
         private LoggingHelper()
         {
             try
@@ -33,7 +31,7 @@ namespace GitWorkTree.Helpers
             }
         }
 
-        public async Task WriteToOutputWindowAsync(string message)
+        public async Task WriteToOutputWindowAsync(string message, bool ShowOutputPane = false)
         {
             await Task.Run(() =>
             {
@@ -52,7 +50,6 @@ namespace GitWorkTree.Helpers
                         {
                             outputPane?.Activate();
                             dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput).Visible = true;
-                            ShowOutputPane = false;
                         }
 
                         outputPane?.OutputStringThreadSafe(formattedMessage);

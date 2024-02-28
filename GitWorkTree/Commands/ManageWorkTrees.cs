@@ -9,10 +9,10 @@ namespace GitWorkTree
         protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            CommandHelper commandExecution = null;
+            CommandExecutor commandExecution = null;
             try
             {
-                commandExecution = new CommandHelper(CommandType.Manage);
+                commandExecution = new CommandExecutor(CommandType.Manage);
 
                 if (commandExecution.PreRequisite())
                     commandExecution.Execute();

@@ -12,7 +12,7 @@ namespace GitWorkTree.Helpers
             {
                 solutionPath = Path.GetDirectoryName(solutionPath);
             }
-            var gitFolderPath = ThreadHelper.JoinableTaskFactory.Run(() => GitHelper.GetgitFolderDirectoryAsync(solutionPath));
+            var gitFolderPath = ThreadHelper.JoinableTaskFactory.Run(() => GitHelper.GetGitFolderDirectoryAsync(solutionPath));
 
             string gitFileName = Path.GetFileName(gitFolderPath);
             if (gitFileName != null && gitFileName.Equals(".git")) // It's the main repository
@@ -26,11 +26,11 @@ namespace GitWorkTree.Helpers
             LoggingHelper outputWindow = LoggingHelper.Instance;
             try
             {
-                outputWindow?.WriteToOutputWindowAsync($"Load Solution set to True, Opening Worktree Solution");
+                outputWindow?.WriteToOutputWindowAsync($"Opening Worktree Solution at {newSolutionPath}", true);
 
                 if (string.IsNullOrEmpty(newSolutionPath) || !Directory.Exists(newSolutionPath))
                 {
-                    outputWindow?.WriteToOutputWindowAsync($"{newSolutionPath} is not a valid folder path.");
+                    outputWindow?.WriteToOutputWindowAsync($"Not a valid folder path {newSolutionPath}");
                     return false;
                 }
 
@@ -49,7 +49,7 @@ namespace GitWorkTree.Helpers
                 // Check if any solution files exist
                 if (solutionFiles.Length == 0)
                 {
-                    outputWindow?.WriteToOutputWindowAsync($"No solution file found, so opening the folder: {newSolutionPath}");
+                    outputWindow?.WriteToOutputWindowAsync($"No solution file found, opening the folder {newSolutionPath}");
                     solutionFiles = [newSolutionPath];
                 }
 
@@ -71,8 +71,7 @@ namespace GitWorkTree.Helpers
             }
             catch (Exception ex)
             {
-                outputWindow.ShowOutputPane = true;
-                outputWindow?.WriteToOutputWindowAsync(ex.Message);
+                outputWindow?.WriteToOutputWindowAsync(ex.Message, true);
                 return false;
             }
         }

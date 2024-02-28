@@ -57,7 +57,6 @@ namespace GitWorkTree.ViewModel
             try
             {
                 _isExecuting = true;
-                outputWindow.ShowOutputPane = true;
 
                 if (_execute != null)
                 {
@@ -70,7 +69,7 @@ namespace GitWorkTree.ViewModel
             }
             catch (Exception ex)
             {
-                outputWindow.WriteToOutputWindowAsync($"Command execution failed: {ex.Message}");
+                outputWindow.WriteToOutputWindowAsync($"Command execution failed: {ex.Message}", true);
             }
             finally
             {

@@ -20,13 +20,13 @@ namespace GitWorkTree
         {
             await this.RegisterCommandsAsync();
             await InteractWithSettingsAsync();
-            General.Saved += CommandHelper.OnSettingsSaved;
+            General.Saved += CommandExecutor.OnSettingsSaved;
         }
         private async Task InteractWithSettingsAsync()
         {
             // read settings
             var general = await General.GetLiveInstanceAsync();
-            CommandHelper.optionsSaved = general;
+            CommandExecutor.optionsSaved = general;
         }
     }
 }

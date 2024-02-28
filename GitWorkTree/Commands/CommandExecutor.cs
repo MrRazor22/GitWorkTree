@@ -9,7 +9,7 @@ using GitWorkTree.View;
 namespace GitWorkTree.Commands
 {
     public enum CommandType { Add, Manage };
-    internal class CommandHelper
+    internal class CommandExecutor
     {
         private CommandType _commandType;
         private string ActiveRepositoryPath;
@@ -22,7 +22,7 @@ namespace GitWorkTree.Commands
         public static General optionsSaved { get; set; }
         public static Action<General> OnSettingsSaved = general => optionsSaved = general;
 
-        public CommandHelper(CommandType commandType)
+        public CommandExecutor(CommandType commandType)
         {
             _commandType = commandType;
         }
@@ -48,8 +48,8 @@ namespace GitWorkTree.Commands
             }
             catch (Exception ex)
             {
-                outputWindow.ShowOutputPane = true;
-                outputWindow?.WriteToOutputWindowAsync("Pre-requisite check failed - " + ex.Message); return false;
+                outputWindow?.WriteToOutputWindowAsync("Pre-requisite check failed - " + ex.Message, true);
+                return false;
             }
         }
 
@@ -76,8 +76,8 @@ namespace GitWorkTree.Commands
             }
             catch (Exception ex)
             {
-                outputWindow.ShowOutputPane = true;
-                outputWindow?.WriteToOutputWindowAsync("Command execution failed - " + ex.Message); return false;
+                outputWindow?.WriteToOutputWindowAsync("Command execution failed - " + ex.Message, true);
+                return false;
             }
         }
     }

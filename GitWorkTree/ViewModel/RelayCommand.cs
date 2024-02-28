@@ -12,7 +12,7 @@ namespace GitWorkTree.ViewModel
         private readonly Action<object> _execute;
         private readonly Func<object, Task> _executeAsync;
         private readonly Predicate<object> _canExecute;
-        private bool _isExecuting;
+        private static bool _isExecuting;
         private LoggingHelper outputWindow = LoggingHelper.Instance;
 
         // Constructor for synchronous command
@@ -37,7 +37,7 @@ namespace GitWorkTree.ViewModel
 
         public bool CanExecute(object parameter)
         {
-            var busyMessage = "Another command is in progress...";
+            var busyMessage = "Another command in progress...";
             if (!_isExecuting && (_canExecute == null || _canExecute(parameter)))
             {
                 outputWindow.UpdateStatusBar("", busyMessage);

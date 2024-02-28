@@ -109,30 +109,18 @@ namespace GitWorkTree.Helpers
                 var outputDataReceivedTask = new TaskCompletionSource<bool>();
                 var errorDataReceivedTask = new TaskCompletionSource<bool>();
 
-                process.OutputDataReceived += (sender, e) =>
+                DataReceivedEventHandler gitOutputHandler = (sender, e) =>
                 {
                     if (e.Data != null)
                     {
-                        if (e.Data.IndexOf("fatal", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        e.Data.IndexOf("error", StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            outputWindow?.WriteToOutputWindowAsync(e.Data);
-                            isError = true;
-                        }
-                        else outputHandler?.Invoke(e.Data);
-
+                        isError = isError || Regex.IsMatch(e.Data, @"\b(error|fatal|failed|rejected|conflict)\b", RegexOptions.IgnoreCase);
+                        if (!isError) outputHandler?.Invoke(e.Data);
+                        else outputWindow?.WriteToOutputWindowAsync(e.Data);
                     }
                 };
 
-                process.ErrorDataReceived += (sender, e) =>
-                {
-                    if (e.Data != null)
-                    {
-                        outputWindow?.WriteToOutputWindowAsync(e.Data);
-                        outputHandler?.Invoke(e.Data);
-                        isError = true;
-                    }
-                };
+                process.OutputDataReceived += gitOutputHandler;
+                process.ErrorDataReceived += gitOutputHandler;
 
                 process.EnableRaisingEvents = true;
 
@@ -208,7 +196,6 @@ namespace GitWorkTree.Helpers
             var isCompleted = await ExecuteAsync(new GitCommandArgs()
             {
                 Argument = $"worktree add {force}{workTreePath} {branchName.ToGitCommandExecutableFormat()}",
-
                 WorkingDirectory = repositoryPath
             });
             return LogResult(isCompleted);
@@ -240,7 +227,7 @@ namespace GitWorkTree.Helpers
         private static bool LogResult(bool isCompleted)
         {
             var result = isCompleted ? "completed" : "failed";
-            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Git wroktree command execution - {result}");
+            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Git worktree command execution - {result}");
             return isCompleted;
         }
 

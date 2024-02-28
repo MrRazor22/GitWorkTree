@@ -29,7 +29,7 @@ namespace GitWorkTree.View
 
             await Task.Delay(300); // Introduce a delay to reduce the frequency of filtering
 
-            var branches = (DataContext as WorkTreeDialogViewModel).Branches;
+            var branches = (DataContext as WorkTreeDialogViewModel).Branches_Worktrees;
             cmb.ItemsSource = await FilterBranchNamesAsync(cmb.Text, branches.ToList(), filterCancellationTokenSource.Token); ;
 
 

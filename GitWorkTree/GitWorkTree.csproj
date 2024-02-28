@@ -48,9 +48,9 @@
   <ItemGroup>
     <Compile Include="Commands\Common\CommandHelper.cs" />
     <Compile Include="Commands\CreateWorkTree.cs" />
-    <Compile Include="Commands\Common\CommandActionsEventArgs.cs" />
-    <Compile Include="ToolWindows\ViewModel\RelayCommand.cs" />
-    <Compile Include="Utils\GitHelper.cs" />
+    <Compile Include="Helpers\GitHelper.cs" />
+    <Compile Include="Helpers\SolutionHelper.cs" />
+    <Compile Include="ViewModel\RelayCommand.cs" />
     <Compile Include="Options\General.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Commands\ManageWorkTrees.cs" />
@@ -60,12 +60,12 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>source.extension.vsixmanifest</DependentUpon>
     </Compile>
-    <Compile Include="ToolWindows\ViewModel\WorkTreeDialogViewModel.cs" />
-    <Compile Include="ToolWindows\View\Converters\CommandTypeToForceCreateTextConverter.cs" />
-    <Compile Include="ToolWindows\View\UserControls\FolderEntry.xaml.cs">
+    <Compile Include="ViewModel\WorkTreeDialogViewModel.cs" />
+    <Compile Include="View\Converters\CommandTypeToForceCreateTextConverter.cs" />
+    <Compile Include="View\UserControls\FolderEntry.xaml.cs">
       <DependentUpon>FolderEntry.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ToolWindows\View\WorkTreeDialogWindow.xaml.cs">
+    <Compile Include="View\WorkTreeDialogWindow.xaml.cs">
       <DependentUpon>WorkTreeDialogWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="VSCommandTable.cs">
@@ -73,7 +73,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>VSCommandTable.vsct</DependentUpon>
     </Compile>
-    <Compile Include="Utils\VsOutputWindow.cs" />
+    <Compile Include="Helpers\LoggingHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="source.extension.vsixmanifest">
@@ -113,11 +113,11 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="ToolWindows\View\UserControls\FolderEntry.xaml">
+    <Page Include="View\UserControls\FolderEntry.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="ToolWindows\View\WorkTreeDialogWindow.xaml">
+    <Page Include="View\WorkTreeDialogWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

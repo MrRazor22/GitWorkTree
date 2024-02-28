@@ -1,5 +1,5 @@
-﻿using GitWorktree.ToolWindows.ViewModel;
-using GitWorkTree.Commands;
+﻿using GitWorkTree.Commands;
+using GitWorkTree.Helpers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -7,12 +7,11 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
 
-namespace GitWorkTree.ToolWindows.ViewModel
+namespace GitWorkTree.ViewModel
 {
     public class WorkTreeDialogViewModel : INotifyPropertyChanged, IDataErrorInfo
     {
-        private readonly VsOutputWindow _OutputWindow;
-        public event EventHandler<CommandActionsEventArgs> CommandInvoked;
+        private readonly LoggingHelper outputWindow = LoggingHelper.Instance;
         public WorkTreeDialogViewModel() { }
 
         private string _defaultPath;
@@ -41,24 +40,25 @@ namespace GitWorkTree.ToolWindows.ViewModel
                         status = "Please enter a valid path for worktree";
                 }
 
-                _OutputWindow.UpdateStatusBar(status);
+                outputWindow.UpdateStatusBar(status);
                 return status;
             }
         }
 
+        #region UI Related Properties
         public string Error => null;
 
-        private bool IsValid
-        {
-            get
-            {
-                // Check if all properties are valid
-                return string.IsNullOrEmpty(this[nameof(ActiveRepositoryPath)])
-                    && string.IsNullOrEmpty(this[nameof(SelectedBranch)])
-                    && string.IsNullOrEmpty(this[nameof(FolderPath)]);
-                // Add validation for other properties as needed
-            }
-        }
+        //private bool IsValid
+        //{
+        //    get
+        //    {
+        //        // Check if all properties are valid
+        //        return string.IsNullOrEmpty(this[nameof(ActiveRepositoryPath)])
+        //            && string.IsNullOrEmpty(this[nameof(SelectedBranch)])
+        //            && string.IsNullOrEmpty(this[nameof(FolderPath)]);
+        //        // Add validation for other properties as needed
+        //    }
+        //}
 
 
         private CommandType _commandType;
@@ -74,8 +74,6 @@ namespace GitWorkTree.ToolWindows.ViewModel
                 }
             }
         }
-
-        public CommandActions CommandActions { get; private set; }
 
         private string _windowTitle;
         public string WindowTitle
@@ -99,7 +97,7 @@ namespace GitWorkTree.ToolWindows.ViewModel
             {
                 _activeRepositoryPath = value;
                 OnPropertyChanged(nameof(ActiveRepositoryPath));
-                _ = LoadBranchesAsync();
+                _ = LoadBranches_WorktreesAsync();
             }
         }
 
@@ -148,11 +146,12 @@ namespace GitWorkTree.ToolWindows.ViewModel
             {
                 _isForceCreateRemove = value;
                 OnPropertyChanged(nameof(IsForceCreateRemove));
-                _OutputWindow.UpdateStatusBar("--Force attributed updated");
+                outputWindow.UpdateStatusBar("--Force attributed updated");
             }
         }
 
         private bool _isPrune;
+
         public bool IsPrune
         {
             get { return _isPrune; }
@@ -162,13 +161,12 @@ namespace GitWorkTree.ToolWindows.ViewModel
                 OnPropertyChanged(nameof(IsPrune));
             }
         }
+        #endregion
 
-
-        public WorkTreeDialogViewModel(string gitRepositoryPath, CommandType commandType, string defaultPath = "", VsOutputWindow OutputWindow = null)
+        public WorkTreeDialogViewModel(string gitRepositoryPath, CommandType commandType, string defaultPath = "")
         {
             _commandType = commandType;
             _defaultPath = defaultPath;
-            _OutputWindow = OutputWindow;
 
             Branches = new ObservableCollection<string>();
 
@@ -186,126 +184,97 @@ namespace GitWorkTree.ToolWindows.ViewModel
             FolderPath = _defaultPath == "" ? _activeRepositoryPath : _defaultPath;
         }
 
-        public async Task LoadBranchesAsync()
+        private async Task LoadBranches_WorktreesAsync()
         {
             if (string.IsNullOrEmpty(ActiveRepositoryPath))
             {
-                _OutputWindow.UpdateStatusBar("Select a Repository");
+                outputWindow.UpdateStatusBar("Select a Repository");
                 return;
             }
-
+            List<string> branches_Worktrees = null;
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
             try
             {
-                _OutputWindow.UpdateStatusBar("Breanches are Loading...");
+                var status = $"{(_commandType == CommandType.Add ? "Branches" : "Worktrees")} are Loading...";
+                outputWindow.UpdateStatusBar(status);
                 if (_commandType == CommandType.Add)
-                {
-                    var branches = await Task.Run(() => GitHelper.GetBranches(ActiveRepositoryPath));
-
-                    // Use ThreadHelper.JoinableTaskFactory.RunAsync to update UI on the UI thread
-                    await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
-                    {
-                        Branches.Clear();
-                        foreach (var branch in branches)
-                        {
-                            Branches.Add(branch);
-                        }
-                    });
-
-                    _OutputWindow?.UpdateStatusBar("Branches Loaded successfully");
-                }
+                    branches_Worktrees = await GitHelper.GetBranchesAsync(ActiveRepositoryPath);
                 else if (_commandType == CommandType.Manage)
-                {
-                    var workTreePaths = await Task.Run(() => GitHelper.GetWorkTreePaths(ActiveRepositoryPath));
+                    branches_Worktrees = await GitHelper.GetWorkTreePathsAsync(ActiveRepositoryPath);
 
-                    // Use ThreadHelper.JoinableTaskFactory.RunAsync to update UI on the UI thread
-                    await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
-                    {
-                        Branches.Clear();
-                        foreach (var path in workTreePaths)
-                        {
-                            Branches.Add(path);
-                        }
-                    });
-
-                    _OutputWindow?.UpdateStatusBar("WorkTree Paths Loaded successfully");
-                }
-
+                await PopulateBranches_Worktrees(branches_Worktrees);
+                if (branches_Worktrees != null) outputWindow?.UpdateStatusBar("", status);
                 UpdateFolderPath();
             }
             catch (Exception ex)
             {
-                _OutputWindow?.UpdateStatusBar($"{ex.Message}");
+                outputWindow?.UpdateStatusBar($"{ex.Message}");
             }
 
+        }
+
+        private async Task PopulateBranches_Worktrees(List<string> branches_Worktrees)
+        {
+            if (branches_Worktrees == null) { outputWindow?.UpdateStatusBar("No Branches available for this repository"); return; }
+            await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                Branches.Clear();
+                foreach (var item in branches_Worktrees)
+                {
+                    Branches.Add(item);
+                }
+            });
         }
 
         private void UpdateFolderPath()
         {
             if (!string.IsNullOrEmpty(SelectedBranch))
             {
-                string branchName = SelectedBranch;
-
-                //string cleanedBranchName = Regex.Match(branchName, @"^(?:.*?\/)?(?:head -> |origin\/|remote\/)?\+?([^\s]+)$").Groups[1].Value;
-                //string cleanedBranchName = Regex.Match(branchName, @"(?:.*\/)?(?:head -> |origin\/|remote\/)?\+?\s*([^']+)").Groups[1].Value;
-                string cleanedBranchName = Regex.Match(branchName, @"(?:.*\/)?(?:head -> |origin\/|remote\/)?\+?\s*([^'/]+)").Groups[1].Value;
-
-
+                string cleanedBranchName = SelectedBranch.ToFolderFormat();//Regex.Match(branchName, @"(?:.*\/)?(?:head -> |origin\/|remote\/)?\+?\s*([^'/]+)").Groups[1].Value;
                 string pathPrefix = string.IsNullOrEmpty(_defaultPath) ? _activeRepositoryPath : _defaultPath;
                 FolderPath = $@"{pathPrefix}\{cleanedBranchName}";
             }
         }
 
-        public ICommand CreateCommand => new RelayCommand(obj => CreateRemoveWorkTree());
-        public ICommand OpenCommand => new RelayCommand(obj => OpenWorkTree());
-        public ICommand CancelCommand => new RelayCommand(obj => Cancel());
-        public ICommand PruneCommand => new RelayCommand(obj => Prune());
+        public ICommand CreateCommand => new RelayCommand(async obj => await CreateRemoveWorkTree());
+        public ICommand OpenCommand => new RelayCommand(async obj => await OpenWorkTree());
+        public ICommand CancelCommand => new RelayCommand(obj => CloseDialog());
+        public ICommand PruneCommand => new RelayCommand(async obj => await Prune());
 
         public bool IsDataValid { get; private set; }
 
-        private void Prune()
+        private async Task Prune()
         {
-            IsDataValid = true;
-            IsPrune = true;
-            CommandInvoked?.Invoke(this, new CommandActionsEventArgs(CommandActions.Prune));
+            if (await GitHelper.PruneAsync(ActiveRepositoryPath))
+                await LoadBranches_WorktreesAsync();
         }
-        private void CreateRemoveWorkTree()
+        private async Task CreateRemoveWorkTree()
         {
-            if (!IsValid)
+            //if (!IsValid) return;
+            if (CommandType == CommandType.Add)
             {
-                return;
-            }
-            CommandActions = CommandType == CommandType.Add ? CommandActions.Create : CommandActions.Remove;
-            if (CommandActions == CommandActions.Create)
-            {
-                IsDataValid = true;
                 CloseDialog();
+                await GitHelper.CreateWorkTreeAsync(ActiveRepositoryPath, SelectedBranch, FolderPath, IsForceCreateRemove);
             }
-            else if (CommandActions == CommandActions.Remove)
+            else if (CommandType == CommandType.Manage)
             {
-                IsDataValid = true;
-                CommandInvoked?.Invoke(this, new CommandActionsEventArgs(CommandActions));
+                if (SelectedBranch != null)
+                {
+                    if (await GitHelper.RemoveWorkTreeAsync(ActiveRepositoryPath, SelectedBranch, IsForceCreateRemove))
+                        await LoadBranches_WorktreesAsync();
+                }
             }
         }
 
-        private void Cancel()
+        private async Task OpenWorkTree()
         {
-            CommandActions = CommandActions.Cancel;
-            IsDataValid = false;
-            CloseDialog();
-        }
-        private void OpenWorkTree()
-        {
-            if (!IsValid)
-            {
-                return;
-            }
-            CommandInvoked?.Invoke(this, new CommandActionsEventArgs(CommandActions.Open));
-            IsDataValid = true;
+            //if (!IsValid) return;
+            if (!IfOpenInNewVisualStudio) CloseDialog();
+            await SolutionHelper.OpenSolutionAsync(SelectedBranch, !IfOpenInNewVisualStudio);
         }
 
-        private void CloseDialog()
+        public void CloseDialog()
         {
             // Close the UI
             // (this is assuming your ViewModel is associated with a Window)
@@ -316,10 +285,6 @@ namespace GitWorkTree.ToolWindows.ViewModel
                 window.Close();
             }
         }
-
-
-
-
         // Implement INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged(string propertyName)

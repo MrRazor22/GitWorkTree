@@ -3,7 +3,7 @@ using System.Windows.Data;
 using System.Windows.Forms;
 using UserControl = System.Windows.Controls.UserControl;
 
-namespace GitWorkTree.ToolWindows.View.UserControls
+namespace GitWorkTree.View.UserControls
 {
     /// <summary>
     /// Interaction logic for FolderEntry.xaml

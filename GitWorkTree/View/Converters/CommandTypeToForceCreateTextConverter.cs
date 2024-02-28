@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Globalization;
 using System.Windows.Data;
 using System.Windows;
-using System.Windows.Forms;
 using GitWorkTree.Commands;
 
-namespace GitWorkTree.ToolWindows.View.Converters
+namespace GitWorkTree.View.Converters
 {
     public class CommandTypeToForceCheckBoxTextConverter : IValueConverter
     {
@@ -17,7 +11,7 @@ namespace GitWorkTree.ToolWindows.View.Converters
         {
             if (value is CommandType commandType)
             {
-                return (commandType == CommandType.Add) ? "Force Create" : "Force Remove";
+                return (commandType == CommandType.Add) ? "Force create" : "Force remove";
             }
             return string.Empty;
         }

@@ -1,13 +1,13 @@
-﻿<platform:DialogWindow  x:Class="GitWorkTree.ToolWindows.View.WorkTreeDialogWindow"
+﻿<platform:DialogWindow  x:Class="GitWorkTree.View.WorkTreeDialogWindow"
                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                         xmlns:platform="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
                         xmlns:toolkit="clr-namespace:Community.VisualStudio.Toolkit;assembly=Community.VisualStudio.Toolkit"
-                        xmlns:viewmodel="clr-namespace:GitWorkTree.ToolWindows.ViewModel"
-                        xmlns:usercontrols="clr-namespace:GitWorkTree.ToolWindows.View.UserControls"
-                        xmlns:converters="clr-namespace:GitWorkTree.ToolWindows.View.Converters"
+                        xmlns:viewmodel="clr-namespace:GitWorkTree.ViewModel"
+                        xmlns:usercontrols="clr-namespace:GitWorkTree.View.UserControls"
+                        xmlns:converters="clr-namespace:GitWorkTree.View.Converters"
                         toolkit:Themes.UseVsTheme="True"
                         mc:Ignorable="d"
                         Title="{Binding WindowTitle}"
@@ -30,7 +30,7 @@
     </Window.Resources>
 
     <Grid Margin="10">
-        <Grid Grid.Row="0" Margin="10, 15, 10, 10">
+        <Grid Grid.Row="0" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"></RowDefinition>
                 <RowDefinition Height="*"></RowDefinition>
@@ -46,10 +46,11 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock FontWeight="SemiBold" Text="Repository: " d:Background="White" Grid.Row="0" Grid.Column="0" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Left">
                 </TextBlock>
-                <TextBlock  Padding="5" d:Background="White" Grid.Row="0" Grid.Column="1" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch">
-<Hyperlink NavigateUri="{Binding ActiveRepositoryPath}" RequestNavigate="Hyperlink_RequestNavigate">
-    <Run Text="{Binding ActiveRepositoryPath}" d:Text="D:/RepoPath" />
-</Hyperlink>
+                <TextBlock  Padding="5" d:Background="White" Grid.Row="0" Grid.Column="1" FontSize="14" TextWrapping="Wrap"
+                            VerticalAlignment="Center" HorizontalAlignment="Stretch">
+                    <Hyperlink NavigateUri="{Binding ActiveRepositoryPath, UpdateSourceTrigger=PropertyChanged}" RequestNavigate="Hyperlink_RequestNavigate">
+                        <Run Text="{Binding ActiveRepositoryPath, UpdateSourceTrigger=PropertyChanged}" d:Text="D:/RepoPath" />
+                    </Hyperlink>
                 </TextBlock>
             </Grid>
 
@@ -62,9 +63,9 @@
                 <TextBlock FontWeight="SemiBold" Text="{Binding CommandType, Converter={StaticResource CommandTypeToBranchWorktreeLableConverter}}" 
                        d:Background="White" Grid.Row="1" Grid.Column="0" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left">
                 </TextBlock>
-                <ComboBox Name="BranchName" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
+                <ComboBox Name="BranchName" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown" 
                       ItemsSource="{Binding Branches}" SelectedItem="{Binding SelectedBranch, UpdateSourceTrigger=PropertyChanged}"
-          Padding="5" d:Background="White" Grid.Row="1" Grid.Column="1" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
+                      Padding="5" d:Background="White" Grid.Row="1" Grid.Column="1" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
                       VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True" >
                     <ComboBox.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -76,21 +77,22 @@
 
 
             <Grid Grid.Row="2" >
-                <Grid d:Visibility="Collapsed"
+                <Grid d:Visibility="Visible"
                 Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}" Height="auto" Width="auto">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="20*"></ColumnDefinition>
                         <ColumnDefinition Width="80*"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
                     <TextBlock d:Visibility="Visible"
-                FontWeight="SemiBold" Name="Path" Text="Path:"  
+                        FontWeight="SemiBold" Name="Path" Text="Path:"  
                        d:Background="White" Grid.Row="2" Grid.Column="0" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Left" >
                     </TextBlock>
                     <usercontrols:FolderEntry x:Name="folderEntry" d:Visibility="Visible"
-          FolderPath="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged}"  Grid.Row="2" Grid.Column="1"  Description="Folder for branch worktree" VerticalAlignment="Center" />
+                    FolderPath="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged}"  Grid.Row="2" Grid.Column="1"  Description="Folder for branch worktree" VerticalAlignment="Center" />
                 </Grid>
 
-                <Grid Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}" Height="auto" Width="auto">
+                <Grid d:Visibility="Collapsed"
+                    Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}" Height="auto" Width="auto">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="auto"></ColumnDefinition>
                         <ColumnDefinition Width="*"></ColumnDefinition>
@@ -99,11 +101,11 @@
                     </Grid.ColumnDefinitions>
 
                     <CheckBox x:Name="LoadSolution" IsChecked="{Binding IfOpenInNewVisualStudio}"
-           Content=" Open in new VS Instance" 
-           Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                       Content="Open in new VS instance" FontSize="14"
+                       Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" />
 
                     <Button Content="Open" Grid.Column="3" FontSize="14" FontWeight="SemiBold"
- Command="{Binding OpenCommand}" Margin="7" />
+                        Command="{Binding OpenCommand}" Margin="7" />
                 </Grid>
 
             </Grid>
@@ -117,7 +119,7 @@
                     <ColumnDefinition Width="*"></ColumnDefinition>
                 </Grid.ColumnDefinitions>
 
-                <CheckBox x:Name="ForceCreateRemove" IsChecked="{Binding IsForceCreateRemove}"
+                <CheckBox x:Name="ForceCreateRemove" IsChecked="{Binding IsForceCreateRemove}" FontSize="14"
                       Content="{Binding CommandType, Converter={StaticResource CommandTypeToForceCheckBoxTextConverter}}"
                       Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" />
 
@@ -126,13 +128,13 @@
                     Grid.Column="1" FontSize="14" FontWeight="SemiBold" />
 
                 <Button Content="{Binding CommandType, Converter={StaticResource CommandTypeToCreateRemoveButtonTextConverter}}" Command="{Binding CreateCommand}"
-                        Grid.Column="2" FontSize="14" FontWeight="SemiBold"
-                Margin="7"
-                Name="button2" />
+                    Grid.Column="2" FontSize="14" FontWeight="SemiBold"
+                    Margin="7"
+                    Name="button2" />
 
                 <Button Content="Cancel" Grid.Column="3" FontSize="14" FontWeight="SemiBold"
-            Command="{Binding CancelCommand}" Margin="7"
-            Name="button3" />
+                    Command="{Binding CancelCommand}" Margin="7"
+                    Name="button3" />
             </Grid>
 
         </Grid>

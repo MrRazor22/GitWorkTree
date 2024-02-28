@@ -1,4 +1,4 @@
-﻿using GitWorkTree.ToolWindows.ViewModel;
+﻿using GitWorkTree.ViewModel;
 using Microsoft.VisualStudio.PlatformUI;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 
-namespace GitWorkTree.ToolWindows.View
+namespace GitWorkTree.View
 {
     public partial class WorkTreeDialogWindow : DialogWindow
     {

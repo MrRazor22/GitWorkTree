@@ -1,4 +1,5 @@
 ﻿using GitWorkTree.Commands;
+using GitWorkTree.Helpers;
 
 namespace GitWorkTree
 {
@@ -11,19 +12,14 @@ namespace GitWorkTree
             CommandHelper commandExecution = null;
             try
             {
-                commandExecution = new CommandHelper(Package, CommandType.Add);
+                commandExecution = new CommandHelper(CommandType.Add);
 
-                if (!commandExecution.PreRequisite()) return;
-                if (!commandExecution.GetDataRequired()) return;
-                if (await commandExecution.RunCreateWorktreeCommandAsync())
-                {
-
-                }
-
+                if (commandExecution.PreRequisite())
+                    commandExecution.Execute();
             }
             catch (Exception ex)
             {
-                commandExecution.outputWindow?.WriteToOutputWindowAsync(ex.Message);
+                LoggingHelper.Instance.WriteToOutputWindowAsync(ex.Message);
             }
         }
     }

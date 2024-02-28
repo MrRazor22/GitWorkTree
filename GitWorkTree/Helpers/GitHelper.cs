@@ -197,6 +197,9 @@ namespace GitWorkTree.Helpers
             {
                 Argument = $"worktree add {force}{workTreePath} {branchName.ToGitCommandExecutableFormat()}",
                 WorkingDirectory = repositoryPath
+            }, (line) =>
+            {
+                LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
             });
             return LogResult(isCompleted);
         }
@@ -209,6 +212,9 @@ namespace GitWorkTree.Helpers
             {
                 Argument = $"worktree remove {force}{workTreePath}",
                 WorkingDirectory = repositoryPath
+            }, (line) =>
+            {
+                LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
             });
             return LogResult(isCompleted);
         }
@@ -220,6 +226,9 @@ namespace GitWorkTree.Helpers
             {
                 Argument = "prune",
                 WorkingDirectory = repositoryPath
+            }, (line) =>
+            {
+                LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
             });
             return LogResult(isCompleted);
         }

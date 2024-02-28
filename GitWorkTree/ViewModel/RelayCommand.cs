@@ -37,7 +37,7 @@ namespace GitWorkTree.ViewModel
 
         public bool CanExecute(object parameter)
         {
-            var busyMessage = "Another command in progress...";
+            var busyMessage = "workktree command in progress...";
             if (!_isExecuting && (_canExecute == null || _canExecute(parameter)))
             {
                 outputWindow.UpdateStatusBar("", busyMessage);

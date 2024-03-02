@@ -1,9 +1,5 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Threading;
 using EnvDTE80;
-using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
 namespace GitWorkTree.Helpers
@@ -14,6 +10,17 @@ namespace GitWorkTree.Helpers
 
         private IVsOutputWindowPane outputPane;
         private DTE2 dte;
+        private const string busyMessage = $"{Vsix.Name} command in progress...";
+
+        public bool SetStatusBusy
+        {
+            set
+            {
+                if (value) UpdateStatusBar(busyMessage);
+                else UpdateStatusBar("", busyMessage);
+            }
+        }
+
 
         public static LoggingHelper Instance => lazyInstance.Value;
 
@@ -30,6 +37,8 @@ namespace GitWorkTree.Helpers
                 Console.WriteLine($"Error initializing LoggingHelper: {ex.Message}");
             }
         }
+
+
 
         public async Task WriteToOutputWindowAsync(string message, bool ShowOutputPane = false)
         {

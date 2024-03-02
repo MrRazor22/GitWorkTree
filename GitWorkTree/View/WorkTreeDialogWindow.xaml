@@ -16,7 +16,6 @@
                         FontSize="15"
                         FontWeight="DemiBold"
                         WindowStyle="SingleBorderWindow"
-                        BorderBrush="#0078d7"
                         ResizeMode="NoResize">
     <Window.DataContext>
         <viewmodel:WorkTreeDialogViewModel/>

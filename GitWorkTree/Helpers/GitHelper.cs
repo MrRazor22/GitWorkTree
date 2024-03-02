@@ -24,64 +24,6 @@ namespace GitWorkTree.Helpers
                 @"(?:\+?\s?(?:remotes?\/(?:origin|main|upstream)\/(?:HEAD -> (?:origin|main|upstream)\/)?|remotes?\/(?:origin|main|upstream)\/)?|[^\/]+\/)?([^\/]+(?:\/[^\/]+)*)$")
                 .Groups[1].Value ?? branchName;
 
-        //private static void Execute(GitCommandArgs gitCommandArgs, Action<string, GitOutputType> outputHandler = null)
-        //{
-        //    if (gitCommandArgs == null || string.IsNullOrEmpty(gitCommandArgs.WorkingDirectory))
-        //    {
-        //        throw new ArgumentException("GitCommandArgs must be provided with a valid working directory.");
-        //    }
-
-        //    if (!File.Exists(GitPath))
-        //    {
-        //        throw new FileNotFoundException($"Git executable not found at: {GitPath}");
-        //    }
-
-        //    try
-        //    {
-
-        //        var startInfo = new ProcessStartInfo
-        //        {
-        //            FileName = GitPath,
-        //            Arguments = gitCommandArgs.Argument,
-        //            WorkingDirectory = gitCommandArgs.WorkingDirectory,
-        //            UseShellExecute = false,
-        //            CreateNoWindow = true,
-        //            RedirectStandardError = true,
-        //            RedirectStandardOutput = true
-        //        };
-
-        //        using var process = new System.Diagnostics.Process { StartInfo = startInfo };
-        //        process.OutputDataReceived += (sender, e) =>
-        //        {
-        //            if (e.Data != null)
-        //            {
-        //                //outputHandler?.Invoke(e.Data, GitOutputType.Standard);
-        //                outputHandler?.Invoke(e.Data, e.Data.IndexOf("fatal",
-        //                    StringComparison.OrdinalIgnoreCase) >= 0 || e.Data.IndexOf("error", StringComparison.OrdinalIgnoreCase) >= 0 ?
-        //                    GitOutputType.Error : GitOutputType.Standard);
-        //            }
-        //        };
-
-        //        process.ErrorDataReceived += (sender, e) =>
-        //        {
-        //            if (e.Data != null)
-        //            {
-        //                outputHandler?.Invoke(e.Data, GitOutputType.Error);
-        //            }
-        //        };
-
-        //        process.Start();
-        //        process.BeginOutputReadLine();
-        //        process.BeginErrorReadLine();
-        //        process.WaitForExit();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        outputHandler?.Invoke($"An error occurred during Git command execution: {ex.Message}", GitOutputType.Error);
-        //        throw;
-        //    }
-        //}
-
         private static async Task<bool> ExecuteAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null)
         {
             LoggingHelper outputWindow = LoggingHelper.Instance;
@@ -92,6 +34,7 @@ namespace GitWorkTree.Helpers
             if (!File.Exists(GitPath))
                 outputWindow?.WriteToOutputWindowAsync($"Git executable not found at: {GitPath}", true);
 
+            outputWindow?.WriteToOutputWindowAsync($"Executing git command: {gitCommandArgs.Argument}", true);
             try
             {
                 var startInfo = new ProcessStartInfo
@@ -140,7 +83,12 @@ namespace GitWorkTree.Helpers
             catch (Exception ex)
             {
                 outputWindow?.WriteToOutputWindowAsync($"An error occurred during Git command execution: {ex.Message}", true);
-                return true;
+                return !(isError = true);
+            }
+            finally
+            {
+                var result = isError ? "failed" : "completed";
+                outputWindow.WriteToOutputWindowAsync($"Command execution - {result}");
             }
         }
 
@@ -192,8 +140,7 @@ namespace GitWorkTree.Helpers
             (string repositoryPath, string branchName, string workTreePath, bool shouldForceCreate)
         {
             string force = shouldForceCreate ? "-f " : "";
-            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Creating git worktree for branch {branchName}", true);
-            var isCompleted = await ExecuteAsync(new GitCommandArgs()
+            return await ExecuteAsync(new GitCommandArgs()
             {
                 Argument = $"worktree add {force}{workTreePath} {branchName.ToGitCommandExecutableFormat()}",
                 WorkingDirectory = repositoryPath
@@ -201,14 +148,12 @@ namespace GitWorkTree.Helpers
             {
                 LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
             });
-            return LogResult(isCompleted);
         }
 
         public static async Task<bool> RemoveWorkTreeAsync(string repositoryPath, string workTreePath, bool shouldForceCreate)
         {
             string force = shouldForceCreate ? "-f " : "";
-            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Removing git worktree at {workTreePath}", true);
-            var isCompleted = await ExecuteAsync(new GitCommandArgs()
+            return await ExecuteAsync(new GitCommandArgs()
             {
                 Argument = $"worktree remove {force}{workTreePath}",
                 WorkingDirectory = repositoryPath
@@ -216,13 +161,11 @@ namespace GitWorkTree.Helpers
             {
                 LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
             });
-            return LogResult(isCompleted);
         }
 
         public static async Task<bool> PruneAsync(string repositoryPath)
         {
-            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Pruning git worktree for repository {repositoryPath}", true);
-            var isCompleted = await ExecuteAsync(new GitCommandArgs()
+            return await ExecuteAsync(new GitCommandArgs()
             {
                 Argument = "prune",
                 WorkingDirectory = repositoryPath
@@ -230,14 +173,6 @@ namespace GitWorkTree.Helpers
             {
                 LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
             });
-            return LogResult(isCompleted);
-        }
-
-        private static bool LogResult(bool isCompleted)
-        {
-            var result = isCompleted ? "completed" : "failed";
-            LoggingHelper.Instance?.WriteToOutputWindowAsync($"Command execution - {result}");
-            return isCompleted;
         }
 
         public static async Task<string> GetGitFolderDirectoryAsync(string currentSolutionPath)

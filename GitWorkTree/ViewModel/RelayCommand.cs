@@ -37,13 +37,12 @@ namespace GitWorkTree.ViewModel
 
         public bool CanExecute(object parameter)
         {
-            var busyMessage = "workktree command in progress...";
             if (!_isExecuting && (_canExecute == null || _canExecute(parameter)))
             {
-                outputWindow.UpdateStatusBar("", busyMessage);
+                outputWindow.SetStatusBusy = false;
                 return true;
             }
-            else outputWindow.UpdateStatusBar(busyMessage);
+            else outputWindow.SetStatusBusy = true;
             return false;
         }
 

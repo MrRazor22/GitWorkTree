@@ -1,62 +1,23 @@
 ﻿using GitWorkTree.Commands;
 using GitWorkTree.Helpers;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace GitWorkTree.ViewModel
 {
-    public class WorkTreeDialogViewModel : INotifyPropertyChanged, IDataErrorInfo
+    public class WorkTreeDialogViewModel : BaseViewModel
     {
         private readonly LoggingHelper outputWindow = LoggingHelper.Instance;
         private General optionsSaved;
 
-        #region IDataErrorInfo Props
-        public string this[string columnName]
-        {
-            get
-            {
-                string errorStatus = "";
-                // data validation logic here
-                if (columnName == nameof(ActiveRepositoryPath))
-                {
-                    if (string.IsNullOrEmpty(ActiveRepositoryPath))
-                        errorStatus = "No repository available";
-                }
-                if (columnName == nameof(SelectedBranch_Worktree))
-                {
-                    if (string.IsNullOrEmpty(SelectedBranch_Worktree))
-                        errorStatus = "Please enter a valid branch/Worktree";
-                }
-                else if (columnName == nameof(FolderPath))
-                {
-                    if (string.IsNullOrEmpty(FolderPath))
-                        errorStatus = "Please enter a valid path for worktree";
-                }
-
-                outputWindow.UpdateStatusBar(errorStatus);
-                return errorStatus;
-            }
-        }
-        public string Error => null;
-        #endregion
-
         #region UI Related Properties
         public ObservableCollection<string> Branches_Worktrees { get; set; }
-        private bool IsValid
-        {
-            get
-            {
-                // Check if all properties are valid
-                return string.IsNullOrEmpty(this[nameof(ActiveRepositoryPath)])
-                    && string.IsNullOrEmpty(this[nameof(SelectedBranch_Worktree)])
-                    && string.IsNullOrEmpty(this[nameof(FolderPath)]);
-            }
-        }
-
 
         private CommandType commandType;
         public CommandType CommandType
@@ -147,6 +108,40 @@ namespace GitWorkTree.ViewModel
         }
         #endregion
 
+        #region IDataErrorInfo Validation
+        private bool IsValid
+        {
+            get
+            {
+                // Check if all properties are valid
+                return string.IsNullOrEmpty(Validate());
+            }
+        }
+        protected override string Validate(string propertyName = null)
+        {
+            string errorStatus = "";
+            // data validation logic here
+            if (propertyName == nameof(ActiveRepositoryPath))
+            {
+                if (string.IsNullOrEmpty(ActiveRepositoryPath))
+                    errorStatus = "No repository available";
+            }
+            if (propertyName == nameof(SelectedBranch_Worktree))
+            {
+                if (string.IsNullOrEmpty(SelectedBranch_Worktree))
+                    errorStatus = "Please enter a valid branch/Worktree";
+            }
+            else if (propertyName == nameof(FolderPath))
+            {
+                if (string.IsNullOrEmpty(FolderPath))
+                    errorStatus = "Please enter a valid path for worktree";
+            }
+
+            outputWindow.UpdateStatusBar(errorStatus);
+            return errorStatus;
+        }
+        #endregion
+
         public WorkTreeDialogViewModel() { }
         public WorkTreeDialogViewModel(string gitRepositoryPath, CommandType commandType, General optionsSaved)
         {
@@ -185,11 +180,11 @@ namespace GitWorkTree.ViewModel
             {
                 outputWindow.UpdateStatusBar(status);
                 if (commandType == CommandType.Create)
-                    branches_Worktrees = await GitHelper.GetBranchesAsync(ActiveRepositoryPath);
+                    branches_Worktrees = await GitHelper.GetBranchesAsync(ActiveRepositoryPath).ConfigureAwait(false);
                 else if (commandType == CommandType.Manage)
-                    branches_Worktrees = await GitHelper.GetWorkTreePathsAsync(ActiveRepositoryPath);
+                    branches_Worktrees = await GitHelper.GetWorkTreePathsAsync(ActiveRepositoryPath).ConfigureAwait(false);
 
-                await PopulateBranches_Worktrees(branches_Worktrees);
+                await PopulateBranches_Worktrees(branches_Worktrees).ConfigureAwait(false);
                 if (branches_Worktrees != null) outputWindow?.UpdateStatusBar("", status);
                 UpdateFolderPath();
             }
@@ -225,63 +220,52 @@ namespace GitWorkTree.ViewModel
             }
         }
 
+        public ICommand PruneCommand => new RelayCommand(async obj => await Prune());
         public ICommand CreateCommand => new RelayCommand(async obj => await CreateRemoveWorkTree());
         public ICommand OpenCommand => new RelayCommand(async obj => await OpenWorkTree());
         public ICommand CancelCommand => new RelayCommand(obj => CloseDialog());
-        public ICommand PruneCommand => new RelayCommand(async obj => await Prune());
-
-        public bool IsDataValid { get; private set; }
 
         private async Task Prune()
         {
-            if (await GitHelper.PruneAsync(ActiveRepositoryPath))
-                await LoadBranches_WorktreesAsync();
+            if (await GitHelper.PruneAsync(ActiveRepositoryPath).ConfigureAwait(false))
+                await LoadBranches_WorktreesAsync().ConfigureAwait(false);
         }
+
         private async Task CreateRemoveWorkTree()
         {
             if (!IsValid) return;
+
             if (CommandType == CommandType.Create)
             {
                 CloseDialog();
-                if (await GitHelper.CreateWorkTreeAsync(ActiveRepositoryPath, SelectedBranch_Worktree, FolderPath, IsForceCreateRemove))
-                    if (optionsSaved.IsLoadSolution) await SolutionHelper.OpenSolutionAsync(FolderPath, true);
+
+                // Run the asynchronous operation without capturing the synchronization context 
+                if (await GitHelper.CreateWorkTreeAsync(ActiveRepositoryPath, SelectedBranch_Worktree, FolderPath, IsForceCreateRemove).ConfigureAwait(false))
+                    if (optionsSaved.IsLoadSolution) await SolutionHelper.OpenSolutionAsync(FolderPath, true).ConfigureAwait(false);
             }
             else if (CommandType == CommandType.Manage)
             {
                 if (SelectedBranch_Worktree != null)
                 {
-                    if (await GitHelper.RemoveWorkTreeAsync(ActiveRepositoryPath, SelectedBranch_Worktree, IsForceCreateRemove))
-                        await LoadBranches_WorktreesAsync();
+                    if (await GitHelper.RemoveWorkTreeAsync(ActiveRepositoryPath, SelectedBranch_Worktree, IsForceCreateRemove).ConfigureAwait(false))
+                        await LoadBranches_WorktreesAsync().ConfigureAwait(false);
                 }
             }
         }
-
         private async Task OpenWorkTree()
         {
             if (!IsValid) return;
             if (!IfOpenInNewVisualStudio) CloseDialog();
-            await SolutionHelper.OpenSolutionAsync(SelectedBranch_Worktree, !IfOpenInNewVisualStudio);
+            await SolutionHelper.OpenSolutionAsync(SelectedBranch_Worktree, !IfOpenInNewVisualStudio).ConfigureAwait(false);
         }
 
         public void CloseDialog()
         {
-            // Close the UI
-            // (this is assuming your ViewModel is associated with a Window)
             var window = System.Windows.Application.Current.Windows.OfType<System.Windows.Window>().FirstOrDefault(w => w.DataContext == this);
-
-            if (window != null)
-            {
-                window.Close();
-            }
-        }
-        // Implement INotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected virtual void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            if (window != null) window.Close();
         }
     }
-
-
-
 }
+
+
+

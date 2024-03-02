@@ -50,6 +50,7 @@
     <Compile Include="Commands\CreateWorkTree.cs" />
     <Compile Include="Helpers\GitHelper.cs" />
     <Compile Include="Helpers\SolutionHelper.cs" />
+    <Compile Include="ViewModel\BaseViewModel.cs" />
     <Compile Include="ViewModel\RelayCommand.cs" />
     <Compile Include="Options\General.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

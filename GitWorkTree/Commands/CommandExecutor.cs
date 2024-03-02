@@ -13,7 +13,6 @@ namespace GitWorkTree.Commands
     {
         private CommandType _commandType;
         private string ActiveRepositoryPath;
-        private string defaultBranchPath;
 
         private DTE2 dte;
         private WorkTreeDialogViewModel dialogViewModel;
@@ -43,7 +42,6 @@ namespace GitWorkTree.Commands
                     return false;
                 }
 
-                defaultBranchPath = optionsSaved?.DefaultBranchPath != null ? optionsSaved.DefaultBranchPath : ActiveRepositoryPath;
                 return true;
             }
             catch (Exception ex)
@@ -60,17 +58,9 @@ namespace GitWorkTree.Commands
                 ThreadHelper.ThrowIfNotOnUIThread();
 
                 dialogViewModel = new WorkTreeDialogViewModel(ActiveRepositoryPath, _commandType, optionsSaved);
-                WorkTreeDialogWindow dialog = new WorkTreeDialogWindow
-                {
-                    DataContext = dialogViewModel
-                };
+                WorkTreeDialogWindow dialog = new WorkTreeDialogWindow { DataContext = dialogViewModel };
 
-                //set MainWindow as owner for dialog window
-                IntPtr hwnd = new IntPtr((long)dte.MainWindow.HWnd);
-                WindowInteropHelper helper = new WindowInteropHelper(dialog);
-                helper.Owner = hwnd;
-
-                dialog.ShowDialog();
+                dialog.ShowModal();
 
                 return true;
             }

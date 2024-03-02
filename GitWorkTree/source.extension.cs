@@ -9,10 +9,10 @@ namespace GitWorkTree
     {
         public const string Id = "GitWorkTree.bcf469f6-35d7-4aa1-8556-6e22d0309d94";
         public const string Name = "GitWorkTree";
-        public const string Description = @"Enhance Visual Studio 2022 workflow with Git WorkTree. Simplifies the management of parallel workstreams without the hassle of typing Git Worktree commands.";
+        public const string Description = @"Unlock Git worktree functionality in Visual Studio, enables you to effortlessly manage and work on multiple branches simultaneously.";
         public const string Language = "en-US";
-        public const string Version = "1.0";
+        public const string Version = "1.1";
         public const string Author = "Senthil V";
-        public const string Tags = "Git Work Tree";
+        public const string Tags = "Visual Studio 2022, Git Worktree, Version Control, Git Branches, Productivity Tool, Code Management, Development Workflow, Collaboration, Branch Switching, Code Navigation, git,version control,git for visual studio,workflow,developer tools, multi-branch development,parallel development,code isolation,branch management";
     }
 }

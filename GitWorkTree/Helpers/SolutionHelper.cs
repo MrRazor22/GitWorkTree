@@ -10,27 +10,32 @@ namespace GitWorkTree.Helpers
         static LoggingHelper outputWindow = LoggingHelper.Instance;
         public static string GetRepositoryPath(string solutionPath)
         {
-            if (File.Exists(solutionPath))
+            try
             {
-                solutionPath = Path.GetDirectoryName(solutionPath);
-            }
-            var gitFolderPath = ThreadHelper.JoinableTaskFactory.Run(() => GitHelper.GetGitFolderDirectoryAsync(solutionPath));
+                if (File.Exists(solutionPath))
+                {
+                    solutionPath = Path.GetDirectoryName(solutionPath);
+                }
+                var gitFolderPath = ThreadHelper.JoinableTaskFactory.Run(() => GitHelper.GetGitFolderDirectoryAsync(solutionPath));
 
-            string gitFileName = Path.GetFileName(gitFolderPath);
-            if (gitFileName != null && gitFileName.Equals(".git")) // It's the main repository
-                return solutionPath;
-            else if (gitFolderPath != null && gitFolderPath.Contains(".git/worktrees")) // It's a worktree, get the main repository path - three step outside
-                return Path.GetFullPath(Path.Combine(gitFolderPath, "..", "..", ".."));
-            return null;
+                string gitFileName = Path.GetFileName(gitFolderPath);
+                if (gitFileName != null && gitFileName.Equals(".git")) // It's the main repository
+                    return solutionPath;
+                else if (gitFolderPath != null && gitFolderPath.Contains(".git/worktrees")) // It's a worktree, get the main repository path - three step outside
+                    return Path.GetFullPath(Path.Combine(gitFolderPath, "..", "..", ".."));
+                return null;
+            }
+            catch (Exception ex)
+            {
+                outputWindow.WriteToOutputWindowAsync($"Failed to get repository path: {ex.Message}");
+                return null;
+            }
         }
-        public static async Task<bool> OpenSolutionAsync(string newSolutionPath, bool openInCurrentInstance)
+        public static async Task<bool> OpenSolution(string newSolutionPath, bool openInCurrentInstance)
         {
             bool isError = true;
             try
             {
-                outputWindow?.WriteToOutputWindowAsync($"Loading Solution at {newSolutionPath}", true);
-                outputWindow?.UpdateStatusBar($"Opening {newSolutionPath}...");
-
                 if (string.IsNullOrEmpty(newSolutionPath) || !Directory.Exists(newSolutionPath))
                 {
                     outputWindow?.WriteToOutputWindowAsync($"Not a valid folder path {newSolutionPath}");
@@ -46,8 +51,8 @@ namespace GitWorkTree.Helpers
                 }
                 isError = await HandleOpenSolution(newSolutionPath, openInCurrentInstance, solutionFiles);
 
-                outputWindow?.WriteToOutputWindowAsync($"The worktree solution in path {newSolutionPath} is loaded");
-                return isError = false;
+                outputWindow?.WriteToOutputWindowAsync($"{newSolutionPath} Loaded");
+                return !(isError = false);
             }
             catch (Exception ex)
             {
@@ -56,32 +61,29 @@ namespace GitWorkTree.Helpers
             }
             finally
             {
-                if (isError) outputWindow.UpdateStatusBar($"Load failed: {newSolutionPath}");
-                else outputWindow?.UpdateStatusBar($"{newSolutionPath} Loaded");
+                if (isError) outputWindow.UpdateStatusBar($"Worktree load failed");
+                else outputWindow?.UpdateStatusBar($"Worktree loaded");
             }
         }
 
 
         private static async Task<bool> HandleOpenSolution(string newSolutionPath, bool openInCurrentInstance, string[] solutionFiles)
         {
-            bool result = false;
-            await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
-            {
-                if (openInCurrentInstance)
-                {
-                    result = await OpenSolutionInCurrentInstance(newSolutionPath, solutionFiles);
-                }
-                else
-                {
-                    // Start a new process asynchronously
-                    System.Diagnostics.Process.Start("devenv.exe", solutionFiles[0]);
-                }
-            });
-            return result;
+            if (openInCurrentInstance) return await OpenSolutionInCurrentInstance(newSolutionPath, solutionFiles).ConfigureAwait(false);
+            return OpenSolutionInNewInstance(newSolutionPath, solutionFiles);
+        }
+
+        private static bool OpenSolutionInNewInstance(string newSolutionPath, string[] solutionFiles)
+        {
+            outputWindow?.WriteToOutputWindowAsync($"Opening {newSolutionPath} in new VS instance", true);
+            System.Diagnostics.Process.Start("devenv.exe", solutionFiles[0]);
+            return true;
         }
 
         private static async Task<bool> OpenSolutionInCurrentInstance(string newSolutionPath, string[] solutionFiles)
         {
+            outputWindow?.WriteToOutputWindowAsync($"Opening {newSolutionPath} in current VS instance", true);
+
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             var solutionService = (IVsSolution)Package.GetGlobalService(typeof(SVsSolution));

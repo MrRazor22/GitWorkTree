@@ -1,29 +1,30 @@
-﻿using EnvDTE;
-using EnvDTE80;
-using GitWorkTree.Helpers;
-using Microsoft.VisualStudio.Shell.Interop;
+﻿using GitWorkTree.Helpers;
 using System;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace GitWorkTree.ViewModel
 {
     public class RelayCommand : ICommand
     {
-        private readonly Action<object> _execute;
-        private readonly Func<object, Task> _executeAsync;
+        private readonly Func<object, bool> _execute;
+        private readonly Func<object, Task<bool>> _executeAsync;
         private readonly Predicate<object> _canExecute;
         private static bool _isExecuting;
         private LoggingHelper outputWindow = LoggingHelper.Instance;
 
+        // Event to handle command result
+        public event EventHandler<bool> CommandExecuted;
+
         // Constructor for synchronous command
-        public RelayCommand(Action<object> execute, Predicate<object> canExecute = null)
+        public RelayCommand(Func<object, bool> execute, Predicate<object> canExecute = null)
         {
             _execute = execute ?? throw new ArgumentNullException(nameof(execute));
             _canExecute = canExecute;
         }
 
         // Constructor for asynchronous command
-        public RelayCommand(Func<object, Task> executeAsync, Predicate<object> canExecute = null)
+        public RelayCommand(Func<object, Task<bool>> executeAsync, Predicate<object> canExecute = null)
         {
             _executeAsync = executeAsync ?? throw new ArgumentNullException(nameof(executeAsync));
             _canExecute = canExecute;
@@ -37,12 +38,8 @@ namespace GitWorkTree.ViewModel
 
         public bool CanExecute(object parameter)
         {
-            if (!_isExecuting && (_canExecute == null || _canExecute(parameter)))
-            {
-                outputWindow.SetStatusBusy = false;
-                return true;
-            }
-            else outputWindow.SetStatusBusy = true;
+            if (!_isExecuting && (_canExecute == null || _canExecute(parameter))) return true;
+            outputWindow.SetCommandStatusBusy();
             return false;
         }
 
@@ -52,29 +49,35 @@ namespace GitWorkTree.ViewModel
             {
                 return;
             }
-
+            bool result = false;
             try
             {
                 _isExecuting = true;
 
                 if (_execute != null)
                 {
-                    _execute(parameter);
+                    result = _execute(parameter);
                 }
                 else if (_executeAsync != null)
                 {
-                    await _executeAsync(parameter);
+                    result = await _executeAsync(parameter);
                 }
+
+                // Raise the CommandExecuted event with the result
+                CommandExecuted?.Invoke(this, result);
             }
             catch (Exception ex)
             {
-                outputWindow.WriteToOutputWindowAsync($"Command execution failed: {ex.Message}", true);
+                outputWindow.WriteToOutputWindowAsync($"{Vsix.Name} Command execution failed: {ex.Message}", result = false);
             }
             finally
             {
+                outputWindow.SetCommandCompletionStatus(result);
                 _isExecuting = false;
                 CommandManager.InvalidateRequerySuggested();
             }
         }
+
+
     }
 }

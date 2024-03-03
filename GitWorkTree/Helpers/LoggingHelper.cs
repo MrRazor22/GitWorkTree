@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Runtime.CompilerServices;
+using System.Threading;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell.Interop;
 
@@ -10,17 +11,11 @@ namespace GitWorkTree.Helpers
 
         private IVsOutputWindowPane outputPane;
         private DTE2 dte;
-        private const string busyMessage = $"{Vsix.Name} command in progress...";
 
-        public bool SetStatusBusy
+        public string GetCallingMethodName([CallerMemberName] string caller = "")
         {
-            set
-            {
-                if (value) UpdateStatusBar(busyMessage);
-                else UpdateStatusBar("", busyMessage);
-            }
+            return string.IsNullOrEmpty(caller) ? Vsix.Name : caller;
         }
-
 
         public static LoggingHelper Instance => lazyInstance.Value;
 
@@ -42,41 +37,48 @@ namespace GitWorkTree.Helpers
 
         public async Task WriteToOutputWindowAsync(string message, bool ShowOutputPane = false)
         {
-            await Task.Run(() =>
+
+            try
             {
-                try
+                await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
                 {
-                    ThreadHelper.JoinableTaskFactory.Run(async () =>
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                    if (outputPane == null) outputPane = CreatePane();
+
+                    // Check for null before writing to the output pane
+                    string formattedMessage = $"[{DateTime.Now}] > {message}\r";
+
+                    if (ShowOutputPane)
                     {
-                        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                        outputPane?.Activate();
+                        dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput).Visible = true;
+                    }
 
-                        if (outputPane == null) outputPane = CreatePane();
-
-                        // Check for null before writing to the output pane
-                        string formattedMessage = $">{message}\r";
-
-                        if (ShowOutputPane)
-                        {
-                            outputPane?.Activate();
-                            dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput).Visible = true;
-                        }
-
-                        outputPane?.OutputStringThreadSafe(formattedMessage);
-                    });
-                }
-                catch (Exception ex)
-                {
-                    // Handle or log the exception during logging
-                    Console.WriteLine($"Error: {ex.Message} while logging: {message}");
-                }
-            });
+                    outputPane?.OutputStringThreadSafe(formattedMessage);
+                });
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception during logging
+                Console.WriteLine($"Error: {ex.Message} while logging: {message}");
+            }
         }
 
-        public void UpdateStatusBar(string newMessage, string oldMessage = null)
+        public async Task UpdateStatusBar(string newMessage) => await UpdateStatusBarInternal(newMessage, null);
+        public async Task SetCommandStatusBusy(bool IsBusy = true)
         {
-            ThreadHelper.JoinableTaskFactory.Run(async () =>
+            string status = $"{Vsix.Name} command in progress...";
+            if (IsBusy) await UpdateStatusBarInternal(status);
+            else await UpdateStatusBarInternal("", status);
+        }
+        public async Task SetCommandCompletionStatus(bool isCompleted) => await UpdateStatusBarInternal($"{$"{Vsix.Name} command"} {(isCompleted ? "completed" : "failed")}");
+
+        private async Task UpdateStatusBarInternal(string newMessage, string oldMessage = null)
+        {
+            try
             {
-                try
+                await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
                 {
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     if (dte != null)
@@ -84,13 +86,14 @@ namespace GitWorkTree.Helpers
                         if ((oldMessage == null) || (oldMessage != null && dte.StatusBar.Text == oldMessage))
                             dte.StatusBar.Text = newMessage;
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error: {ex.Message} while updating: {newMessage}");
-                }
-            });
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message} while updating: {newMessage}");
+            }
         }
+
 
         private IVsOutputWindowPane CreatePane()
         {

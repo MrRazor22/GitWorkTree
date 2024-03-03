@@ -249,7 +249,7 @@ namespace GitWorkTree.ViewModel
             Close_Dialog();
             if (await GitHelper.CreateWorkTreeAsync(_activeRepositoryPath, _selectedBranch_Worktree, _folderPath, _isForceCreateRemove).ConfigureAwait(false))
             {
-                if (optionsSaved.IsLoadSolution) await PopulateBranches_Worktrees().ConfigureAwait(false);
+                if (optionsSaved.IsLoadSolution) await SolutionHelper.OpenSolution(FolderPath, true).ConfigureAwait(false);
                 return true;
             }
             return false;

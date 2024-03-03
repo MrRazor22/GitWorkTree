@@ -47,7 +47,7 @@ namespace GitWorkTree.Helpers
                     if (outputPane == null) outputPane = CreatePane();
 
                     // Check for null before writing to the output pane
-                    string formattedMessage = $"[{DateTime.Now}] > {message}\r";
+                    string formattedMessage = $">{message + Environment.NewLine}";
 
                     if (ShowOutputPane)
                     {

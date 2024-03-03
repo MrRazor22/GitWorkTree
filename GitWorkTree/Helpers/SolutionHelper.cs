@@ -36,6 +36,7 @@ namespace GitWorkTree.Helpers
             bool isError = true;
             try
             {
+                outputWindow.SetCommandStatusBusy(true);
                 if (string.IsNullOrEmpty(newSolutionPath) || !Directory.Exists(newSolutionPath))
                 {
                     outputWindow?.WriteToOutputWindowAsync($"Not a valid folder path {newSolutionPath}");
@@ -61,8 +62,7 @@ namespace GitWorkTree.Helpers
             }
             finally
             {
-                if (isError) outputWindow.UpdateStatusBar($"Worktree load failed");
-                else outputWindow?.UpdateStatusBar($"Worktree loaded");
+                outputWindow.SetCommandCompletionStatus(!isError);
             }
         }
 

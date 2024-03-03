@@ -34,7 +34,7 @@ namespace GitWorkTree.Helpers
             if (!File.Exists(GitPath))
                 outputWindow?.WriteToOutputWindowAsync($"Git executable not found at: {GitPath}", true);
 
-            outputWindow?.WriteToOutputWindowAsync($"Executing git command: {gitCommandArgs.Argument}", true);
+            outputWindow?.WriteToOutputWindowAsync($"Executing Git command: {gitCommandArgs.Argument}", true);
             try
             {
                 var startInfo = new ProcessStartInfo

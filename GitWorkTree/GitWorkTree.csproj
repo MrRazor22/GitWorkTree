@@ -124,7 +124,8 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\Icon.png">
+    <Content Include="Resources\icon.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
   </ItemGroup>

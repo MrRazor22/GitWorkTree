@@ -5,8 +5,9 @@
         <DisplayName>GitWorkTree</DisplayName>
         <Description xml:space="preserve">Enables Git worktree functionality in Visual Studio, Effortlessly manage and work on multiple branches simultaneously from Visual studio with Git WokrtTree.</Description>
         <MoreInfo>https://git-scm.com/docs/git-worktree</MoreInfo>
-        <Icon>Resources\Icon.png</Icon>
-        <PreviewImage>Resources\Icon.png</PreviewImage>
+        <ReleaseNotes>Initial Release</ReleaseNotes>
+        <Icon>Resources\icon.png</Icon>
+        <PreviewImage>Resources\icon.png</PreviewImage>
         <Tags>Visual Studio 2022, Git Worktree, Version Control, Git Branches, Productivity Tool, Code Management, Development Workflow, Collaboration, Branch Switching, Code Navigation, git,version control,git for visual studio,workflow,developer tools, multi-branch development,parallel development,code isolation,branch management</Tags>
     </Metadata>
     <Installation>

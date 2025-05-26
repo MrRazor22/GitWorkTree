@@ -48,6 +48,11 @@
 
 	</Commands>
 
+	<KeyBindings>
+		<KeyBinding guid="guidGitWorkTreePackageCmdSet" id="CreateWorkTreeCommand" editor="guidVSStd97" mod1="CONTROL SHIFT" key1="0xBB"/>
+		<KeyBinding guid="guidGitWorkTreePackageCmdSet" id="ManageWorkTreesCommand" editor="guidVSStd97" mod1="CONTROL SHIFT" key1="0xDC"/>
+	</KeyBindings>
+
 	<Symbols>
 		<GuidSymbol name="guidGitWorkTreePackage" value="{f5cfcdcd-f0ac-4140-bd08-4b122f188161}" />
 

@@ -153,15 +153,9 @@ namespace GitWorkTree.ViewModel
             Branches_Worktrees = new ObservableCollection<string>();
 
             //set title
-            if (this.commandType == CommandType.Create)
-            {
-                WindowTitle = "Create New Worktree";
-            }
-            else if (commandType == CommandType.Manage)
-            {
-                WindowTitle = "Manage Existing Worktrees";
-                IfOpenInNewVisualStudio = true;
-            }
+            if (this.commandType == CommandType.Create) WindowTitle = "Create New Worktree";
+            else if (commandType == CommandType.Manage) WindowTitle = "Manage Existing Worktrees";
+            IfOpenInNewVisualStudio = true;
 
             //set repo and folder path (branch/worktree updated based on repo set)
             ActiveRepositoryPath = gitRepositoryPath;
@@ -213,7 +207,7 @@ namespace GitWorkTree.ViewModel
             {
                 if (!(commandType == CommandType.Create) || _selectedBranch_Worktree == null) return false;
                 string worktreePath = Path.Combine(Directory.GetParent(_activeRepositoryPath).FullName, $"{_activeRepositoryPath}_Worktrees");
-                string pathPrefix = optionsSaved.DefaultBranchPath == "" ? $"{worktreePath}" : optionsSaved.DefaultBranchPath;
+                string pathPrefix = String.IsNullOrEmpty(optionsSaved.DefaultBranchPath) ? $"{worktreePath}" : optionsSaved.DefaultBranchPath;
                 string cleanedBranchName = _selectedBranch_Worktree.ToFolderFormat();
 
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -249,7 +243,7 @@ namespace GitWorkTree.ViewModel
             Close_Dialog();
             if (await GitHelper.CreateWorkTreeAsync(_activeRepositoryPath, _selectedBranch_Worktree, _folderPath, _isForceCreateRemove).ConfigureAwait(false))
             {
-                if (optionsSaved.IsLoadSolution) await SolutionHelper.OpenSolution(FolderPath, true).ConfigureAwait(false);
+                if (optionsSaved.IsLoadSolution) await SolutionHelper.OpenSolution(FolderPath, !_ifOpenInNewVisualStudio).ConfigureAwait(false);
                 return true;
             }
             return false;

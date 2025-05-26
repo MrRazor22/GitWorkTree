@@ -52,7 +52,6 @@ namespace GitWorkTree.Helpers
                 }
                 isError = await HandleOpenSolution(newSolutionPath, openInCurrentInstance, solutionFiles);
 
-                outputWindow?.WriteToOutputWindowAsync($"{newSolutionPath} Loaded");
                 return !(isError = false);
             }
             catch (Exception ex)
@@ -62,6 +61,7 @@ namespace GitWorkTree.Helpers
             }
             finally
             {
+                outputWindow?.WriteToOutputWindowAsync($"{newSolutionPath} Loaded");
                 outputWindow.SetCommandCompletionStatus(!isError);
             }
         }

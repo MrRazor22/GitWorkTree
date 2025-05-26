@@ -16,13 +16,13 @@ namespace GitWorkTree
     public class General : BaseOptionModel<General>
     {
         [DisplayName("Load Solution: ")]
-        [Description("Load the solution of newly created Worktree branch directly into the current instance of Visual Studio immediately after creation")]
-        [DefaultValue("False")]
+        [Description("Load Worktree solution in Visual Studio immediately after worktree creation")]
+        [DefaultValue("True")]
         public bool IsLoadSolution { get; set; }
 
         [DisplayName("Default Branch Path: ")]
         [Description("Default Branch Path to load newly created Worktrees")]
-        [DefaultValue("D:\\WorkTrees")]
+        [DefaultValue("")]
         public string DefaultBranchPath { get; set; }
     }
 }

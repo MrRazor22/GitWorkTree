@@ -7,7 +7,7 @@
                         xmlns:toolkit="clr-namespace:Community.VisualStudio.Toolkit;assembly=Community.VisualStudio.Toolkit"
                         xmlns:viewmodel="clr-namespace:GitWorkTree.ViewModel"
                         xmlns:usercontrols="clr-namespace:GitWorkTree.View.UserControls"
-                        xmlns:converters="clr-namespace:GitWorkTree.View.Converters"
+                        xmlns:converters="clr-namespace:GitWorkTree.View.Converters" 
                         toolkit:Themes.UseVsTheme="True"
                         mc:Ignorable="d"
                         Title="{Binding WindowTitle}"
@@ -76,7 +76,7 @@
 
 
             <Grid Grid.Row="2" >
-                <Grid d:Visibility="Visible"
+                <Grid d:Visibility="Collapsed"
                 Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}" Height="auto" Width="auto">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="20*"></ColumnDefinition>
@@ -91,17 +91,17 @@
                      Grid.Row="2" Grid.Column="1"  Description="Folder for branch worktree" VerticalAlignment="Center" />
                 </Grid>
 
-                <Grid d:Visibility="Collapsed"
+                <Grid d:Visibility="Visible"
                     Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}" Height="auto" Width="auto">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="auto"></ColumnDefinition>
                         <ColumnDefinition Width="*"></ColumnDefinition>
                         <ColumnDefinition Width="*"></ColumnDefinition>
-                        <ColumnDefinition Width="*"></ColumnDefinition>
+                        <ColumnDefinition Width="1.3*"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
 
-                    <CheckBox x:Name="LoadSolution" IsChecked="{Binding IfOpenInNewVisualStudio}"
-                       Content="Open in new VS instance" FontSize="14"
+                    <CheckBox x:Name="ManageLoadSolution" IsChecked="{Binding IfOpenInNewVisualStudio}"
+                       Content="Open in new window" FontSize="14" 
                        Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" />
 
                     <Button Content="Open" Grid.Column="3" FontSize="14" FontWeight="SemiBold"
@@ -119,9 +119,16 @@
                     <ColumnDefinition Width="*"></ColumnDefinition>
                 </Grid.ColumnDefinitions>
 
-                <CheckBox x:Name="ForceCreateRemove" IsChecked="{Binding IsForceCreateRemove}" FontSize="14"
+                <CheckBox x:Name="ForceCreateRemove" IsChecked="{Binding IsForceCreateRemove}" FontSize="14" d:Visibility="Visible"
                       Content="{Binding CommandType, Converter={StaticResource CommandTypeToForceCheckBoxTextConverter}}"
                       Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" />
+
+                <CheckBox x:Name="CreateLoadSolution" IsChecked="{Binding IfOpenInNewVisualStudio}" Margin="2" d:Visibility="Visible"
+                      Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}" 
+                        IsEnabled="{Binding OptionsSaved.IsLoadSolution}"
+                      Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" >
+                    <TextBlock Text="Open in new window" FontSize="14" TextWrapping="Wrap" TextAlignment="Right"/>
+                </CheckBox>
 
                 <Button x:Name="Prune" Command="{Binding PruneCommand}" Margin="7"
                       Content="Prune" Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"

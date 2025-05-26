@@ -16,10 +16,24 @@ namespace GitWorkTree.ViewModel
     public class WorkTreeDialogViewModel : BaseViewModel
     {
         private readonly LoggingHelper outputWindow = LoggingHelper.Instance;
-        private General optionsSaved;
 
         #region UI Related Properties
         public ObservableCollection<string> Branches_Worktrees { get; set; }
+
+        private General optionsSaved;
+
+        public General OptionsSaved
+        {
+            get { return optionsSaved; }
+            set
+            {
+                if (optionsSaved != value)
+                {
+                    optionsSaved = value;
+                    OnPropertyChanged(nameof(optionsSaved));
+                }
+            }
+        }
 
         private CommandType commandType;
         public CommandType CommandType

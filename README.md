@@ -15,6 +15,7 @@ Get it from the Visual Studio Marketplace or build from source.
 
 Usage:
 After installation, two options appear under **Git > Git Worktree**:
+
 ![image](https://github.com/user-attachments/assets/158b87d3-b6a0-4137-bb1d-0c15831db435)
 
 
@@ -22,6 +23,7 @@ After installation, two options appear under **Git > Git Worktree**:
 * **Manage Worktrees** (Ctrl+Shift+)
 
 **Create Worktree Window:**
+
 ![image](https://github.com/user-attachments/assets/105abd78-32bb-456d-9024-58c2152766d4)
 
 1. Shows current repo
@@ -32,6 +34,7 @@ After installation, two options appear under **Git > Git Worktree**:
 6. Creates new Worktree for selected branch in selected path
 
 **Manage Worktrees Window:**
+
 ![image](https://github.com/user-attachments/assets/178b9b63-61c3-47e8-a2b7-72f80a3372cb)
 
 1. Shows current repo
@@ -43,6 +46,7 @@ After installation, two options appear under **Git > Git Worktree**:
 7. Remove selected worktree
 
 **Settings:**
+
 ![image](https://github.com/user-attachments/assets/008a34af-1337-4fef-ab34-b91d54249867)
 
 Accessible via **Git > Settings > Source Control > Git Worktree**

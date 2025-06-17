@@ -28,19 +28,27 @@ namespace GitWorkTree.Helpers
         {
             LoggingHelper outputWindow = LoggingHelper.Instance;
             bool isError = false;
+
             if (gitCommandArgs == null || string.IsNullOrEmpty(gitCommandArgs.WorkingDirectory))
+            {
                 outputWindow?.WriteToOutputWindowAsync("The working directory is invalid or not loaded yet");
+                return false; 
+            }
 
             if (!File.Exists(GitPath))
+            {
                 outputWindow?.WriteToOutputWindowAsync($"Git executable not found at: {GitPath}", true);
+                return false; 
+            }
 
             outputWindow?.WriteToOutputWindowAsync($"Executing Git command: {gitCommandArgs.Argument}", true);
+
             try
             {
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = GitPath,
-                    Arguments = gitCommandArgs.Argument,
+                    Arguments = $"--no-pager --no-color {gitCommandArgs.Argument}",
                     WorkingDirectory = gitCommandArgs.WorkingDirectory,
                     UseShellExecute = false,
                     CreateNoWindow = true,
@@ -83,7 +91,7 @@ namespace GitWorkTree.Helpers
             catch (Exception ex)
             {
                 outputWindow?.WriteToOutputWindowAsync($"An error occurred during Git command execution: {ex.Message}", true);
-                return !(isError = true);
+                return false;
             }
             finally
             {

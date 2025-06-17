@@ -32,13 +32,13 @@ namespace GitWorkTree.Helpers
             if (gitCommandArgs == null || string.IsNullOrEmpty(gitCommandArgs.WorkingDirectory))
             {
                 outputWindow?.WriteToOutputWindowAsync("The working directory is invalid or not loaded yet");
-                return false; 
+                return false;
             }
 
             if (!File.Exists(GitPath))
             {
                 outputWindow?.WriteToOutputWindowAsync($"Git executable not found at: {GitPath}", true);
-                return false; 
+                return false;
             }
 
             outputWindow?.WriteToOutputWindowAsync($"Executing Git command: {gitCommandArgs.Argument}", true);
@@ -48,7 +48,7 @@ namespace GitWorkTree.Helpers
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = GitPath,
-                    Arguments = $"--no-pager --no-color {gitCommandArgs.Argument}",
+                    Arguments = gitCommandArgs.Argument,
                     WorkingDirectory = gitCommandArgs.WorkingDirectory,
                     UseShellExecute = false,
                     CreateNoWindow = true,
@@ -131,7 +131,7 @@ namespace GitWorkTree.Helpers
             var isCompleted = await ExecuteAsync(new GitCommandArgs()
             {
                 WorkingDirectory = repositoryPath,
-                Argument = "branch -a"
+                Argument = "--no-pager branch -a --no-color"
             }, (line) =>
             {
                 if (!string.IsNullOrWhiteSpace(line))
@@ -175,7 +175,7 @@ namespace GitWorkTree.Helpers
         {
             return await ExecuteAsync(new GitCommandArgs()
             {
-                Argument = "prune",
+                Argument = "worktree prune --expire=now",
                 WorkingDirectory = repositoryPath
             }, (line) =>
             {

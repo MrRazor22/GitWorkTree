@@ -1,8 +1,10 @@
 ﻿using EnvDTE;
+using Microsoft.VisualStudio.Threading;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Path = System.IO.Path;
@@ -27,7 +29,6 @@ namespace GitWorkTree.Helpers
         private static async Task<bool> ExecuteAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null)
         {
             LoggingHelper outputWindow = LoggingHelper.Instance;
-            bool isError = false;
 
             if (gitCommandArgs == null || string.IsNullOrEmpty(gitCommandArgs.WorkingDirectory))
             {
@@ -57,35 +58,41 @@ namespace GitWorkTree.Helpers
                 };
 
                 using var process = new System.Diagnostics.Process { StartInfo = startInfo };
-                var outputDataReceivedTask = new TaskCompletionSource<bool>();
-                var errorDataReceivedTask = new TaskCompletionSource<bool>();
+                var outputBuilder = new StringBuilder();
+                var errorBuilder = new StringBuilder();
 
-                DataReceivedEventHandler gitOutputHandler = (sender, e) =>
+                process.OutputDataReceived += (s, e) =>
                 {
                     if (e.Data != null)
                     {
-                        isError = isError || Regex.IsMatch(e.Data, @"\b(error|fatal|failed|rejected|conflict)\b", RegexOptions.IgnoreCase);
-                        if (!isError) outputHandler?.Invoke(e.Data);
-                        else outputWindow?.WriteToOutputWindowAsync(e.Data);
+                        outputBuilder.AppendLine(e.Data);
+                        outputHandler?.Invoke(e.Data);
                     }
                 };
 
-                process.OutputDataReceived += gitOutputHandler;
-                process.ErrorDataReceived += gitOutputHandler;
-
-                process.EnableRaisingEvents = true;
-
-                process.Exited += (sender, e) =>
+                process.ErrorDataReceived += (s, e) =>
                 {
-                    outputDataReceivedTask.TrySetResult(true);
-                    errorDataReceivedTask.TrySetResult(true);
+                    if (e.Data != null)
+                    {
+                        errorBuilder.AppendLine(e.Data);
+                        outputWindow?.WriteToOutputWindowAsync(e.Data);
+                    }
                 };
 
                 process.Start();
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
 
-                await Task.WhenAll(outputDataReceivedTask.Task, errorDataReceivedTask.Task);
+                await process.WaitForExitAsync();
+
+                bool isError = process.ExitCode != 0;
+
+                if (isError && errorBuilder.Length == 0)
+                    outputWindow?.WriteToOutputWindowAsync("Git failed but no error output captured.", true);
+
+                var result = isError ? "failed" : "completed";
+                outputWindow.WriteToOutputWindowAsync($"Command execution - {result}");
+
                 return !isError;
             }
             catch (Exception ex)
@@ -93,12 +100,8 @@ namespace GitWorkTree.Helpers
                 outputWindow?.WriteToOutputWindowAsync($"An error occurred during Git command execution: {ex.Message}", true);
                 return false;
             }
-            finally
-            {
-                var result = isError ? "failed" : "completed";
-                outputWindow.WriteToOutputWindowAsync($"Command execution - {result}");
-            }
         }
+
 
 
         public static async Task<List<string>> GetWorkTreePathsAsync(string repositoryPath)

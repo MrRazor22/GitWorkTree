@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
-	<Metadata>
-		<Identity Id="GitWorkTreeExtension" Version="1.0.0.3" Language="en-US" Publisher="Senthil V" />
-		<DisplayName>Git WorkTree</DisplayName>
-		<Description xml:space="preserve">Enables Git worktree support in Visual Studio, letting you easily manage and switch between multiple branches simultaneously.</Description>
-		<MoreInfo>https://git-scm.com/docs/git-worktree</MoreInfo>
-		<LicenseUrl>https://opensource.org/licenses/MIT</LicenseUrl>
-		<ReleaseNotes>Initial Release</ReleaseNotes>
-		<Icon>Resources\icon.png</Icon>
-		<PreviewImage>Resources\icon.png</PreviewImage>
-		<Tags>Visual Studio 2022, Git Worktree, Version Control, Git Branches, Productivity Tool, Code Management, Development Workflow, Collaboration, Branch Switching, Code Navigation, git,version control,git for visual studio,workflow,developer tools, multi-branch development,parallel development,code isolation,branch management</Tags>
-	</Metadata>
-	<Installation>
-		<InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0, 18.0)">
-			<ProductArchitecture>amd64</ProductArchitecture>
-		</InstallationTarget>
-	</Installation>
-	<Prerequisites>
-		<Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
-	</Prerequisites>
-	<Assets>
-		<Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
-	</Assets>
+    <Metadata>
+        <Identity Id="GitWorkTreeExtension" Version="1.0.0.4" Language="en-US" Publisher="Senthil V" />
+        <DisplayName>Git WorkTree</DisplayName>
+        <Description xml:space="preserve">Enables Git worktree support in Visual Studio, letting you easily manage and switch between multiple branches simultaneously.</Description>
+        <MoreInfo>https://git-scm.com/docs/git-worktree</MoreInfo>
+        <LicenseUrl>https://opensource.org/licenses/MIT</LicenseUrl>
+        <ReleaseNotes>Initial Release</ReleaseNotes>
+        <Icon>Resources\icon.png</Icon>
+        <PreviewImage>Resources\icon.png</PreviewImage>
+        <Tags>Visual Studio 2022, Git Worktree, Version Control, Git Branches, Productivity Tool, Code Management, Development Workflow, Collaboration, Branch Switching, Code Navigation, git,version control,git for visual studio,workflow,developer tools, multi-branch development,parallel development,code isolation,branch management</Tags>
+    </Metadata>
+    <Installation>
+        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0, 18.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
+    </Installation>
+    <Prerequisites>
+        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
+    </Prerequisites>
+    <Assets>
+        <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
+    </Assets>
 </PackageManifest>

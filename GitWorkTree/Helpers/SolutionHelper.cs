@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace GitWorkTree.Helpers
@@ -8,6 +9,10 @@ namespace GitWorkTree.Helpers
     public static class SolutionHelper
     {
         static LoggingHelper outputWindow = LoggingHelper.Instance;
+        public static string NormalizePath(string path) =>
+             string.IsNullOrWhiteSpace(path) ? "\"\"" :
+                 ((path = path.Trim().Trim('"').TrimEnd('\r', '\n'))
+                  .Any(char.IsWhiteSpace) ? $"\"{path}\"" : path);
         public static string GetRepositoryPath(string solutionPath)
         {
             try
@@ -76,7 +81,7 @@ namespace GitWorkTree.Helpers
         private static bool OpenSolutionInNewInstance(string newSolutionPath, string[] solutionFiles)
         {
             outputWindow?.WriteToOutputWindowAsync($"Opening {newSolutionPath} in new VS instance", true);
-            System.Diagnostics.Process.Start("devenv.exe", solutionFiles[0]);
+            System.Diagnostics.Process.Start("devenv.exe", NormalizePath(solutionFiles[0]));
             return true;
         }
 

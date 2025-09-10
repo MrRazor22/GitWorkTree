@@ -21,10 +21,6 @@ namespace GitWorkTree.Helpers
     {
         private static string GitPath = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory,
             @"CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe");
-        private static string QuotePath(string path) =>
-            string.IsNullOrWhiteSpace(path) ? "\"\"" :
-                    ((path = path.Trim().Trim('"')).Any(char.IsWhiteSpace) ? //Does the cleaned string contain spaces? 
-                    $"\"{path}\"" : path);                                   //→ add quotes.
         public static string ToFolderFormat(this string branchName) => Regex.Match(branchName, @"(?:.*\/)?(?:head -> |origin\/|remote\/)?\+?\s*([^'/]+)").Groups[1].Value ?? branchName;
         public static string ToGitCommandExecutableFormat(this string branchName) => Regex.Match(branchName,
                 @"(?:\+?\s?(?:remotes?\/(?:origin|main|upstream)\/(?:HEAD -> (?:origin|main|upstream)\/)?|remotes?\/(?:origin|main|upstream)\/)?|[^\/]+\/)?([^\/]+(?:\/[^\/]+)*)$")
@@ -159,7 +155,7 @@ namespace GitWorkTree.Helpers
             string force = shouldForceCreate ? "-f " : "";
             return await ExecuteAsync(new GitCommandArgs()
             {
-                Argument = $"worktree add {force}{QuotePath(workTreePath)} {branchName.ToGitCommandExecutableFormat()}",
+                Argument = $"worktree add {force}{SolutionHelper.NormalizePath(workTreePath)} {branchName.ToGitCommandExecutableFormat()}",
                 WorkingDirectory = repositoryPath
             }, (line) =>
             {
@@ -172,7 +168,7 @@ namespace GitWorkTree.Helpers
             string force = shouldForceCreate ? "-f " : "";
             return await ExecuteAsync(new GitCommandArgs()
             {
-                Argument = $"worktree remove {force}{QuotePath(workTreePath)}",
+                Argument = $"worktree remove {force}{SolutionHelper.NormalizePath(workTreePath)}",
                 WorkingDirectory = repositoryPath
             }, (line) =>
             {

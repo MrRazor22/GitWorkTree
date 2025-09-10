@@ -102,8 +102,6 @@ namespace GitWorkTree.Helpers
             }
         }
 
-
-
         public static async Task<List<string>> GetWorkTreePathsAsync(string repositoryPath)
         {
             List<string> workTreePaths = new List<string>();
@@ -113,19 +111,23 @@ namespace GitWorkTree.Helpers
                 Argument = "worktree list --porcelain",
             }, (line) =>
             {
-                if (line.StartsWith("worktree"))
+                if (line.StartsWith("worktree "))
                 {
-                    string worktreePath = line.Split(' ').ElementAtOrDefault(1);
-                    string mainRepoPath = Path.GetFullPath(repositoryPath);
-
-                    if (!Path.GetFullPath(worktreePath).Equals(mainRepoPath, StringComparison.OrdinalIgnoreCase))
+                    // everything after "worktree " is the path (can contain spaces)
+                    string rawPath = line.Substring("worktree ".Length).Trim();
+                    if (!string.IsNullOrEmpty(rawPath))
                     {
-                        workTreePaths.Add(worktreePath);
+                        string worktreePath = Path.GetFullPath(rawPath);
+                        string mainRepoPath = Path.GetFullPath(repositoryPath);
+
+                        if (!worktreePath.Equals(mainRepoPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            workTreePaths.Add(worktreePath);
+                        }
                     }
                 }
             });
-            if (isCompleted) return workTreePaths;
-            else return null;
+            return isCompleted ? workTreePaths : null;
         }
 
         public static async Task<List<string>> GetBranchesAsync(string repositoryPath)
@@ -153,7 +155,7 @@ namespace GitWorkTree.Helpers
             string force = shouldForceCreate ? "-f " : "";
             return await ExecuteAsync(new GitCommandArgs()
             {
-                Argument = $"worktree add {force}{workTreePath} {branchName.ToGitCommandExecutableFormat()}",
+                Argument = $"worktree add {force}{SolutionHelper.NormalizePath(workTreePath)} {branchName.ToGitCommandExecutableFormat()}",
                 WorkingDirectory = repositoryPath
             }, (line) =>
             {
@@ -166,7 +168,7 @@ namespace GitWorkTree.Helpers
             string force = shouldForceCreate ? "-f " : "";
             return await ExecuteAsync(new GitCommandArgs()
             {
-                Argument = $"worktree remove {force}{workTreePath}",
+                Argument = $"worktree remove {force}{SolutionHelper.NormalizePath(workTreePath)}",
                 WorkingDirectory = repositoryPath
             }, (line) =>
             {
@@ -190,13 +192,13 @@ namespace GitWorkTree.Helpers
         {
             string commandoutput = "";
             var isCompleted = await ExecuteAsync(new GitCommandArgs() { WorkingDirectory = currentSolutionPath, Argument = "rev-parse --git-dir", },
-                (line) =>
+            (line) =>
+            {
+                if (!string.IsNullOrWhiteSpace(line))
                 {
-                    if (!string.IsNullOrWhiteSpace(line))
-                    {
-                        commandoutput = line.Trim();
-                    }
-                });
+                    commandoutput = line.Trim();
+                }
+            });
 
             if (isCompleted) return commandoutput;
             return null;

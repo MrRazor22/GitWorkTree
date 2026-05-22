@@ -10,6 +10,7 @@ namespace GitWorkTree
         {
             public bool IsLoadSolution { get; set; }
             public string DefaultWorktreeDirectory { get; set; }
+            public string WorktreeSubFolder { get; set; }
         }
     }
 
@@ -22,8 +23,13 @@ namespace GitWorkTree
 
 
         [DisplayName("Default Worktree Directory: ")]
-        [Description("Path where new worktrees will be created. If empty, the current repository directory will be used.")]
+        [Description("Absolute path where new worktrees will be created. If empty (and Worktree Sub-Folder is also empty), worktrees default to a sibling \"<repo>_Worktrees\" folder.")]
         [DefaultValue("")]
         public string DefaultWorktreeDirectory { get; set; }
+
+        [DisplayName("Worktree Sub-Folder: ")]
+        [Description("Folder name created inside each repository to hold its worktrees (e.g. \".worktrees\"). When set, takes precedence over Default Worktree Directory. Tip: add this folder to .gitignore.")]
+        [DefaultValue("")]
+        public string WorktreeSubFolder { get; set; }
     }
 }

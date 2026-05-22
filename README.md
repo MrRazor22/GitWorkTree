@@ -111,6 +111,12 @@ Accessible via **Git > Settings > Source Control > Git Worktree**
   * If empty, defaults to:
     `repo directory\repo_name_worktree\branch_name`
   * Otherwise, uses your custom directory
+* **Worktree Sub-Folder**:
+
+  * Folder name created inside each repository to hold its worktrees (e.g. `.worktrees`)
+  * Result: `repo directory\<sub-folder>\branch_name`
+  * When set, takes precedence over **Default Worktree Directory**
+  * Tip: add the folder to `.gitignore` to keep the parent repo clean
 * **Load**:
 
   * If True: opens new worktree in a new window after creation

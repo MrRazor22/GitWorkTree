@@ -22,13 +22,13 @@ namespace GitWorkTree
         public bool IsLoadSolution { get; set; }
 
 
-        [DisplayName("Default Worktree Directory: ")]
-        [Description("Absolute path where new worktrees will be created. If empty (and Worktree Sub-Folder is also empty), worktrees default to a sibling \"<repo>_Worktrees\" folder.")]
+        [DisplayName("Default Worktree Directory")]
+        [Description("Absolute path where new worktrees will be created. If empty, defaults to a sibling \"<repo>_Worktrees\" folder. Ignored when Worktree Sub-Folder is specified.")]
         [DefaultValue("")]
         public string DefaultWorktreeDirectory { get; set; }
 
-        [DisplayName("Worktree Sub-Folder: ")]
-        [Description("Folder name created inside each repository to hold its worktrees (e.g. \".worktrees\"). When set, takes precedence over Default Worktree Directory. Tip: add this folder to .gitignore.")]
+        [DisplayName("Worktree Sub-Folder")]
+        [Description("Folder created inside the repository to hold worktrees (e.g. \".worktrees\"). Takes precedence over Default Worktree Directory. Tip: add this folder to .gitignore.")]
         [DefaultValue("")]
         public string WorktreeSubFolder { get; set; }
     }

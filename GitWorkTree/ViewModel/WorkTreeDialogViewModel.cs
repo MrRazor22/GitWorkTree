@@ -221,7 +221,13 @@ namespace GitWorkTree.ViewModel
             {
                 if (!(commandType == CommandType.Create) || _selectedBranch_Worktree == null) return false;
                 string worktreePath = Path.Combine(Directory.GetParent(_activeRepositoryPath).FullName, $"{_activeRepositoryPath}_Worktrees");
-                string pathPrefix = String.IsNullOrEmpty(optionsSaved.DefaultWorktreeDirectory) ? $"{worktreePath}" : optionsSaved.DefaultWorktreeDirectory;
+                string pathPrefix;
+                if (!String.IsNullOrWhiteSpace(optionsSaved.WorktreeSubFolder))
+                    pathPrefix = Path.Combine(_activeRepositoryPath, optionsSaved.WorktreeSubFolder);
+                else if (!String.IsNullOrEmpty(optionsSaved.DefaultWorktreeDirectory))
+                    pathPrefix = optionsSaved.DefaultWorktreeDirectory;
+                else
+                    pathPrefix = worktreePath;
                 string cleanedBranchName = _selectedBranch_Worktree.ToFolderFormat();
 
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();

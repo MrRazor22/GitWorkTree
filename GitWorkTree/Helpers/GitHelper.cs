@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Threading;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -147,6 +147,30 @@ namespace GitWorkTree.Helpers
             });
             if (isCompleted) return branches;
             else return null;
+        }
+
+        public static async Task<bool> CreateBranchAsync(string repositoryPath, string newBranchName, string sourceBranchName)
+        {
+            return await ExecuteAsync(new GitCommandArgs()
+            {
+                Argument = $"branch {newBranchName} {sourceBranchName.ToGitCommandExecutableFormat()}",
+                WorkingDirectory = repositoryPath
+            }, (line) =>
+            {
+                LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
+            });
+        }
+
+        public static async Task<bool> DeleteBranchAsync(string repositoryPath, string branchName)
+        {
+            return await ExecuteAsync(new GitCommandArgs()
+            {
+                Argument = $"branch -D {branchName}",
+                WorkingDirectory = repositoryPath
+            }, (line) =>
+            {
+                LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
+            });
         }
 
         public static async Task<bool> CreateWorkTreeAsync

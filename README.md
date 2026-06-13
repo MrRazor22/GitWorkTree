@@ -102,7 +102,7 @@ All Git command executions performed by the extension are logged in Visual Studi
 
 ### **Settings:**
 
-![image](https://github.com/user-attachments/assets/db5bab93-cc87-48a1-a46c-b979c7968774)
+![image](https://github.com/user-attachments/assets/83392e8d-2aea-4d5f-ba63-7a58f03f4af0)
 
 Accessible via **Git > Settings > Source Control > Git Worktree**
 

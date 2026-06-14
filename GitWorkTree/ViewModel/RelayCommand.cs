@@ -1,6 +1,5 @@
 using GitWorkTree.Services;
 using System;
-using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace GitWorkTree.ViewModel
@@ -8,29 +7,8 @@ namespace GitWorkTree.ViewModel
     public class RelayCommand : ICommand
     {
         private readonly Func<object, bool> _execute;
-        private readonly Func<object, Task<bool>> _executeAsync;
         private readonly Predicate<object> _canExecute;
-        private static bool _isExecuting;
-        private readonly ILoggingService outputWindow;
-
-        // Event to handle command result
-        public event EventHandler<bool> CommandExecuted;
-
-        // Constructor for synchronous command
-        public RelayCommand(Func<object, bool> execute, Predicate<object> canExecute = null, ILoggingService loggingService = null)
-        {
-            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            _canExecute = canExecute;
-            outputWindow = loggingService;
-        }
-
-        // Constructor for asynchronous command
-        public RelayCommand(Func<object, Task<bool>> executeAsync, Predicate<object> canExecute = null, ILoggingService loggingService = null)
-        {
-            _executeAsync = executeAsync ?? throw new ArgumentNullException(nameof(executeAsync));
-            _canExecute = canExecute;
-            outputWindow = loggingService;
-        }
+        private readonly ILoggingService _loggingService;
 
         public event EventHandler CanExecuteChanged
         {
@@ -38,45 +16,35 @@ namespace GitWorkTree.ViewModel
             remove { CommandManager.RequerySuggested -= value; }
         }
 
-        public bool CanExecute(object parameter)
+        public RelayCommand(Func<object, bool> execute, Predicate<object> canExecute = null, ILoggingService loggingService = null)
         {
-            if (!_isExecuting && (_canExecute == null || _canExecute(parameter))) return true;
-            outputWindow?.SetCommandStatusBusy();
-            return false;
+            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+            _canExecute = canExecute;
+            _loggingService = loggingService;
         }
 
-        public async void Execute(object parameter)
+        public bool CanExecute(object parameter)
         {
-            if (!CanExecute(parameter))
-            {
-                return;
-            }
+            return _canExecute == null || _canExecute(parameter);
+        }
+
+        public void Execute(object parameter)
+        {
+            if (!CanExecute(parameter)) return;
+
             bool result = false;
             try
             {
-                _isExecuting = true;
-
-                if (_execute != null)
-                {
-                    result = _execute(parameter);
-                }
-                else if (_executeAsync != null)
-                {
-                    result = await _executeAsync(parameter);
-                }
-
-                // Raise the CommandExecuted event with the result
-                CommandExecuted?.Invoke(this, result);
+                _loggingService?.SetCommandStatusBusy();
+                result = _execute(parameter);
             }
             catch (Exception ex)
             {
-                outputWindow?.WriteToOutputWindowAsync($"{Vsix.Name} Command execution failed: {ex.Message}", result = false);
+                _loggingService?.WriteToOutputWindowAsync($"{Vsix.Name} Command execution failed: {ex.Message}");
             }
             finally
             {
-                outputWindow?.SetCommandCompletionStatus(result);
-                _isExecuting = false;
-                CommandManager.InvalidateRequerySuggested();
+                _loggingService?.SetCommandCompletionStatus(result);
             }
         }
     }

@@ -15,7 +15,6 @@ using System.Runtime.InteropServices;
 
 [assembly: AssemblyVersion(Vsix.Version)]
 [assembly: AssemblyFileVersion(Vsix.Version)]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("GitWorkTree.Tests")]
 
 namespace System.Runtime.CompilerServices
 {

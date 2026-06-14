@@ -196,7 +196,7 @@ namespace GitWorkTree.Tests
             };
 
             // Act
-            var result = await viewModel.Create_WorkTree();
+            await viewModel.CreateCommand.ExecuteAsync(null);
 
             // Assert
             _mockGitService.Verify(g => g.CreateBranchAsync(@"C:\repo", "feature-1", "main"), Times.Once);
@@ -231,33 +231,13 @@ namespace GitWorkTree.Tests
             };
 
             // Act
-            var result = await viewModel.Create_WorkTree();
+            await viewModel.CreateCommand.ExecuteAsync(null);
 
             // Assert
             _mockGitService.Verify(g => g.CreateBranchAsync(@"C:\repo", "feature-1", "main"), Times.Once);
             _mockGitService.Verify(g => g.CreateWorkTreeAsync(@"C:\repo", "feature-1", @"C:\worktrees\feature-1", false), Times.Once);
             _mockGitService.Verify(g => g.DeleteBranchAsync(@"C:\repo", "feature-1"), Times.Once);
             _mockSolutionService.Verify(s => s.OpenSolution(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
-        }
-    }
-
-    // A helper interface to allow executing commands from test as ICommand execution is normally synchronous
-    public static class CommandExtensions
-    {
-        public static async Task<bool> ExecuteAsync(this System.Windows.Input.ICommand command, object parameter)
-        {
-            if (command is RelayCommand relayCommand)
-            {
-                // RelayCommand uses async internally but can be run via task completion or normal execution
-                // In our code, RelayCommand wraps async Task actions.
-                // Let's invoke it.
-                command.Execute(parameter);
-                // Wait briefly for execution task or let the CPU yield.
-                await Task.Yield();
-                return true;
-            }
-            command.Execute(parameter);
-            return true;
         }
     }
 }

@@ -166,10 +166,17 @@
                       Content="Prune" Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"
                     Grid.Column="1" FontSize="14" FontWeight="SemiBold" />
 
-                <Button Content="{Binding CommandType, Converter={StaticResource CommandTypeToCreateRemoveButtonTextConverter}}" Command="{Binding CreateCommand}"
+                <Button Content="Create" Command="{Binding CreateCommand}"
+                    Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}"
                     Grid.Column="2" FontSize="14" FontWeight="SemiBold"
                     Margin="7"
-                    Name="button2" />
+                    Name="buttonCreate" />
+
+                <Button Content="Remove" Command="{Binding RemoveCommand}"
+                    Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"
+                    Grid.Column="2" FontSize="14" FontWeight="SemiBold"
+                    Margin="7"
+                    Name="buttonRemove" />
 
                 <Button Content="Cancel" Grid.Column="3" FontSize="14" FontWeight="SemiBold"
                     Command="{Binding CancelCommand}" Margin="7"

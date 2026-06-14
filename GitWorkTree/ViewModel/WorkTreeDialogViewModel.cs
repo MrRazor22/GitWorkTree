@@ -270,6 +270,13 @@ namespace GitWorkTree.ViewModel
 
             //set repo and folder path (branch/worktree updated based on repo set)
             ActiveRepositoryPath = gitRepositoryPath;
+
+            // Initialize commands
+            PruneCommand = new AsyncRelayCommand(async obj => await Prune_WorkTree(), null, _loggingService);
+            CreateCommand = new AsyncRelayCommand(async obj => await Create_WorkTree(), obj => IsValid, _loggingService);
+            RemoveCommand = new AsyncRelayCommand(async obj => await Remove_WorkTree(), obj => IsValid, _loggingService);
+            OpenCommand = new AsyncRelayCommand(async obj => await Open_WorkTree(), obj => IsValid, _loggingService);
+            CancelCommand = new RelayCommand(obj => Close_Dialog(), null, _loggingService);
         }
 
         private List<string> GetBranches_Worktrees()
@@ -348,22 +355,19 @@ namespace GitWorkTree.ViewModel
             }
         }
 
-        public ICommand PruneCommand => new RelayCommand(async obj => await Prune_WorkTree(), null, _loggingService);
-        public ICommand CreateCommand => new RelayCommand(async (obj) =>
-            {
-                if (CommandType == CommandType.Create) return await Create_WorkTree();
-                return await Remove_WorkTree();
-            }, (obj) => IsValid, _loggingService);
-        public ICommand OpenCommand => new RelayCommand(async obj => await Open_WorkTree(), (obj) => IsValid, _loggingService);
-        public ICommand CancelCommand => new RelayCommand(obj => Close_Dialog(), null, _loggingService);
+        public IAsyncCommand PruneCommand { get; }
+        public IAsyncCommand CreateCommand { get; }
+        public IAsyncCommand RemoveCommand { get; }
+        public IAsyncCommand OpenCommand { get; }
+        public ICommand CancelCommand { get; }
 
-        internal async Task<bool> Prune_WorkTree()
+        private async Task<bool> Prune_WorkTree()
         {
             return await _gitService.PruneAsync(_activeRepositoryPath).ConfigureAwait(false) &&
                    await PopulateBranches_Worktrees().ConfigureAwait(false);
         }
 
-        internal async Task<bool> Create_WorkTree()
+        private async Task<bool> Create_WorkTree()
         {
             if (!IsValid) return false;
 
@@ -408,7 +412,8 @@ namespace GitWorkTree.ViewModel
                 return false;
             }
         }
-        internal async Task<bool> Remove_WorkTree()
+
+        private async Task<bool> Remove_WorkTree()
         {
             if (!IsValid) return false;
 
@@ -420,7 +425,7 @@ namespace GitWorkTree.ViewModel
             return false;
         }
 
-        internal async Task<bool> Open_WorkTree()
+        private async Task<bool> Open_WorkTree()
         {
             if (!IsValid) return false;
             if (!IfOpenInNewVisualStudio) Close_Dialog();

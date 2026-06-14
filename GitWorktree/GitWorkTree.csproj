@@ -49,6 +49,8 @@
     <Compile Include="Commands\CommandExecutor.cs" />
     <Compile Include="Commands\CreateWorkTree.cs" />
     <Compile Include="Services\GitHelper.cs" />
+    <Compile Include="Services\IGitCommandExecutor.cs" />
+    <Compile Include="Services\GitCommandExecutor.cs" />
     <Compile Include="Services\IGitService.cs" />
     <Compile Include="Services\ILoggingService.cs" />
     <Compile Include="Services\ISolutionService.cs" />

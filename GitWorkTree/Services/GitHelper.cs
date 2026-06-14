@@ -28,89 +28,28 @@ namespace GitWorkTree.Services
     public class GitHelper : IGitService
     {
         private readonly ILoggingService _loggingService;
+        private readonly IGitCommandExecutor _commandExecutor;
+        private readonly string _gitPath;
 
-        private string GitPath = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory,
-            @"CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe");
-
-        public GitHelper(ILoggingService loggingService)
+        public GitHelper(ILoggingService loggingService, IGitCommandExecutor commandExecutor = null, string gitPath = null)
         {
             _loggingService = loggingService;
+            _commandExecutor = commandExecutor ?? new GitCommandExecutor(loggingService);
+            _gitPath = gitPath ?? Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory,
+                @"CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe");
         }
 
         private async Task<bool> ExecuteAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null)
         {
-            ILoggingService outputWindow = _loggingService ?? LoggingHelper.Instance;
-
-            if (gitCommandArgs == null || string.IsNullOrEmpty(gitCommandArgs.WorkingDirectory))
+            if (gitCommandArgs == null)
             {
-                outputWindow?.WriteToOutputWindowAsync("The working directory is invalid or not loaded yet");
+                _loggingService?.WriteToOutputWindowAsync("The Git command arguments are null");
                 return false;
             }
 
-            if (!File.Exists(GitPath))
-            {
-                outputWindow?.WriteToOutputWindowAsync($"Git executable not found at: {GitPath}", true);
-                return false;
-            }
+            string fullArgument = $"-c core.longpaths=true {gitCommandArgs.Argument}";
 
-            outputWindow?.WriteToOutputWindowAsync($"Executing Git command: {gitCommandArgs.Argument}", true);
-
-            try
-            {
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = GitPath,
-                    Arguments = gitCommandArgs.Argument,
-                    WorkingDirectory = gitCommandArgs.WorkingDirectory,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true
-                };
-
-                using var process = new System.Diagnostics.Process { StartInfo = startInfo };
-                var outputBuilder = new StringBuilder();
-                var errorBuilder = new StringBuilder();
-
-                process.OutputDataReceived += (s, e) =>
-                {
-                    if (e.Data != null)
-                    {
-                        outputBuilder.AppendLine(e.Data);
-                        outputHandler?.Invoke(e.Data);
-                    }
-                };
-
-                process.ErrorDataReceived += (s, e) =>
-                {
-                    if (e.Data != null)
-                    {
-                        errorBuilder.AppendLine(e.Data);
-                        outputWindow?.WriteToOutputWindowAsync(e.Data);
-                    }
-                };
-
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-
-                await process.WaitForExitAsync();
-
-                bool isError = process.ExitCode != 0;
-
-                if (isError && errorBuilder.Length == 0)
-                    outputWindow?.WriteToOutputWindowAsync("Git failed but no error output captured.", true);
-
-                var result = isError ? "failed" : "completed";
-                outputWindow.WriteToOutputWindowAsync($"Command execution - {result}");
-
-                return !isError;
-            }
-            catch (Exception ex)
-            {
-                outputWindow?.WriteToOutputWindowAsync($"An error occurred during Git command execution: {ex.Message}", true);
-                return false;
-            }
+            return await _commandExecutor.ExecuteAsync(_gitPath, fullArgument, gitCommandArgs.WorkingDirectory, outputHandler);
         }
 
         public async Task<List<string>> GetWorkTreePathsAsync(string repositoryPath)

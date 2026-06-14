@@ -11,12 +11,13 @@
                         toolkit:Themes.UseVsTheme="True"
                         mc:Ignorable="d"
                         Title="{Binding WindowTitle}"
-                         Width="650"
-                         Height="340"
-                         FontSize="15"
-                         FontWeight="DemiBold"
-                         WindowStyle="SingleBorderWindow"
-                         ResizeMode="NoResize">
+                          Width="650"
+                          MinHeight="250"
+                          SizeToContent="Height"
+                          FontSize="15"
+                          FontWeight="DemiBold"
+                          WindowStyle="SingleBorderWindow"
+                          ResizeMode="NoResize">
     <Window.DataContext>
         <viewmodel:WorkTreeDialogViewModel/>
     </Window.DataContext>
@@ -27,19 +28,34 @@
         <converters:CommandTypeToCreateRemoveButtonTextConverter x:Key="CommandTypeToCreateRemoveButtonTextConverter"/>
         <converters:CreateCommandTypeVisibilityConverter x:Key="CreateCommandTypeVisibilityConverter"/>
         <converters:ManageCommandTypeVisibilityConverter x:Key="ManageCommandTypeVisibilityConverter"/>
+
+        <ControlTemplate x:Key="ErrorTemplate">
+            <Border BorderBrush="Red" BorderThickness="1">
+                <AdornedElementPlaceholder x:Name="placeholder"/>
+            </Border>
+        </ControlTemplate>
+
+        <Style TargetType="usercontrols:FolderEntry">
+            <Setter Property="Validation.ErrorTemplate" Value="{StaticResource ErrorTemplate}"/>
+            <Style.Triggers>
+                <Trigger Property="Validation.HasError" Value="true">
+                    <Setter Property="ToolTip" Value="{Binding RelativeSource={x:Static RelativeSource.Self}, Path=(Validation.Errors)[0].ErrorContent}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="10">
         <Grid Grid.Row="0" Margin="10">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*"></RowDefinition>
-                <RowDefinition Height="2*"></RowDefinition>
-                <RowDefinition Height="*"></RowDefinition>
-                <RowDefinition Height="*"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
             </Grid.RowDefinitions>
 
 
-            <Grid Grid.Row="0">
+            <Grid Grid.Row="0" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="20*"></ColumnDefinition>
                     <ColumnDefinition Width="80*"></ColumnDefinition>
@@ -55,12 +71,12 @@
             </Grid>
 
 
-            <Grid Grid.Row="1">
+            <Grid Grid.Row="1" Margin="0,0,0,12">
                 <!-- If commandType is Manage, we show standard layout. If commandType is Create, we show the radio buttons. -->
                 <Grid Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*"></RowDefinition>
-                        <RowDefinition Height="*"></RowDefinition>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                        <RowDefinition Height="Auto"></RowDefinition>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="25*"></ColumnDefinition>
@@ -68,21 +84,55 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Row 0: New Branch Selection -->
-                    <RadioButton Grid.Row="0" Grid.Column="0" GroupName="BranchMode" IsChecked="{Binding IsNewBranchMode}" Content="New Branch:" VerticalAlignment="Center" FontSize="14"/>
-                    <TextBox Grid.Row="0" Grid.Column="1" Margin="2" Padding="4" FontSize="14" IsEnabled="{Binding IsNewBranchMode}" Text="{Binding NewBranchName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" VerticalAlignment="Center"/>
+                    <RadioButton Grid.Row="0" Grid.Column="0" GroupName="BranchMode" IsChecked="{Binding IsNewBranchMode}" Content="New Branch:" VerticalAlignment="Center" FontSize="14" Margin="0,0,0,10"/>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,2,0,10" VerticalAlignment="Center">
+                        <TextBox x:Name="NewBranchTextBox" Margin="0" Padding="4" FontSize="14" IsEnabled="{Binding IsNewBranchMode}" Text="{Binding NewBranchName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" Validation.ErrorTemplate="{StaticResource ErrorTemplate}"/>
+                        <StackPanel Orientation="Horizontal" Margin="2,4,0,2">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=NewBranchTextBox, Path=(Validation.HasError)}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Path Width="12" Height="12" Fill="Red" Data="M6,0 C2.68,0 0,2.68 0,6 C0,9.32 2.68,12 6,12 C9.32,12 12,9.32 12,6 C12,2.68 9.32,0 6,0 Z M6.5,9 H5.5 V8 H6.5 V9 Z M6.5,7 H5.5 V3 H6.5 V7 Z" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ElementName=NewBranchTextBox, Path=(Validation.Errors)[0].ErrorContent}" Foreground="Red" FontSize="11" VerticalAlignment="Center" FontWeight="Normal"/>
+                        </StackPanel>
+                    </StackPanel>
 
                     <!-- Row 1: Existing Branch Selection -->
                     <RadioButton Grid.Row="1" Grid.Column="0" GroupName="BranchMode" IsChecked="{Binding IsExistingBranchMode}" Content="Base Branch:" VerticalAlignment="Center" FontSize="14"/>
-                    <ComboBox Grid.Row="1" Grid.Column="1" Name="BranchName" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
-                          ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
-                          Padding="5" d:Background="White" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
-                          VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True" >
-                        <ComboBox.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <VirtualizingStackPanel/>
-                            </ItemsPanelTemplate>
-                        </ComboBox.ItemsPanel>
-                    </ComboBox>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,2,0,2" VerticalAlignment="Center">
+                        <ComboBox Name="BranchName" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
+                                  ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                                  Padding="5" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
+                                  VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True"
+                                  Validation.ErrorTemplate="{StaticResource ErrorTemplate}"
+                                  Validation.ValidationAdornerSiteFor="{Binding RelativeSource={RelativeSource Self}}">
+                            <ComboBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel/>
+                                </ItemsPanelTemplate>
+                            </ComboBox.ItemsPanel>
+                        </ComboBox>
+                        <StackPanel Orientation="Horizontal" Margin="2,4,0,2">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=BranchName, Path=(Validation.HasError)}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Path Width="12" Height="12" Fill="Red" Data="M6,0 C2.68,0 0,2.68 0,6 C0,9.32 2.68,12 6,12 C9.32,12 12,9.32 12,6 C12,2.68 9.32,0 6,0 Z M6.5,9 H5.5 V8 H6.5 V9 Z M6.5,7 H5.5 V3 H6.5 V7 Z" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ElementName=BranchName, Path=(Validation.Errors)[0].ErrorContent}" Foreground="Red" FontSize="11" VerticalAlignment="Center" FontWeight="Normal"/>
+                        </StackPanel>
+                    </StackPanel>
                 </Grid>
 
                 <Grid Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}">
@@ -91,18 +141,36 @@
                         <ColumnDefinition Width="80*"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
                     <TextBlock FontWeight="SemiBold" Text="{Binding CommandType, Converter={StaticResource CommandTypeToBranchWorktreeLableConverter}}" 
-                           d:Background="White" Grid.Column="0" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left">
+                           Grid.Column="0" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left">
                     </TextBlock>
-                    <ComboBox Name="BranchNameManage" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
-                          ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
-                          Padding="5" d:Background="White" Grid.Column="1" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
-                          VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True" >
-                        <ComboBox.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <VirtualizingStackPanel/>
-                            </ItemsPanelTemplate>
-                        </ComboBox.ItemsPanel>
-                    </ComboBox>
+                    <StackPanel Grid.Column="1" Margin="0,2,0,2" VerticalAlignment="Center">
+                        <ComboBox Name="BranchNameManage" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
+                              ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                              Padding="5" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
+                              VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True"
+                              Validation.ErrorTemplate="{StaticResource ErrorTemplate}"
+                              Validation.ValidationAdornerSiteFor="{Binding RelativeSource={RelativeSource Self}}">
+                            <ComboBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel/>
+                                </ItemsPanelTemplate>
+                            </ComboBox.ItemsPanel>
+                        </ComboBox>
+                        <StackPanel Orientation="Horizontal" Margin="2,4,0,2">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=BranchNameManage, Path=(Validation.HasError)}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Path Width="12" Height="12" Fill="Red" Data="M6,0 C2.68,0 0,2.68 0,6 C0,9.32 2.68,12 6,12 C9.32,12 12,9.32 12,6 C12,2.68 9.32,0 6,0 Z M6.5,9 H5.5 V8 H6.5 V9 Z M6.5,7 H5.5 V3 H6.5 V7 Z" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ElementName=BranchNameManage, Path=(Validation.Errors)[0].ErrorContent}" Foreground="Red" FontSize="11" VerticalAlignment="Center" FontWeight="Normal"/>
+                        </StackPanel>
+                    </StackPanel>
                 </Grid>
             </Grid>
 
@@ -116,11 +184,28 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock d:Visibility="Visible"
                         FontWeight="SemiBold" Name="Path" Text="Path:"  
-                       d:Background="White" Grid.Row="2" Grid.Column="0" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Left" >
+                       Grid.Column="0" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Left" >
                     </TextBlock>
-                    <usercontrols:FolderEntry x:Name="folderEntry" d:Visibility="Visible"
-                    FolderPath="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" 
-                     Grid.Row="2" Grid.Column="1"  Description="Folder for branch worktree" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Margin="0,2,0,2" VerticalAlignment="Center">
+                        <usercontrols:FolderEntry x:Name="folderEntry" d:Visibility="Visible"
+                            FolderPath="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" 
+                            Description="Folder for branch worktree"
+                            Validation.ErrorTemplate="{StaticResource ErrorTemplate}" />
+                        <StackPanel Orientation="Horizontal" Margin="2,4,0,2">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=folderEntry, Path=(Validation.HasError)}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Path Width="12" Height="12" Fill="Red" Data="M6,0 C2.68,0 0,2.68 0,6 C0,9.32 2.68,12 6,12 C9.32,12 12,9.32 12,6 C12,2.68 9.32,0 6,0 Z M6.5,9 H5.5 V8 H6.5 V9 Z M6.5,7 H5.5 V3 H6.5 V7 Z" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ElementName=folderEntry, Path=(Validation.Errors)[0].ErrorContent}" Foreground="Red" FontSize="11" VerticalAlignment="Center" FontWeight="Normal"/>
+                        </StackPanel>
+                    </StackPanel>
                 </Grid>
 
                 <Grid d:Visibility="Visible"

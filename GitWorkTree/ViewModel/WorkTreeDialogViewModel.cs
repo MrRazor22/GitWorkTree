@@ -252,21 +252,30 @@ namespace GitWorkTree.ViewModel
                 return string.IsNullOrEmpty(Validate());
             }
         }
-        protected override string Validate(string propertyName = null)
+        private bool IsValidBranchName(string branchName)
         {
-            string errorStatus = "";
-            // data validation logic here
-            if (propertyName == null || propertyName == nameof(ActiveRepositoryPath))
+            if (string.IsNullOrWhiteSpace(branchName)) return false;
+            if (branchName.Any(char.IsWhiteSpace)) return false;
+            if (branchName.StartsWith("/") || branchName.EndsWith("/")) return false;
+            if (branchName.Contains("//")) return false;
+            if (branchName.Contains("..")) return false;
+            if (branchName.Any(c => "~^:?*[\\<>|#\"%&`!@{}()".Contains(c))) return false;
+            return true;
+        }
+
+        private string GetErrorForProperty(string propertyName)
+        {
+            if (propertyName == nameof(ActiveRepositoryPath))
             {
                 if (string.IsNullOrEmpty(ActiveRepositoryPath))
-                    errorStatus = "No repository loaded";
+                    return "No repository loaded";
             }
-            if (string.IsNullOrEmpty(errorStatus) && (propertyName == null || propertyName == nameof(SelectedBranch_Worktree)))
+            if (propertyName == nameof(SelectedBranch_Worktree))
             {
                 if (string.IsNullOrEmpty(SelectedBranch_Worktree))
-                    errorStatus = "No valid branch/Worktree selected";
+                    return "No valid branch/Worktree selected";
             }
-            if (string.IsNullOrEmpty(errorStatus) && (propertyName == null || propertyName == nameof(NewBranchName)))
+            if (propertyName == nameof(NewBranchName))
             {
                 if (IsNewBranchMode)
                 {
@@ -274,39 +283,58 @@ namespace GitWorkTree.ViewModel
                     {
                         if (string.IsNullOrWhiteSpace(NewBranchName))
                         {
-                            errorStatus = "Branch name cannot be empty";
+                            return "Branch name cannot be empty";
                         }
-                        else if (NewBranchName.Any(char.IsWhiteSpace))
+                        if (NewBranchName.Any(char.IsWhiteSpace))
                         {
-                            errorStatus = "Branch name cannot contain spaces";
+                            return "Branch name cannot contain spaces";
                         }
-                        else if (NewBranchName.Any(c => "~^:?*[\\<>|#\"%&`!@{}()".Contains(c)))
+                        if (NewBranchName.StartsWith("/") || NewBranchName.EndsWith("/"))
                         {
-                            errorStatus = "Branch name contains invalid characters";
+                            return "Branch name cannot start or end with a slash";
                         }
-                        else
+                        if (NewBranchName.Contains("//"))
                         {
-                            var cleanedNew = NewBranchName.Trim();
-                            // check duplicate in local/remote branches (we loaded all strings from GetBranchesAsync)
-                            if (Branches_Worktrees != null && Branches_Worktrees.Any(b => b.ToGitCommandExecutableFormat().Equals(cleanedNew, StringComparison.OrdinalIgnoreCase)))
-                            {
-                                errorStatus = "Branch name already exists";
-                            }
+                            return "Branch name cannot contain consecutive slashes";
+                        }
+                        if (NewBranchName.Contains(".."))
+                        {
+                            return "Branch name cannot contain '..'";
+                        }
+                        if (NewBranchName.Any(c => "~^:?*[\\<>|#\"%&`!@{}()".Contains(c)))
+                        {
+                            return "Branch name contains invalid characters";
+                        }
+                        
+                        var cleanedNew = NewBranchName.Trim();
+                        if (Branches_Worktrees != null && Branches_Worktrees.Any(b => b.ToGitCommandExecutableFormat().Equals(cleanedNew, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            return "Branch name already exists";
                         }
                     }
                 }
             }
-            if (string.IsNullOrEmpty(errorStatus) && commandType != CommandType.Manage && (propertyName == null || propertyName == nameof(FolderPath)))
+            if (commandType != CommandType.Manage && propertyName == nameof(FolderPath))
             {
                 if (_folderPathChanged || _showAllErrors)
                 {
                     if (string.IsNullOrEmpty(FolderPath) || !IsValidPath(FolderPath))
-                        errorStatus = "Please enter a valid path for worktree";
+                        return "Please enter a valid path for worktree";
                 }
             }
+            return "";
+        }
 
-            _loggingService?.UpdateStatusBar(errorStatus);
-            return errorStatus;
+        protected override string Validate(string propertyName = null)
+        {
+            string overallError = "";
+            if (string.IsNullOrEmpty(overallError)) overallError = GetErrorForProperty(nameof(ActiveRepositoryPath));
+            if (string.IsNullOrEmpty(overallError)) overallError = GetErrorForProperty(nameof(SelectedBranch_Worktree));
+            if (string.IsNullOrEmpty(overallError)) overallError = GetErrorForProperty(nameof(NewBranchName));
+            if (string.IsNullOrEmpty(overallError)) overallError = GetErrorForProperty(nameof(FolderPath));
+
+            _loggingService?.UpdateStatusBar(overallError);
+            return propertyName == null ? overallError : GetErrorForProperty(propertyName);
         }
 
         private bool IsValidPath(string path)
@@ -428,27 +456,31 @@ namespace GitWorkTree.ViewModel
                 if (string.IsNullOrEmpty(branchToUse))
                 {
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                    FolderPath = IsNewBranchMode ? pathPrefix : null;
+                    _folderPath = IsNewBranchMode ? pathPrefix : null;
+                    OnPropertyChanged(nameof(FolderPath));
                     return IsNewBranchMode;
                 }
 
-                if (branchToUse.Any(c => "~^:?*[\\<>|#\"%&`!@{}()".Contains(c)))
+                if (!IsValidBranchName(branchToUse))
                 {
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                    FolderPath = null;
+                    _folderPath = null;
+                    OnPropertyChanged(nameof(FolderPath));
                     return false;
                 }
 
                 string cleanedBranchName = branchToUse.ToFolderFormat(optionsSaved?.PreserveBranchHierarchy ?? true);
 
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                FolderPath = Path.Combine(pathPrefix, cleanedBranchName);
+                _folderPath = Path.Combine(pathPrefix, cleanedBranchName);
+                OnPropertyChanged(nameof(FolderPath));
                 return true;
             }
             catch (Exception ex)
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                FolderPath = null;
+                _folderPath = null;
+                OnPropertyChanged(nameof(FolderPath));
                 await _loggingService?.WriteToOutputWindowAsync($"Failed to set Path: {ex.Message}");
                 return false;
             }

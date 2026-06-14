@@ -126,6 +126,78 @@ namespace GitWorkTree.Tests
         }
 
         [TestMethod]
+        public void Validate_NewBranchNameWithTrailingSlash_ReturnsError()
+        {
+            // Arrange
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            )
+            {
+                IsNewBranchMode = true,
+                NewBranchName = "3434/"
+            };
+
+            // Act
+            var error = viewModel["NewBranchName"];
+
+            // Assert
+            Assert.AreEqual("Branch name cannot start or end with a slash", error);
+        }
+
+        [TestMethod]
+        public void Validate_NewBranchNameWithLeadingSlash_ReturnsError()
+        {
+            // Arrange
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            )
+            {
+                IsNewBranchMode = true,
+                NewBranchName = "/foo"
+            };
+
+            // Act
+            var error = viewModel["NewBranchName"];
+
+            // Assert
+            Assert.AreEqual("Branch name cannot start or end with a slash", error);
+        }
+
+        [TestMethod]
+        public void Validate_NewBranchNameWithConsecutiveSlashes_ReturnsError()
+        {
+            // Arrange
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            )
+            {
+                IsNewBranchMode = true,
+                NewBranchName = "feature//foo"
+            };
+
+            // Act
+            var error = viewModel["NewBranchName"];
+
+            // Assert
+            Assert.AreEqual("Branch name cannot contain consecutive slashes", error);
+        }
+
+        [TestMethod]
         public void Validate_NewBranchNameWithInvalidCharacters_ReturnsError()
         {
             // Arrange

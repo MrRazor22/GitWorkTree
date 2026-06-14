@@ -239,5 +239,42 @@ namespace GitWorkTree.Tests
             _mockGitService.Verify(g => g.DeleteBranchAsync(@"C:\repo", "feature-1"), Times.Once);
             _mockSolutionService.Verify(s => s.OpenSolution(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
         }
+
+        [TestMethod]
+        public void Constructor_CreateCommandType_SetsIsNewBranchModeFalseByDefault()
+        {
+            // Arrange & Act
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            );
+
+            // Assert
+            Assert.IsFalse(viewModel.IsNewBranchMode);
+        }
+
+        [TestMethod]
+        public void Constructor_CreateCommandType_LoadsIsNewBranchModeFromOptions()
+        {
+            // Arrange
+            _options.IsNewBranchMode = true;
+
+            // Act
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            );
+
+            // Assert
+            Assert.IsTrue(viewModel.IsNewBranchMode);
+        }
     }
 }

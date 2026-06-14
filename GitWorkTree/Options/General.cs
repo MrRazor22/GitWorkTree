@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 namespace GitWorkTree
@@ -28,8 +28,12 @@ namespace GitWorkTree
         public string DefaultWorktreeDirectory { get; set; }
 
         [DisplayName("Worktree Sub-Folder")]
-        [Description("Folder created inside the repository to hold worktrees (e.g. \".worktrees\"). Takes precedence over Default Worktree Directory. Tip: add this folder to .gitignore.")]
+        [Description("Folder created inside the repository to hold worktrees (e.g. \".worktrees\"). Tip: add this folder to .gitignore.")]
         [DefaultValue("")]
         public string WorktreeSubFolder { get; set; }
+
+        [Browsable(false)]
+        [DefaultValue(false)]
+        public bool IsNewBranchMode { get; set; } = false;
     }
 }

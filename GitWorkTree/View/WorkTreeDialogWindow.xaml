@@ -72,7 +72,7 @@
                     <TextBox Grid.Row="0" Grid.Column="1" Margin="2" Padding="4" FontSize="14" IsEnabled="{Binding IsNewBranchMode}" Text="{Binding NewBranchName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" VerticalAlignment="Center"/>
 
                     <!-- Row 1: Existing Branch Selection -->
-                    <RadioButton Grid.Row="1" Grid.Column="0" GroupName="BranchMode" IsChecked="{Binding IsExistingBranchMode}" Content="Existing Branch:" VerticalAlignment="Center" FontSize="14"/>
+                    <RadioButton Grid.Row="1" Grid.Column="0" GroupName="BranchMode" IsChecked="{Binding IsExistingBranchMode}" Content="Base Branch:" VerticalAlignment="Center" FontSize="14"/>
                     <ComboBox Grid.Row="1" Grid.Column="1" Name="BranchName" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
                           ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
                           Padding="5" d:Background="White" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      

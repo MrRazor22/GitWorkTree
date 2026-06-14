@@ -3,7 +3,7 @@ using System.Threading;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace GitWorkTree.Helpers
+namespace GitWorkTree.Services
 {
     public class LoggingHelper : ILoggingService
     {

@@ -3,7 +3,7 @@ using Microsoft;
 using EnvDTE80;
 using GitWorkTree.ViewModel;
 using System.Windows.Interop;
-using GitWorkTree.Helpers;
+using GitWorkTree.Services;
 using GitWorkTree.View;
 using System;
 

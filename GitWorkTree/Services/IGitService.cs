@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace GitWorkTree.Helpers
+namespace GitWorkTree.Services
 {
     public interface IGitService
     {

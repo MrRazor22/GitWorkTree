@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace GitWorkTree.Helpers
+namespace GitWorkTree.Services
 {
     public interface ILoggingService
     {

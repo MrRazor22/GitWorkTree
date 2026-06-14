@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Path = System.IO.Path;
 
-namespace GitWorkTree.Helpers
+namespace GitWorkTree.Services
 {
     public class GitCommandArgs
     {

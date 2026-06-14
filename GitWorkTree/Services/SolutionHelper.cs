@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace GitWorkTree.Helpers
+namespace GitWorkTree.Services
 {
     public class SolutionHelper : ISolutionService
     {

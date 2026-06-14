@@ -1,5 +1,5 @@
 using GitWorkTree.Commands;
-using GitWorkTree.Helpers;
+using GitWorkTree.Services;
 using Microsoft.VisualStudio.Threading;
 using System;
 using System.Collections.Generic;

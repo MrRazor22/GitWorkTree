@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using GitWorkTree.Commands;
-using GitWorkTree.Helpers;
+using GitWorkTree.Services;
 using GitWorkTree.ViewModel;
 
 namespace GitWorkTree.Tests

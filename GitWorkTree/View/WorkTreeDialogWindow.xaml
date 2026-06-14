@@ -126,61 +126,207 @@
                 <Grid d:Visibility="Visible"
                     Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}" Height="auto" Width="auto">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="auto"></ColumnDefinition>
                         <ColumnDefinition Width="*"></ColumnDefinition>
-                        <ColumnDefinition Width="*"></ColumnDefinition>
-                        <ColumnDefinition Width="1.3*"></ColumnDefinition>
+                        <ColumnDefinition Width="Auto"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
 
-                    <CheckBox x:Name="ManageLoadSolution" IsChecked="{Binding IfOpenInNewVisualStudio}"
-                       Content="Open in new window" FontSize="14" 
-                       Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" />
-
-                    <Button Content="Open" Grid.Column="3" FontSize="14" FontWeight="SemiBold"
-                        Command="{Binding OpenCommand}" Margin="7" />
+                    <Grid Grid.Column="1" Margin="7">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Command="{Binding OpenCommand}" CommandParameter="{Binding PreferredOpenAction}" FontSize="14" FontWeight="SemiBold" Padding="12,5">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ContentControl Content="{Binding PreferredOpenAction}" Margin="0,0,6,0" VerticalAlignment="Center">
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PreferredOpenAction}" Value="CurrentWindow">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate>
+                                                                <Viewbox Width="14" Height="14">
+                                                                    <Path Data="M2,2 h12 v12 H2 Z M3,5 h10 v8 H3 Z" Fill="#007ACC" />
+                                                                </Viewbox>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding PreferredOpenAction}" Value="NewVSWindow">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate>
+                                                                <Viewbox Width="14" Height="14">
+                                                                    <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
+                                                                </Viewbox>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding PreferredOpenAction}" Value="DoNotOpen">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate>
+                                                                <Viewbox Width="14" Height="14">
+                                                                    <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
+                                                                </Viewbox>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding PreferredOpenAction}" Value="Explorer">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate>
+                                                                <Viewbox Width="14" Height="14">
+                                                                    <Path Data="M2,2 h4 l1.5,1.5 h6.5 v8.5 H2 Z" Fill="#EAA200" />
+                                                                </Viewbox>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                </ContentControl>
+                                <TextBlock Text="Open" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="1" Click="ButtonOpen_Click" Width="20" Padding="0">
+                            <Path Data="M 0 0 L 3 3 L 6 0" Stroke="Black" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Open in Current Window" Command="{Binding OpenCommand}" CommandParameter="CurrentWindow">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Path Data="M2,2 h12 v12 H2 Z M3,5 h10 v8 H3 Z" Fill="#007ACC" />
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Open in New Window" Command="{Binding OpenCommand}" CommandParameter="NewVSWindow">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Open in Explorer" Command="{Binding OpenCommand}" CommandParameter="Explorer">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Path Data="M2,2 h4 l1.5,1.5 h6.5 v8.5 H2 Z" Fill="#EAA200" />
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                    </Grid>
                 </Grid>
 
             </Grid>
 
-
-            <Grid Grid.Row="3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="auto"></ColumnDefinition>
-                    <ColumnDefinition Width="*"></ColumnDefinition>
-                    <ColumnDefinition Width="*"></ColumnDefinition>
-                    <ColumnDefinition Width="*"></ColumnDefinition>
-                </Grid.ColumnDefinitions>
-
-                <CheckBox x:Name="ForceCreateRemove" IsChecked="{Binding IsForceCreateRemove}" FontSize="14" d:Visibility="Visible"
+            <Grid Grid.Row="3" Margin="7">
+                <CheckBox x:Name="ForceCreateRemove" IsChecked="{Binding IsForceCreateRemove}" FontSize="14"
                       Content="{Binding CommandType, Converter={StaticResource CommandTypeToForceCheckBoxTextConverter}}"
-                      Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                      VerticalAlignment="Center" HorizontalAlignment="Left" />
 
-                <CheckBox x:Name="CreateLoadSolution" IsChecked="{Binding IfOpenInNewVisualStudio}" Margin="2" d:Visibility="Visible"
-                      Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}" 
-                        IsEnabled="{Binding OptionsSaved.IsLoadSolution}"
-                      Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" >
-                    <TextBlock Text="Open in new window" FontSize="14" TextWrapping="Wrap" TextAlignment="Right"/>
-                </CheckBox>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="Prune" Command="{Binding PruneCommand}" Content="Prune" Margin="0,0,7,0"
+                            Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"
+                            FontSize="14" FontWeight="SemiBold" Padding="12,5" />
 
-                <Button x:Name="Prune" Command="{Binding PruneCommand}" Margin="7"
-                      Content="Prune" Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"
-                    Grid.Column="1" FontSize="14" FontWeight="SemiBold" />
+                    <!-- Create Split Button (Visible in Create mode / ManageCommandTypeVisibilityConverter) -->
+                    <Grid Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}" Margin="0,0,7,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Command="{Binding CreateCommand}" CommandParameter="{Binding PreferredCreateAction}" 
+                                FontSize="14" FontWeight="SemiBold" Padding="12,5">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ContentControl Content="{Binding PreferredCreateAction}" Margin="0,0,6,0" VerticalAlignment="Center">
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PreferredCreateAction}" Value="DoNotOpen">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate>
+                                                                <Viewbox Width="14" Height="14">
+                                                                    <Path Data="M8,2 v12 M2,8 h12" Stroke="#565656" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                                </Viewbox>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding PreferredCreateAction}" Value="CurrentWindow">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate>
+                                                                <Viewbox Width="14" Height="14">
+                                                                    <Path Data="M2,2 h12 v12 H2 Z M3,5 h10 v8 H3 Z" Fill="#007ACC" />
+                                                                </Viewbox>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding PreferredCreateAction}" Value="NewVSWindow">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate>
+                                                                <Viewbox Width="14" Height="14">
+                                                                    <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
+                                                                </Viewbox>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                </ContentControl>
+                                <TextBlock Text="Create" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="1" Click="ButtonCreate_Click" Width="20" Padding="0">
+                            <Path Data="M 0 0 L 3 3 L 6 0" Stroke="Black" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Create Only" Command="{Binding CreateCommand}" CommandParameter="DoNotOpen">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Path Data="M8,2 v12 M2,8 h12" Stroke="#565656" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Create and Open in Current Window" Command="{Binding CreateCommand}" CommandParameter="CurrentWindow">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Path Data="M2,2 h12 v12 H2 Z M3,5 h10 v8 H3 Z" Fill="#007ACC" />
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Create and Open in New Window" Command="{Binding CreateCommand}" CommandParameter="NewVSWindow">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                    </Grid>
 
-                <Button Content="Create" Command="{Binding CreateCommand}"
-                    Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}"
-                    Grid.Column="2" FontSize="14" FontWeight="SemiBold"
-                    Margin="7"
-                    Name="buttonCreate" />
+                    <!-- Remove Button (Visible in Manage mode / CreateCommandTypeVisibilityConverter) -->
+                    <Button Content="Remove" Command="{Binding RemoveCommand}" Margin="0,0,7,0"
+                            Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"
+                            FontSize="14" FontWeight="SemiBold" Padding="12,5"
+                            Name="buttonRemove" />
 
-                <Button Content="Remove" Command="{Binding RemoveCommand}"
-                    Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"
-                    Grid.Column="2" FontSize="14" FontWeight="SemiBold"
-                    Margin="7"
-                    Name="buttonRemove" />
-
-                <Button Content="Cancel" Grid.Column="3" FontSize="14" FontWeight="SemiBold"
-                    Command="{Binding CancelCommand}" Margin="7"
-                    Name="button3" />
+                    <Button Content="Cancel" FontSize="14" FontWeight="SemiBold" Padding="12,5"
+                            Command="{Binding CancelCommand}" Name="button3" />
+                </StackPanel>
             </Grid>
 
         </Grid>

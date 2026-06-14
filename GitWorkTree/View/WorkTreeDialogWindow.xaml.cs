@@ -53,5 +53,25 @@ namespace GitWorkTree.View
             Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri));
             e.Handled = true;
         }
+
+        private void ButtonCreate_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (sender is Button button && button.ContextMenu != null)
+            {
+                button.ContextMenu.PlacementTarget = button;
+                button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+                button.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void ButtonOpen_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (sender is Button button && button.ContextMenu != null)
+            {
+                button.ContextMenu.PlacementTarget = button;
+                button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+                button.ContextMenu.IsOpen = true;
+            }
+        }
     }
 }

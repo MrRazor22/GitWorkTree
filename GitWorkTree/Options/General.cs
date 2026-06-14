@@ -3,12 +3,21 @@ using System.Runtime.InteropServices;
 
 namespace GitWorkTree
 {
+    public enum OpenBehavior
+    {
+        DoNotOpen,
+        NewVSWindow,
+        CurrentWindow,
+        Explorer
+    }
+
     public partial class OptionsProvider
     {
         [ComVisible(true)]
         public class GeneralOptions : BaseOptionPage<General>
         {
-            public bool IsLoadSolution { get; set; }
+            public OpenBehavior PreferredCreateAction { get; set; }
+            public OpenBehavior PreferredOpenAction { get; set; }
             public string DefaultWorktreeDirectory { get; set; }
             public string WorktreeSubFolder { get; set; }
         }
@@ -16,10 +25,13 @@ namespace GitWorkTree
 
     public class General : BaseOptionModel<General>
     {
-        [DisplayName("Load Solution")]
-        [Description("Automatically load the worktree solution in Visual Studio after creation.")]
-        [DefaultValue(true)]
-        public bool IsLoadSolution { get; set; }
+        [Browsable(false)]
+        [DefaultValue(OpenBehavior.NewVSWindow)]
+        public OpenBehavior PreferredCreateAction { get; set; } = OpenBehavior.NewVSWindow;
+
+        [Browsable(false)]
+        [DefaultValue(OpenBehavior.NewVSWindow)]
+        public OpenBehavior PreferredOpenAction { get; set; } = OpenBehavior.NewVSWindow;
 
 
         [DisplayName("Default Worktree Directory")]

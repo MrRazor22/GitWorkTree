@@ -25,7 +25,8 @@ namespace GitWorkTree.Tests
             _mockLoggingService = new Mock<ILoggingService>();
             _options = new General
             {
-                IsLoadSolution = true,
+                PreferredCreateAction = OpenBehavior.NewVSWindow,
+                PreferredOpenAction = OpenBehavior.NewVSWindow,
                 DefaultWorktreeDirectory = @"C:\worktrees"
             };
 
@@ -275,6 +276,110 @@ namespace GitWorkTree.Tests
 
             // Assert
             Assert.IsTrue(viewModel.IsNewBranchMode);
+        }
+
+        [TestMethod]
+        public void Constructor_InitializesDefaultOpenActionFromSettings()
+        {
+            _options.PreferredCreateAction = OpenBehavior.DoNotOpen;
+            _options.PreferredOpenAction = OpenBehavior.CurrentWindow;
+
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            );
+
+            Assert.AreEqual(OpenBehavior.DoNotOpen, viewModel.PreferredCreateAction);
+            Assert.AreEqual(OpenBehavior.CurrentWindow, viewModel.PreferredOpenAction);
+        }
+
+        [TestMethod]
+        public async Task CreateCommand_WithDoNotOpen_DoesNotOpenSolution()
+        {
+            _mockGitService.Setup(g => g.CreateBranchAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
+                .ReturnsAsync(true);
+            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync(true);
+
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            )
+            {
+                IsNewBranchMode = true,
+                NewBranchName = "feature-1",
+                SelectedBranch_Worktree = "main",
+                FolderPath = @"C:\worktrees\feature-1"
+            };
+
+            await viewModel.CreateCommand.ExecuteAsync(OpenBehavior.DoNotOpen);
+
+            _mockSolutionService.Verify(s => s.OpenSolution(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+        }
+
+        [TestMethod]
+        public async Task CreateCommand_WithCurrentWindow_OpensSolutionInCurrentWindow()
+        {
+            _mockGitService.Setup(g => g.CreateBranchAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
+                .ReturnsAsync(true);
+            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync(true);
+
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            )
+            {
+                IsNewBranchMode = true,
+                NewBranchName = "feature-1",
+                SelectedBranch_Worktree = "main",
+                FolderPath = @"C:\worktrees\feature-1"
+            };
+
+            await viewModel.CreateCommand.ExecuteAsync(OpenBehavior.CurrentWindow);
+
+            _mockSolutionService.Verify(s => s.OpenSolution(@"C:\worktrees\feature-1", true), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task CreateCommand_UpdatesPreferredCreateAction()
+        {
+            _mockGitService.Setup(g => g.CreateBranchAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
+                .ReturnsAsync(true);
+            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync(true);
+
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            )
+            {
+                IsNewBranchMode = true,
+                NewBranchName = "feature-1",
+                SelectedBranch_Worktree = "main",
+                FolderPath = @"C:\worktrees\feature-1"
+            };
+
+            await viewModel.CreateCommand.ExecuteAsync(OpenBehavior.CurrentWindow);
+
+            Assert.AreEqual(OpenBehavior.CurrentWindow, viewModel.PreferredCreateAction);
+            Assert.AreEqual(OpenBehavior.CurrentWindow, _options.PreferredCreateAction);
         }
     }
 }

@@ -171,14 +171,63 @@ namespace GitWorkTree.ViewModel
             }
         }
 
-        private bool _ifOpenInNewVisualStudio;
-        public bool IfOpenInNewVisualStudio
+        public OpenBehavior PreferredCreateAction
         {
-            get { return _ifOpenInNewVisualStudio; }
+            get => optionsSaved?.PreferredCreateAction ?? OpenBehavior.NewVSWindow;
             set
             {
-                _ifOpenInNewVisualStudio = value;
-                OnPropertyChanged(nameof(IfOpenInNewVisualStudio));
+                if (optionsSaved != null && optionsSaved.PreferredCreateAction != value)
+                {
+                    optionsSaved.PreferredCreateAction = value;
+                    OnPropertyChanged(nameof(PreferredCreateAction));
+                    SaveSettings();
+                }
+            }
+        }
+
+        public OpenBehavior PreferredOpenAction
+        {
+            get => optionsSaved?.PreferredOpenAction ?? OpenBehavior.NewVSWindow;
+            set
+            {
+                if (optionsSaved != null && optionsSaved.PreferredOpenAction != value)
+                {
+                    optionsSaved.PreferredOpenAction = value;
+                    OnPropertyChanged(nameof(PreferredOpenAction));
+                    SaveSettings();
+                }
+            }
+        }
+
+        private void SaveSettings()
+        {
+            if (optionsSaved != null)
+            {
+                try
+                {
+                    if (ThreadHelper.JoinableTaskFactory == null)
+                    {
+                        // Skip persistence in unit tests where VS Shell/threading is not initialized
+                        return;
+                    }
+
+                    ThreadHelper.JoinableTaskFactory.Run(async () =>
+                    {
+                        try
+                        {
+                            await optionsSaved.SaveAsync().ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            if (_loggingService != null)
+                                await _loggingService.WriteToOutputWindowAsync($"Failed to save settings: {ex.Message}").ConfigureAwait(false);
+                        }
+                    });
+                }
+                catch
+                {
+                    // Fallback to prevent crashes in unit test environments
+                }
             }
         }
 
@@ -300,17 +349,19 @@ namespace GitWorkTree.ViewModel
                 WindowTitle = "Create New Worktree";
                 IsNewBranchMode = optionsSaved?.IsNewBranchMode ?? false;
             }
-            else if (commandType == CommandType.Manage) WindowTitle = "Manage Existing Worktrees";
-            IfOpenInNewVisualStudio = true;
+            else if (commandType == CommandType.Manage)
+            {
+                WindowTitle = "Manage Existing Worktrees";
+            }
 
             //set repo and folder path (branch/worktree updated based on repo set)
             ActiveRepositoryPath = gitRepositoryPath;
 
             // Initialize commands
             PruneCommand = new AsyncRelayCommand(async obj => await Prune_WorkTree(), null, _loggingService);
-            CreateCommand = new AsyncRelayCommand(async obj => await Create_WorkTree(), obj => IsValid, _loggingService);
+            CreateCommand = new AsyncRelayCommand(async obj => await Create_WorkTree(obj), obj => IsValid, _loggingService);
             RemoveCommand = new AsyncRelayCommand(async obj => await Remove_WorkTree(), obj => IsValid, _loggingService);
-            OpenCommand = new AsyncRelayCommand(async obj => await Open_WorkTree(), obj => IsValid, _loggingService);
+            OpenCommand = new AsyncRelayCommand(async obj => await Open_WorkTree(obj), obj => IsValid, _loggingService);
             CancelCommand = new RelayCommand(obj => Close_Dialog(), null, _loggingService);
 
             _newBranchNameChanged = false;
@@ -415,8 +466,20 @@ namespace GitWorkTree.ViewModel
                    await PopulateBranches_Worktrees().ConfigureAwait(false);
         }
 
-        private async Task<bool> Create_WorkTree()
+        private async Task<bool> Create_WorkTree(object parameter)
         {
+            OpenBehavior behavior = PreferredCreateAction;
+            if (parameter is OpenBehavior b)
+            {
+                behavior = b;
+            }
+            else if (parameter is string bStr && Enum.TryParse(bStr, out OpenBehavior parsedB))
+            {
+                behavior = parsedB;
+            }
+
+            PreferredCreateAction = behavior;
+
             _showAllErrors = true;
             OnPropertyChanged(nameof(NewBranchName));
             OnPropertyChanged(nameof(FolderPath));
@@ -440,7 +503,14 @@ namespace GitWorkTree.ViewModel
                 if (await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, newBranch, _folderPath, _isForceCreateRemove).ConfigureAwait(false))
                 {
                     Close_Dialog();
-                    if (optionsSaved.IsLoadSolution) await _solutionService.OpenSolution(FolderPath, !_ifOpenInNewVisualStudio).ConfigureAwait(false);
+                    if (behavior == OpenBehavior.NewVSWindow)
+                    {
+                        await _solutionService.OpenSolution(FolderPath, false).ConfigureAwait(false);
+                    }
+                    else if (behavior == OpenBehavior.CurrentWindow)
+                    {
+                        await _solutionService.OpenSolution(FolderPath, true).ConfigureAwait(false);
+                    }
                     return true;
                 }
                 else
@@ -459,7 +529,14 @@ namespace GitWorkTree.ViewModel
                 if (await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, _selectedBranch_Worktree, _folderPath, _isForceCreateRemove).ConfigureAwait(false))
                 {
                     Close_Dialog();
-                    if (optionsSaved.IsLoadSolution) await _solutionService.OpenSolution(FolderPath, !_ifOpenInNewVisualStudio).ConfigureAwait(false);
+                    if (behavior == OpenBehavior.NewVSWindow)
+                    {
+                        await _solutionService.OpenSolution(FolderPath, false).ConfigureAwait(false);
+                    }
+                    else if (behavior == OpenBehavior.CurrentWindow)
+                    {
+                        await _solutionService.OpenSolution(FolderPath, true).ConfigureAwait(false);
+                    }
                     return true;
                 }
                 return false;
@@ -478,11 +555,44 @@ namespace GitWorkTree.ViewModel
             return false;
         }
 
-        private async Task<bool> Open_WorkTree()
+        private async Task<bool> Open_WorkTree(object parameter)
         {
+            OpenBehavior behavior = PreferredOpenAction;
+            if (parameter is OpenBehavior b)
+            {
+                behavior = b;
+            }
+            else if (parameter is string bStr && Enum.TryParse(bStr, out OpenBehavior parsedB))
+            {
+                behavior = parsedB;
+            }
+
+            PreferredOpenAction = behavior;
+
             if (!IsValid) return false;
-            if (!IfOpenInNewVisualStudio) Close_Dialog();
-            return await _solutionService.OpenSolution(_selectedBranch_Worktree, !_ifOpenInNewVisualStudio).ConfigureAwait(false);
+
+            if (behavior == OpenBehavior.Explorer)
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", _selectedBranch_Worktree);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    await _loggingService?.WriteToOutputWindowAsync($"Failed to open folder in Explorer: {ex.Message}");
+                    return false;
+                }
+            }
+
+            if (behavior == OpenBehavior.DoNotOpen)
+            {
+                behavior = OpenBehavior.NewVSWindow;
+            }
+
+            bool openInCurrent = (behavior == OpenBehavior.CurrentWindow);
+            if (openInCurrent) Close_Dialog();
+            return await _solutionService.OpenSolution(_selectedBranch_Worktree, openInCurrent).ConfigureAwait(false);
         }
 
         public bool Close_Dialog()

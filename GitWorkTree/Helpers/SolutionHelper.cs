@@ -1,19 +1,29 @@
-﻿using Microsoft.VisualStudio;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace GitWorkTree.Helpers
 {
-    public static class SolutionHelper
+    public class SolutionHelper : ISolutionService
     {
-        static LoggingHelper outputWindow = LoggingHelper.Instance;
+        private readonly ILoggingService _loggingService;
+        private readonly IGitService _gitService;
+
+        public SolutionHelper(ILoggingService loggingService, IGitService gitService)
+        {
+            _loggingService = loggingService;
+            _gitService = gitService;
+        }
+
         public static string NormalizePath(string path) =>
              string.IsNullOrWhiteSpace(path) ? "\"\"" :
                  ((path = path.Trim().Trim('"').TrimEnd('\r', '\n'))
                   .Any(char.IsWhiteSpace) ? $"\"{path}\"" : path);
-        public static string GetRepositoryPath(string solutionPath)
+
+        public string GetRepositoryPath(string solutionPath)
         {
             try
             {
@@ -21,7 +31,7 @@ namespace GitWorkTree.Helpers
                 {
                     solutionPath = Path.GetDirectoryName(solutionPath);
                 }
-                var gitFolderPath = ThreadHelper.JoinableTaskFactory.Run(() => GitHelper.GetGitFolderDirectoryAsync(solutionPath));
+                var gitFolderPath = ThreadHelper.JoinableTaskFactory.Run(() => _gitService.GetGitFolderDirectoryAsync(solutionPath));
 
                 string gitFileName = Path.GetFileName(gitFolderPath);
                 if (gitFileName != null && gitFileName.Equals(".git")) // It's the main repository
@@ -32,19 +42,20 @@ namespace GitWorkTree.Helpers
             }
             catch (Exception ex)
             {
-                outputWindow.WriteToOutputWindowAsync($"Failed to get repository path: {ex.Message}");
+                _loggingService?.WriteToOutputWindowAsync($"Failed to get repository path: {ex.Message}");
                 return null;
             }
         }
-        public static async Task<bool> OpenSolution(string newSolutionPath, bool openInCurrentInstance)
+
+        public async Task<bool> OpenSolution(string newSolutionPath, bool openInCurrentInstance)
         {
             bool isError = true;
             try
             {
-                outputWindow.SetCommandStatusBusy(true);
+                _loggingService?.SetCommandStatusBusy(true);
                 if (string.IsNullOrEmpty(newSolutionPath) || !Directory.Exists(newSolutionPath))
                 {
-                    outputWindow?.WriteToOutputWindowAsync($"Not a valid folder path {newSolutionPath}");
+                    _loggingService?.WriteToOutputWindowAsync($"Not a valid folder path {newSolutionPath}");
                     return false;
                 }
 
@@ -52,42 +63,41 @@ namespace GitWorkTree.Helpers
 
                 if (solutionFiles.Length == 0)
                 {
-                    outputWindow?.WriteToOutputWindowAsync($"No solution file found, opening the folder {newSolutionPath}");
+                    _loggingService?.WriteToOutputWindowAsync($"No solution file found, opening the folder {newSolutionPath}");
                     solutionFiles = [newSolutionPath];
                 }
                 isError = await HandleOpenSolution(newSolutionPath, openInCurrentInstance, solutionFiles);
 
-                return !(isError = false);
+                return !isError;
             }
             catch (Exception ex)
             {
-                outputWindow?.WriteToOutputWindowAsync(ex.Message, true);
-                return !(isError = true);
+                _loggingService?.WriteToOutputWindowAsync(ex.Message, true);
+                return false;
             }
             finally
             {
-                outputWindow?.WriteToOutputWindowAsync($"{newSolutionPath} Loaded");
-                outputWindow.SetCommandCompletionStatus(!isError);
+                _loggingService?.WriteToOutputWindowAsync($"{newSolutionPath} Loaded");
+                _loggingService?.SetCommandCompletionStatus(!isError);
             }
         }
 
-
-        private static async Task<bool> HandleOpenSolution(string newSolutionPath, bool openInCurrentInstance, string[] solutionFiles)
+        private async Task<bool> HandleOpenSolution(string newSolutionPath, bool openInCurrentInstance, string[] solutionFiles)
         {
             if (openInCurrentInstance) return await OpenSolutionInCurrentInstance(newSolutionPath, solutionFiles).ConfigureAwait(false);
             return OpenSolutionInNewInstance(newSolutionPath, solutionFiles);
         }
 
-        private static bool OpenSolutionInNewInstance(string newSolutionPath, string[] solutionFiles)
+        private bool OpenSolutionInNewInstance(string newSolutionPath, string[] solutionFiles)
         {
-            outputWindow?.WriteToOutputWindowAsync($"Opening {newSolutionPath} in new VS instance", true);
+            _loggingService?.WriteToOutputWindowAsync($"Opening {newSolutionPath} in new VS instance", true);
             System.Diagnostics.Process.Start("devenv.exe", NormalizePath(solutionFiles[0]));
             return true;
         }
 
-        private static async Task<bool> OpenSolutionInCurrentInstance(string newSolutionPath, string[] solutionFiles)
+        private async Task<bool> OpenSolutionInCurrentInstance(string newSolutionPath, string[] solutionFiles)
         {
-            outputWindow?.WriteToOutputWindowAsync($"Opening {newSolutionPath} in current VS instance", true);
+            _loggingService?.WriteToOutputWindowAsync($"Opening {newSolutionPath} in current VS instance", true);
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -95,20 +105,20 @@ namespace GitWorkTree.Helpers
 
             if (solutionService == null)
             {
-                outputWindow?.WriteToOutputWindowAsync("Unable to obtain IVsSolution service.");
+                _loggingService?.WriteToOutputWindowAsync("Unable to obtain IVsSolution service.");
                 return false;
             }
 
             // Close current solution asynchronously
             if (solutionService.CloseSolutionElement((uint)__VSSLNSAVEOPTIONS.SLNSAVEOPT_PromptSave, null, 0) != 0)
             {
-                outputWindow?.WriteToOutputWindowAsync("Failed to close the current solution");
+                _loggingService?.WriteToOutputWindowAsync("Failed to close the current solution");
                 return false;
             }
             // Open the first solution file found 
             if (solutionService.OpenSolutionFile(0, solutionFiles[0]) != 0)
             {
-                outputWindow?.WriteToOutputWindowAsync($"Failed to open {newSolutionPath}");
+                _loggingService?.WriteToOutputWindowAsync($"Failed to open {newSolutionPath}");
                 return false;
             }
 

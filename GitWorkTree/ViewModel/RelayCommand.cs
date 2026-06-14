@@ -1,4 +1,4 @@
-﻿using GitWorkTree.Helpers;
+using GitWorkTree.Helpers;
 using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -11,23 +11,25 @@ namespace GitWorkTree.ViewModel
         private readonly Func<object, Task<bool>> _executeAsync;
         private readonly Predicate<object> _canExecute;
         private static bool _isExecuting;
-        private LoggingHelper outputWindow = LoggingHelper.Instance;
+        private readonly ILoggingService outputWindow;
 
         // Event to handle command result
         public event EventHandler<bool> CommandExecuted;
 
         // Constructor for synchronous command
-        public RelayCommand(Func<object, bool> execute, Predicate<object> canExecute = null)
+        public RelayCommand(Func<object, bool> execute, Predicate<object> canExecute = null, ILoggingService loggingService = null)
         {
             _execute = execute ?? throw new ArgumentNullException(nameof(execute));
             _canExecute = canExecute;
+            outputWindow = loggingService;
         }
 
         // Constructor for asynchronous command
-        public RelayCommand(Func<object, Task<bool>> executeAsync, Predicate<object> canExecute = null)
+        public RelayCommand(Func<object, Task<bool>> executeAsync, Predicate<object> canExecute = null, ILoggingService loggingService = null)
         {
             _executeAsync = executeAsync ?? throw new ArgumentNullException(nameof(executeAsync));
             _canExecute = canExecute;
+            outputWindow = loggingService;
         }
 
         public event EventHandler CanExecuteChanged
@@ -39,7 +41,7 @@ namespace GitWorkTree.ViewModel
         public bool CanExecute(object parameter)
         {
             if (!_isExecuting && (_canExecute == null || _canExecute(parameter))) return true;
-            outputWindow.SetCommandStatusBusy();
+            outputWindow?.SetCommandStatusBusy();
             return false;
         }
 
@@ -68,16 +70,14 @@ namespace GitWorkTree.ViewModel
             }
             catch (Exception ex)
             {
-                outputWindow.WriteToOutputWindowAsync($"{Vsix.Name} Command execution failed: {ex.Message}", result = false);
+                outputWindow?.WriteToOutputWindowAsync($"{Vsix.Name} Command execution failed: {ex.Message}", result = false);
             }
             finally
             {
-                outputWindow.SetCommandCompletionStatus(result);
+                outputWindow?.SetCommandCompletionStatus(result);
                 _isExecuting = false;
                 CommandManager.InvalidateRequerySuggested();
             }
         }
-
-
     }
 }

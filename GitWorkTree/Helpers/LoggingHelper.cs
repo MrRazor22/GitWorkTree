@@ -1,11 +1,11 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell.Interop;
 
 namespace GitWorkTree.Helpers
 {
-    public class LoggingHelper
+    public class LoggingHelper : ILoggingService
     {
         private static readonly Lazy<LoggingHelper> lazyInstance = new Lazy<LoggingHelper>(() => new LoggingHelper(), LazyThreadSafetyMode.ExecutionAndPublication);
 

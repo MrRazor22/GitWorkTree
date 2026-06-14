@@ -1,10 +1,11 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft;
 using EnvDTE80;
 using GitWorkTree.ViewModel;
 using System.Windows.Interop;
 using GitWorkTree.Helpers;
 using GitWorkTree.View;
+using System;
 
 namespace GitWorkTree.Commands
 {
@@ -16,7 +17,9 @@ namespace GitWorkTree.Commands
 
         private DTE2 dte;
         private WorkTreeDialogViewModel dialogViewModel;
-        private LoggingHelper outputWindow = LoggingHelper.Instance;
+        private readonly ILoggingService outputWindow;
+        private readonly IGitService gitService;
+        private readonly ISolutionService solutionService;
 
         public static General optionsSaved { get; set; }
         public static Action<General> OnSettingsSaved = general => optionsSaved = general;
@@ -24,6 +27,9 @@ namespace GitWorkTree.Commands
         public CommandExecutor(CommandType commandType)
         {
             _commandType = commandType;
+            outputWindow = LoggingHelper.Instance;
+            gitService = new GitHelper(outputWindow);
+            solutionService = new SolutionHelper(outputWindow, gitService);
         }
 
         public bool PreRequisite()
@@ -34,7 +40,7 @@ namespace GitWorkTree.Commands
                 Assumes.Present(dte);
 
                 string solutionPath = dte.Solution?.FullName;
-                ActiveRepositoryPath = SolutionHelper.GetRepositoryPath(solutionPath);
+                ActiveRepositoryPath = solutionService.GetRepositoryPath(solutionPath);
 
                 if (string.IsNullOrEmpty(ActiveRepositoryPath))
                 {
@@ -57,7 +63,7 @@ namespace GitWorkTree.Commands
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
 
-                dialogViewModel = new WorkTreeDialogViewModel(ActiveRepositoryPath, _commandType, optionsSaved);
+                dialogViewModel = new WorkTreeDialogViewModel(ActiveRepositoryPath, _commandType, optionsSaved, gitService, solutionService, outputWindow);
                 WorkTreeDialogWindow dialog = new WorkTreeDialogWindow { DataContext = dialogViewModel };
 
                 dialog.ShowModal();

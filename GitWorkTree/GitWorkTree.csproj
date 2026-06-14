@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
@@ -49,6 +49,9 @@
     <Compile Include="Commands\CommandExecutor.cs" />
     <Compile Include="Commands\CreateWorkTree.cs" />
     <Compile Include="Helpers\GitHelper.cs" />
+    <Compile Include="Helpers\IGitService.cs" />
+    <Compile Include="Helpers\ILoggingService.cs" />
+    <Compile Include="Helpers\ISolutionService.cs" />
     <Compile Include="Helpers\SolutionHelper.cs" />
     <Compile Include="source.extension.cs">
       <AutoGen>True</AutoGen>

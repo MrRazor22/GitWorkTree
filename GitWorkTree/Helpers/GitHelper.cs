@@ -17,18 +17,29 @@ namespace GitWorkTree.Helpers
         public string WorkingDirectory { get; set; }
     }
 
-    public static class GitHelper
+    public static class GitHelperExtensions
     {
-        private static string GitPath = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory,
-            @"CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe");
         public static string ToFolderFormat(this string branchName) => Regex.Match(branchName, @"(?:.*\/)?(?:head -> |origin\/|remote\/)?\+?\s*([^'/]+)").Groups[1].Value ?? branchName;
         public static string ToGitCommandExecutableFormat(this string branchName) => Regex.Match(branchName,
                 @"(?:\+?\s?(?:remotes?\/(?:origin|main|upstream)\/(?:HEAD -> (?:origin|main|upstream)\/)?|remotes?\/(?:origin|main|upstream)\/)?|[^\/]+\/)?([^\/]+(?:\/[^\/]+)*)$")
                 .Groups[1].Value ?? branchName;
+    }
 
-        private static async Task<bool> ExecuteAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null)
+    public class GitHelper : IGitService
+    {
+        private readonly ILoggingService _loggingService;
+
+        private string GitPath = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory,
+            @"CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe");
+
+        public GitHelper(ILoggingService loggingService)
         {
-            LoggingHelper outputWindow = LoggingHelper.Instance;
+            _loggingService = loggingService;
+        }
+
+        private async Task<bool> ExecuteAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null)
+        {
+            ILoggingService outputWindow = _loggingService ?? LoggingHelper.Instance;
 
             if (gitCommandArgs == null || string.IsNullOrEmpty(gitCommandArgs.WorkingDirectory))
             {
@@ -102,7 +113,7 @@ namespace GitWorkTree.Helpers
             }
         }
 
-        public static async Task<List<string>> GetWorkTreePathsAsync(string repositoryPath)
+        public async Task<List<string>> GetWorkTreePathsAsync(string repositoryPath)
         {
             List<string> workTreePaths = new List<string>();
             var isCompleted = await ExecuteAsync(new GitCommandArgs()
@@ -130,7 +141,7 @@ namespace GitWorkTree.Helpers
             return isCompleted ? workTreePaths : null;
         }
 
-        public static async Task<List<string>> GetBranchesAsync(string repositoryPath)
+        public async Task<List<string>> GetBranchesAsync(string repositoryPath)
         {
             List<string> branches = new List<string>();
             var isCompleted = await ExecuteAsync(new GitCommandArgs()
@@ -149,7 +160,7 @@ namespace GitWorkTree.Helpers
             else return null;
         }
 
-        public static async Task<bool> CreateBranchAsync(string repositoryPath, string newBranchName, string sourceBranchName)
+        public async Task<bool> CreateBranchAsync(string repositoryPath, string newBranchName, string sourceBranchName)
         {
             return await ExecuteAsync(new GitCommandArgs()
             {
@@ -157,11 +168,11 @@ namespace GitWorkTree.Helpers
                 WorkingDirectory = repositoryPath
             }, (line) =>
             {
-                LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
+                _loggingService?.WriteToOutputWindowAsync(line);
             });
         }
 
-        public static async Task<bool> DeleteBranchAsync(string repositoryPath, string branchName)
+        public async Task<bool> DeleteBranchAsync(string repositoryPath, string branchName)
         {
             return await ExecuteAsync(new GitCommandArgs()
             {
@@ -169,11 +180,11 @@ namespace GitWorkTree.Helpers
                 WorkingDirectory = repositoryPath
             }, (line) =>
             {
-                LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
+                _loggingService?.WriteToOutputWindowAsync(line);
             });
         }
 
-        public static async Task<bool> CreateWorkTreeAsync
+        public async Task<bool> CreateWorkTreeAsync
             (string repositoryPath, string branchName, string workTreePath, bool shouldForceCreate)
         {
             string force = shouldForceCreate ? "-f " : "";
@@ -183,11 +194,11 @@ namespace GitWorkTree.Helpers
                 WorkingDirectory = repositoryPath
             }, (line) =>
             {
-                LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
+                _loggingService?.WriteToOutputWindowAsync(line);
             });
         }
 
-        public static async Task<bool> RemoveWorkTreeAsync(string repositoryPath, string workTreePath, bool shouldForceCreate)
+        public async Task<bool> RemoveWorkTreeAsync(string repositoryPath, string workTreePath, bool shouldForceCreate)
         {
             string force = shouldForceCreate ? "-f " : "";
             return await ExecuteAsync(new GitCommandArgs()
@@ -196,11 +207,11 @@ namespace GitWorkTree.Helpers
                 WorkingDirectory = repositoryPath
             }, (line) =>
             {
-                LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
+                _loggingService?.WriteToOutputWindowAsync(line);
             });
         }
 
-        public static async Task<bool> PruneAsync(string repositoryPath)
+        public async Task<bool> PruneAsync(string repositoryPath)
         {
             return await ExecuteAsync(new GitCommandArgs()
             {
@@ -208,11 +219,11 @@ namespace GitWorkTree.Helpers
                 WorkingDirectory = repositoryPath
             }, (line) =>
             {
-                LoggingHelper.Instance?.WriteToOutputWindowAsync(line);
+                _loggingService?.WriteToOutputWindowAsync(line);
             });
         }
 
-        public static async Task<string> GetGitFolderDirectoryAsync(string currentSolutionPath)
+        public async Task<string> GetGitFolderDirectoryAsync(string currentSolutionPath)
         {
             string commandoutput = "";
             var isCompleted = await ExecuteAsync(new GitCommandArgs() { WorkingDirectory = currentSolutionPath, Argument = "rev-parse --git-dir", },

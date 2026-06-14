@@ -19,7 +19,19 @@ namespace GitWorkTree.Services
 
     public static class GitHelperExtensions
     {
-        public static string ToFolderFormat(this string branchName) => Regex.Match(branchName, @"(?:.*\/)?(?:head -> |origin\/|remote\/)?\+?\s*([^'/]+)").Groups[1].Value ?? branchName;
+        public static string ToFolderFormat(this string branchName, bool preserveHierarchy)
+        {
+            string cleanBranch = branchName.ToGitCommandExecutableFormat();
+            if (preserveHierarchy)
+            {
+                return cleanBranch.Replace('/', Path.DirectorySeparatorChar);
+            }
+            else
+            {
+                return cleanBranch.Replace('/', '-');
+            }
+        }
+
         public static string ToGitCommandExecutableFormat(this string branchName) => Regex.Match(branchName,
                 @"(?:\+?\s?(?:remotes?\/(?:origin|main|upstream)\/(?:HEAD -> (?:origin|main|upstream)\/)?|remotes?\/(?:origin|main|upstream)\/)?|[^\/]+\/)?([^\/]+(?:\/[^\/]+)*)$")
                 .Groups[1].Value ?? branchName;

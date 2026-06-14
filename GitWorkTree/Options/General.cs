@@ -20,6 +20,7 @@ namespace GitWorkTree
             public OpenBehavior PreferredOpenAction { get; set; }
             public string DefaultWorktreeDirectory { get; set; }
             public string WorktreeSubFolder { get; set; }
+            public bool PreserveBranchHierarchy { get; set; }
         }
     }
 
@@ -43,6 +44,11 @@ namespace GitWorkTree
         [Description("Folder created inside the repository to hold worktrees (e.g. \".worktrees\"). Tip: add this folder to .gitignore.")]
         [DefaultValue("")]
         public string WorktreeSubFolder { get; set; }
+
+        [DisplayName("Preserve Branch Hierarchy")]
+        [Description("Preserve branch hierarchy in worktree paths.\n\nEnabled:\nfeature/foo → Worktrees\\feature\\foo\n\nDisabled:\nfeature/foo → Worktrees\\feature-foo")]
+        [DefaultValue(true)]
+        public bool PreserveBranchHierarchy { get; set; } = true;
 
         [Browsable(false)]
         [DefaultValue(false)]

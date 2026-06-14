@@ -381,5 +381,101 @@ namespace GitWorkTree.Tests
             Assert.AreEqual(OpenBehavior.CurrentWindow, viewModel.PreferredCreateAction);
             Assert.AreEqual(OpenBehavior.CurrentWindow, _options.PreferredCreateAction);
         }
+
+        [TestMethod]
+        public async Task UpdateFolderPath_PreserveBranchHierarchyTrue_CreatesSubdirectories()
+        {
+            // Arrange
+            _options.PreserveBranchHierarchy = true;
+            _options.DefaultWorktreeDirectory = @"C:\worktrees";
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            );
+
+            var tcs = new TaskCompletionSource<string>();
+            viewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(viewModel.FolderPath))
+                {
+                    tcs.TrySetResult(viewModel.FolderPath);
+                }
+            };
+
+            // Act
+            viewModel.SelectedBranch_Worktree = "feature/foo";
+
+            // Assert
+            var path = await tcs.Task;
+            Assert.AreEqual(@"C:\worktrees\feature\foo", path);
+        }
+
+        [TestMethod]
+        public async Task UpdateFolderPath_PreserveBranchHierarchyFalse_FlattensPath()
+        {
+            // Arrange
+            _options.PreserveBranchHierarchy = false;
+            _options.DefaultWorktreeDirectory = @"C:\worktrees";
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            );
+
+            var tcs = new TaskCompletionSource<string>();
+            viewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(viewModel.FolderPath))
+                {
+                    tcs.TrySetResult(viewModel.FolderPath);
+                }
+            };
+
+            // Act
+            viewModel.SelectedBranch_Worktree = "feature/foo";
+
+            // Assert
+            var path = await tcs.Task;
+            Assert.AreEqual(@"C:\worktrees\feature-foo", path);
+        }
+
+        [TestMethod]
+        public async Task UpdateFolderPath_RemoteBranchHierarchy_CleansRemotePrefix()
+        {
+            // Arrange
+            _options.PreserveBranchHierarchy = true;
+            _options.DefaultWorktreeDirectory = @"C:\worktrees";
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            );
+
+            var tcs = new TaskCompletionSource<string>();
+            viewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(viewModel.FolderPath))
+                {
+                    tcs.TrySetResult(viewModel.FolderPath);
+                }
+            };
+
+            // Act
+            viewModel.SelectedBranch_Worktree = "remotes/origin/feature/bar";
+
+            // Assert
+            var path = await tcs.Task;
+            Assert.AreEqual(@"C:\worktrees\feature\bar", path);
+        }
     }
 }

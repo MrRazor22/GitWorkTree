@@ -439,7 +439,7 @@ namespace GitWorkTree.ViewModel
                     return false;
                 }
 
-                string cleanedBranchName = branchToUse.ToFolderFormat();
+                string cleanedBranchName = branchToUse.ToFolderFormat(optionsSaved?.PreserveBranchHierarchy ?? true);
 
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 FolderPath = Path.Combine(pathPrefix, cleanedBranchName);

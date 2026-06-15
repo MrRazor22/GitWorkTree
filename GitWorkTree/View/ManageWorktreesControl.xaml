@@ -491,7 +491,11 @@
                 <TreeView Grid.Row="1" ItemsSource="{Binding WorktreeHierarchy}" SelectedItemChanged="TreeView_SelectedItemChanged"
                           Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"
                           Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
-                          BorderThickness="0">
+                          BorderThickness="0"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                          ScrollViewer.CanContentScroll="True">
                     <TreeView.ItemContainerStyle>
                         <Style TargetType="TreeViewItem" BasedOn="{StaticResource VsTreeViewItemStyle}">
                             <Setter Property="IsExpanded" Value="True"/>
@@ -697,7 +701,11 @@
                                 </Expander.Style>
                                 <TreeView Name="StagedChangesTreeView" ItemsSource="{Binding StagedChangesTree}" MouseDoubleClick="ChangesTreeView_MouseDoubleClick"
                                           Background="Transparent" BorderThickness="0" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
-                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          VirtualizingPanel.IsVirtualizing="True"
+                                          VirtualizingPanel.VirtualizationMode="Recycling"
+                                          VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                                          ScrollViewer.CanContentScroll="True">
                                     <TreeView.ItemContainerStyle>
                                         <Style TargetType="TreeViewItem" BasedOn="{StaticResource VsTreeViewItemStyle}">
                                             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
@@ -768,7 +776,11 @@
                                 </Expander.Header>
                                 <TreeView Name="UnstagedChangesTreeView" ItemsSource="{Binding UnstagedChangesTree}" MouseDoubleClick="ChangesTreeView_MouseDoubleClick"
                                           Background="Transparent" BorderThickness="0" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
-                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          VirtualizingPanel.IsVirtualizing="True"
+                                          VirtualizingPanel.VirtualizationMode="Recycling"
+                                          VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                                          ScrollViewer.CanContentScroll="True">
                                     <TreeView.ItemContainerStyle>
                                         <Style TargetType="TreeViewItem" BasedOn="{StaticResource VsTreeViewItemStyle}">
                                             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>

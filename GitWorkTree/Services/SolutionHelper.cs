@@ -36,7 +36,7 @@ namespace GitWorkTree.Services
                 string gitFileName = Path.GetFileName(gitFolderPath);
                 if (gitFileName != null && gitFileName.Equals(".git")) // It's the main repository
                     return solutionPath;
-                else if (gitFolderPath != null && gitFolderPath.Contains(".git/worktrees")) // It's a worktree, get the main repository path - three step outside
+                else if (gitFolderPath != null && gitFolderPath.Replace('\\', '/').Contains(".git/worktrees")) // It's a worktree, get the main repository path - three step outside
                     return Path.GetFullPath(Path.Combine(gitFolderPath, "..", "..", ".."));
                 return null;
             }

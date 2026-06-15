@@ -59,7 +59,7 @@ namespace GitWorkTree.Services
                 return false;
             }
 
-            string fullArgument = $"-c core.longpaths=true {gitCommandArgs.Argument}";
+            string fullArgument = $"-c core.longpaths=true -c core.preloadIndex=true -c core.fscache=true -c index.threads=0 {gitCommandArgs.Argument}";
 
             return await _commandExecutor.ExecuteAsync(_gitPath, fullArgument, gitCommandArgs.WorkingDirectory, outputHandler);
         }
@@ -72,7 +72,7 @@ namespace GitWorkTree.Services
                 return new GitCommandExecutionResult(false, "The Git command arguments are null");
             }
 
-            string fullArgument = $"-c core.longpaths=true {gitCommandArgs.Argument}";
+            string fullArgument = $"-c core.longpaths=true -c core.preloadIndex=true -c core.fscache=true -c index.threads=0 {gitCommandArgs.Argument}";
 
             return await _commandExecutor.ExecuteWithResultAsync(_gitPath, fullArgument, gitCommandArgs.WorkingDirectory, outputHandler);
         }
@@ -388,7 +388,7 @@ namespace GitWorkTree.Services
             await ExecuteAsync(new GitCommandArgs()
             {
                 WorkingDirectory = worktreePath,
-                Argument = "status --porcelain -unormal"
+                Argument = "status --porcelain -uno"
             }, (line) =>
             {
                 if (!string.IsNullOrWhiteSpace(line))

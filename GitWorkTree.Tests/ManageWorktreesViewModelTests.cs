@@ -28,10 +28,12 @@ namespace GitWorkTree.Tests
         public void BuildChangesTree_WithUnstagedRename_ParsesCorrectlyAndDoesNotThrow()
         {
             // Arrange
+            var mockServiceProvider = new Mock<IServiceProvider>();
             var viewModel = new ManageWorktreesViewModel(
                 _mockGitService.Object,
                 _mockSolutionService.Object,
-                _mockLoggingService.Object
+                _mockLoggingService.Object,
+                mockServiceProvider.Object
             );
 
             var mockChanges = new List<string>

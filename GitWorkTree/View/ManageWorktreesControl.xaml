@@ -7,6 +7,8 @@
              xmlns:viewmodel="clr-namespace:GitWorkTree.ViewModel"
              xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
              xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+             xmlns:imaging="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.Imaging"
+             xmlns:catalog="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.ImageCatalog"
              toolkit:Themes.UseVsTheme="True"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="900">
@@ -244,7 +246,7 @@
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemActiveBrushKey}}"/>
-                                <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemActiveTextBrushKey}}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemActiveTextBrushKey}}"/>
                             </Trigger>
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
@@ -252,7 +254,7 @@
                                     <Condition Property="IsSelectionActive" Value="False"/>
                                 </MultiTrigger.Conditions>
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemInactiveBrushKey}}"/>
-                                <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemInactiveTextBrushKey}}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemInactiveTextBrushKey}}"/>
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -345,9 +347,7 @@
     
     <Grid Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}">
         <Grid.RowDefinitions>
-            <!-- Toolbar -->
-            <RowDefinition Height="Auto"/>
-            <!-- Active Repository Info -->
+            <!-- Toolbar and Active Repository Info -->
             <RowDefinition Height="Auto"/>
             <!-- Content Split Pane -->
             <RowDefinition Height="*"/>
@@ -355,47 +355,115 @@
 
         <!-- Top Toolbar mimicking "Manage Branches" -->
         <Border Grid.Row="0" BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}" BorderThickness="0,0,0,1" Padding="4">
-            <StackPanel Orientation="Horizontal">
-                <Button Style="{StaticResource VsToolbarButton}" Command="{Binding CreateCommand}" ToolTip="Create a new worktree and optional branch" Width="22" Height="22" Padding="3">
-                    <Viewbox Width="14" Height="14">
-                        <Path Data="M5,2 h2 v3 h3 v2 h-3 v3 h-2 v-3 h-3 v-2 h3 Z" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                    </Viewbox>
-                </Button>
-                <Button Style="{StaticResource VsToolbarButton}" Command="{Binding RefreshCommand}" ToolTip="Refresh the worktree list and details" Width="22" Height="22" Padding="3">
-                    <Viewbox Width="14" Height="14">
-                        <Path Data="M1.5,6 C1.5,3.5 3.5,1.5 6,1.5 C7.5,1.5 8.8,2.2 9.6,3.4 L9.6,1 L11,1 L11,5 L7,5 L7,3.6 L9,3.6 C8.3,2.6 7.2,2 6,2 C3.8,2 2,3.8 2,6 C2,8.2 3.8,10 6,10 C7.8,10 9.3,8.8 9.8,7.2 L10.8,7.5 C10.2,9.6 8.3,11 6,11 C3.5,11 1.5,9 1.5,6 Z" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                    </Viewbox>
-                </Button>
-                <Button Style="{StaticResource VsToolbarButton}" Command="{Binding PruneCommand}" ToolTip="Prune Worktrees: Clean up reference information for worktree folders that have been manually deleted from disk" Width="22" Height="22" Padding="3">
-                    <Viewbox Width="14" Height="14">
-                        <Canvas Width="16" Height="16">
-                            <Path Data="M3,13 C3,11.3 4.3,10 6,10 L10,10 C11.7,10 13,8.7 13,7 L13,3" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" Fill="Transparent"/>
-                            <Path Data="M3,13 L3,3" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" Fill="Transparent"/>
-                            <Path Data="M10,2 L14,6 M14,2 L10,6" Stroke="#FF4E4E" StrokeThickness="2"/>
-                        </Canvas>
-                    </Viewbox>
-                </Button>
-            </StackPanel>
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CurrentState}" Value="WarmingUp">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentState}" Value="NoRepository">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <DockPanel LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <Button Style="{StaticResource VsToolbarButton}" Command="{Binding CreateCommand}" ToolTip="Create a new worktree and optional branch" Width="22" Height="22" Padding="3">
+                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Add}" Width="16" Height="16"/>
+                    </Button>
+                    <Button Style="{StaticResource VsToolbarButton}" Command="{Binding RefreshCommand}" ToolTip="Refresh the worktree list and details" Width="22" Height="22" Padding="3">
+                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Refresh}" Width="16" Height="16"/>
+                    </Button>
+                    <Button Style="{StaticResource VsToolbarButton}" Command="{Binding PruneCommand}" ToolTip="Prune Worktrees: Clean up reference information for worktree folders that have been manually deleted from disk" Width="22" Height="22" Padding="3">
+                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.BranchDeleted}" Width="16" Height="16"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Repository link header similar to Visual Studio's layout, docked to the right -->
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,6,0">
+                    <TextBlock Text="Repository:" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock TextWrapping="NoWrap" FontSize="11" VerticalAlignment="Center">
+                        <Hyperlink Command="{Binding ExplorePathCommand}" CommandParameter="{Binding ActiveRepositoryPath}" TextDecorations="None">
+                            <Hyperlink.Style>
+                                <Style TargetType="Hyperlink" BasedOn="{StaticResource {x:Type Hyperlink}}">
+                                    <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ControlLinkTextKey}}"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ControlLinkTextHoverKey}}"/>
+                                            <Setter Property="TextDecorations" Value="Underline"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Hyperlink.Style>
+                            <Run Text="{Binding ActiveRepositoryPath}"/>
+                        </Hyperlink>
+                    </TextBlock>
+                    <Button Command="{Binding CopyRepositoryPathCommand}" ToolTip="Copy Repository Path to Clipboard" Margin="6,0,0,0" Padding="1" Background="Transparent" BorderThickness="0" Width="14" Height="14" VerticalAlignment="Center" Style="{StaticResource VsToolbarButton}">
+                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Copy}" Width="14" Height="14"/>
+                    </Button>
+                </StackPanel>
+            </DockPanel>
         </Border>
 
-        <!-- Repository link header similar to Visual Studio's layout -->
-        <Border Grid.Row="1" Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}" BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}" BorderThickness="0,0,0,1" Padding="8,6">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="Repository:" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                <TextBlock TextWrapping="Wrap" FontSize="11" VerticalAlignment="Center">
-                    <Hyperlink Command="{Binding ExplorePathCommand}" CommandParameter="{Binding ActiveRepositoryPath}" TextDecorations="None">
-                        <Run Text="{Binding ActiveRepositoryPath}" Foreground="DarkCyan"/>
-                    </Hyperlink>
-                </TextBlock>
-                <Button Command="{Binding CopyRepositoryPathCommand}" ToolTip="Copy Repository Path to Clipboard" Margin="6,0,0,0" Padding="1" Background="Transparent" BorderThickness="0" Width="16" Height="16" VerticalAlignment="Center" Style="{StaticResource VsToolbarButton}">
-                    <Viewbox Width="12" Height="12">
-                        <Path Data="M2,4 h5 v6 H2 Z M4,2 h5 v6 H8 V3 H4 Z" Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" />
-                    </Viewbox>
-                </Button>
+        <!-- WarmingUp State Panel -->
+        <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CurrentState}" Value="WarmingUp">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Loading repository..." FontSize="13" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                <ProgressBar Width="200" Height="4" IsIndeterminate="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}"/>
             </StackPanel>
-        </Border>
+        </Grid>
 
-        <Grid Grid.Row="2">
+        <!-- NoRepository State Panel -->
+        <Grid Grid.Row="1" Margin="40" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CurrentState}" Value="NoRepository">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="400">
+                <Viewbox Width="48" Height="48" Margin="0,0,0,16" HorizontalAlignment="Center">
+                    <Path Data="M24,2A22,22,0,1,0,46,24,22,22,0,0,0,24,2Zm1,31.75V27.1a3.63,3.63,0,0,1,0-6.2v-6.6a2,2,0,1,1,2,0v6.6a3.63,3.63,0,0,1,0,6.2v6.4a2,2,0,1,1,-2,.25Z" Fill="{DynamicResource {x:Static vsshell:VsBrushes.GrayTextKey}}"/>
+                </Viewbox>
+                <TextBlock Text="No Git Repository" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" HorizontalAlignment="Center"/>
+                <TextBlock Text="Open a solution that is part of a Git repository to manage worktrees." FontSize="12" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.GrayTextKey}}" HorizontalAlignment="Center" Margin="0,8,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Active States: Split Layout Panel -->
+        <Grid Grid.Row="1">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CurrentState}" Value="LoadingWorktrees">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentState}" Value="NoSelection">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentState}" Value="WorktreeSelected">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
             <Grid.ColumnDefinitions>
                 <!-- Left Pane (Search and tree) -->
                 <ColumnDefinition Width="280" MinWidth="150"/>
@@ -445,12 +513,9 @@
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding WorktreeItem}" Value="{x:Null}">
                                                     <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
                                     </StackPanel.Style>
                                     
-                                    <Path Width="14" Height="12" Fill="#E6A15C" Data="M1,2 L5,2 L6.5,4 L13,4 L13,11 L1,11 Z" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.FolderClosed}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="{Binding Name}" FontWeight="Normal" VerticalAlignment="Center" FontSize="12"/>
                                 </StackPanel>
                                 
@@ -477,10 +542,7 @@
                                     <Ellipse Grid.Column="0" Width="6" Height="6" Fill="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="{Binding WorktreeItem.IsDirty, Converter={StaticResource BoolToVis}}" ToolTip="Has uncommitted changes"/>
   
                                     <!-- Branch Icon -->
-                                    <Path Grid.Column="1" Width="10" Height="12" Margin="0,0,6,0" Stretch="Uniform"
-                                          Fill="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Path=(TextElement.Foreground)}" 
-                                          Data="M6,1.5 C7.1,1.5 8,2.4 8,3.5 C8,4.3 7.5,4.9 6.8,5.3 L6.8,8.7 C7.5,9.1 8,9.7 8,10.5 C8,11.6 7.1,12.5 6,12.5 C4.9,12.5 4,11.6 4,10.5 C4,9.7 4.5,9.1 5.2,8.7 L5.2,5.3 C4.5,4.9 4,4.3 4,3.5 C4,2.4 4.9,1.5 6,1.5 Z M6,9.5 C5.4,9.5 5,9.9 5,10.5 C5,11.1 5.4,11.5 6,11.5 C6.6,11.5 7,11.1 7,10.5 C7,9.9 6.6,9.5 6,9.5 Z M6,2.5 C5.4,2.5 5,2.9 5,3.5 C5,4.1 5.4,4.5 6,4.5 C6.6,4.5 7,4.1 7,3.5 C7,2.9 6.6,2.5 6,2.5 Z" 
-                                          VerticalAlignment="Center"/>
+                                    <imaging:CrispImage Grid.Column="1" Moniker="{x:Static catalog:KnownMonikers.GitBranch}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
 
                                     <TextBlock Grid.Column="2" Text="{Binding WorktreeItem.FolderName}" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="12"/>
   
@@ -520,7 +582,7 @@
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsWorktreeSelected}" Value="True">
+                                <DataTrigger Binding="{Binding CurrentState}" Value="WorktreeSelected">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                             </Style.Triggers>
@@ -583,7 +645,18 @@
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock TextWrapping="Wrap" FontSize="11" VerticalAlignment="Center">
                                     <Hyperlink Command="{Binding ExplorePathCommand}" CommandParameter="{Binding DetailPath}" TextDecorations="None">
-                                        <Run Text="{Binding DetailPath}" Foreground="DarkCyan"/>
+                                        <Hyperlink.Style>
+                                            <Style TargetType="Hyperlink" BasedOn="{StaticResource {x:Type Hyperlink}}">
+                                                <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ControlLinkTextKey}}"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ControlLinkTextHoverKey}}"/>
+                                                        <Setter Property="TextDecorations" Value="Underline"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Hyperlink.Style>
+                                        <Run Text="{Binding DetailPath}"/>
                                     </Hyperlink>
                                 </TextBlock>
                                 <Button Command="{Binding CopyPathCommand}" ToolTip="Copy Path to Clipboard" Margin="6,0,0,0" Padding="1" Background="Transparent" BorderThickness="0" Width="16" Height="16" VerticalAlignment="Center" Style="{StaticResource VsToolbarButton}">
@@ -637,9 +710,9 @@
 
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,6,0">
                                                     <!-- Folder Icon -->
-                                                    <Path x:Name="FolderIcon" Width="14" Height="12" Fill="#E6A15C" Data="M1,2 L5,2 L6.5,4 L13,4 L13,11 L1,11 Z" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                                    <imaging:CrispImage x:Name="FolderIcon" Moniker="{x:Static catalog:KnownMonikers.FolderClosed}" Width="14" Height="14" VerticalAlignment="Center" Visibility="Collapsed"/>
                                                     <!-- File Icon -->
-                                                    <Path x:Name="FileIcon" Width="11" Height="13" Fill="Gray" Data="M2,1 L8,1 L12,5 L12,13 L2,13 Z M8,1 L8,5 L12,5 Z" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                                    <imaging:CrispImage x:Name="FileIcon" Moniker="{x:Static catalog:KnownMonikers.TextFile}" Width="14" Height="14" VerticalAlignment="Center" Visibility="Collapsed"/>
                                                 </StackPanel>
 
                                                 <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="11" Style="{StaticResource PrimaryTextBlockStyle}"/>
@@ -710,9 +783,9 @@
 
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,6,0">
                                                     <!-- Folder Icon -->
-                                                    <Path x:Name="FolderIcon" Width="14" Height="12" Fill="#E6A15C" Data="M1,2 L5,2 L6.5,4 L13,4 L13,11 L1,11 Z" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                                    <imaging:CrispImage x:Name="FolderIcon" Moniker="{x:Static catalog:KnownMonikers.FolderClosed}" Width="14" Height="14" VerticalAlignment="Center" Visibility="Collapsed"/>
                                                     <!-- File Icon -->
-                                                    <Path x:Name="FileIcon" Width="11" Height="13" Fill="Gray" Data="M2,1 L8,1 L12,5 L12,13 L2,13 Z M8,1 L8,5 L12,5 Z" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                                    <imaging:CrispImage x:Name="FileIcon" Moniker="{x:Static catalog:KnownMonikers.TextFile}" Width="14" Height="14" VerticalAlignment="Center" Visibility="Collapsed"/>
                                                 </StackPanel>
 
                                                 <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="11" Style="{StaticResource PrimaryTextBlockStyle}"/>
@@ -782,7 +855,7 @@
                                                         <ControlTemplate.Triggers>
                                                             <Trigger Property="IsSelected" Value="True">
                                                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemActiveBrushKey}}"/>
-                                                                <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemActiveTextBrushKey}}"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemActiveTextBrushKey}}"/>
                                                             </Trigger>
                                                             <MultiTrigger>
                                                                 <MultiTrigger.Conditions>
@@ -790,7 +863,7 @@
                                                                     <Condition Property="Selector.IsSelectionActive" Value="False"/>
                                                                 </MultiTrigger.Conditions>
                                                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemInactiveBrushKey}}"/>
-                                                                <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemInactiveTextBrushKey}}"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemInactiveTextBrushKey}}"/>
                                                             </MultiTrigger>
                                                             <Trigger Property="IsMouseOver" Value="True">
                                                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarMouseOverBackgroundGradientKey}}"/>
@@ -806,10 +879,7 @@
                                             <GridViewColumn Header="Message" Width="380">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <Path Width="8" Height="8" Fill="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}" Data="M4,0 A4,4 0 1,1 3.99,0 Z" Margin="2,0,6,0" VerticalAlignment="Center"/>
-                                                            <TextBlock Text="{Binding Subject}" Style="{StaticResource PrimaryTextBlockStyle}"/>
-                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding Subject}" Style="{StaticResource PrimaryTextBlockStyle}"/>
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
@@ -943,13 +1013,31 @@
                     </Border>
                 </Grid>
  
+                <!-- LoadingWorktrees state panel -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentState}" Value="LoadingWorktrees">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="Loading worktrees..." FontSize="12" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <ProgressBar Width="150" Height="4" IsIndeterminate="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}"/>
+                    </StackPanel>
+                </Grid>
+
                 <!-- Empty Selection state -->
                 <Grid>
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsWorktreeSelected}" Value="False">
+                                <DataTrigger Binding="{Binding CurrentState}" Value="NoSelection">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                             </Style.Triggers>

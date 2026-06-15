@@ -14,6 +14,15 @@ using Microsoft.VisualStudio.TeamFoundation.Git.Extensibility;
 
 namespace GitWorkTree.ViewModel
 {
+    public enum ManageWorktreesState
+    {
+        WarmingUp,
+        NoRepository,
+        LoadingWorktrees,
+        NoSelection,
+        WorktreeSelected
+    }
+
     public class WorktreeItemViewModel : BaseViewModel
     {
         public string FullPath { get; }
@@ -176,6 +185,20 @@ namespace GitWorkTree.ViewModel
 
         public bool IsAnyLoading => IsLoading || IsRefreshing;
 
+        private ManageWorktreesState _currentState = ManageWorktreesState.WarmingUp;
+        public ManageWorktreesState CurrentState
+        {
+            get => _currentState;
+            set
+            {
+                if (_currentState != value)
+                {
+                    _currentState = value;
+                    OnPropertyChanged(nameof(CurrentState));
+                }
+            }
+        }
+
         private System.Threading.CancellationTokenSource _enrichmentCts;
 
         public ObservableCollection<WorktreeItemViewModel> RawWorktrees { get; } = new ObservableCollection<WorktreeItemViewModel>();
@@ -210,6 +233,13 @@ namespace GitWorkTree.ViewModel
                     OnPropertyChanged(nameof(IsWorktreeSelected));
                     OnPropertyChanged(nameof(CanRemoveWorktree));
                     
+                    if (CurrentState == ManageWorktreesState.LoadingWorktrees ||
+                        CurrentState == ManageWorktreesState.NoSelection ||
+                        CurrentState == ManageWorktreesState.WorktreeSelected)
+                    {
+                        CurrentState = _selectedWorktree != null ? ManageWorktreesState.WorktreeSelected : ManageWorktreesState.NoSelection;
+                    }
+
                     if (_detailsCts != null)
                     {
                         try { _detailsCts.Cancel(); _detailsCts.Dispose(); } catch { }
@@ -385,10 +415,14 @@ namespace GitWorkTree.ViewModel
                 {
                     _ = RefreshAsync();
                 }
+                else
+                {
+                    CurrentState = ManageWorktreesState.NoRepository;
+                }
             }
             catch
             {
-                // Fallback for tests
+                CurrentState = ManageWorktreesState.NoRepository;
             }
         }
 
@@ -443,7 +477,16 @@ namespace GitWorkTree.ViewModel
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             ResolveActiveRepositoryPath();
-            if (string.IsNullOrEmpty(ActiveRepositoryPath)) return;
+            if (string.IsNullOrEmpty(ActiveRepositoryPath))
+            {
+                CurrentState = ManageWorktreesState.NoRepository;
+                return;
+            }
+
+            if (RawWorktrees.Count == 0)
+            {
+                CurrentState = ManageWorktreesState.LoadingWorktrees;
+            }
 
             // 1. Cancel previous enrichment
             if (_enrichmentCts != null)
@@ -541,6 +584,8 @@ namespace GitWorkTree.ViewModel
                     SelectedWorktree = previouslySelected ?? RawWorktrees.FirstOrDefault(w => w.IsCurrent) ?? RawWorktrees.First();
                 }
 
+                CurrentState = SelectedWorktree != null ? ManageWorktreesState.WorktreeSelected : ManageWorktreesState.NoSelection;
+
                 IsLoading = false;
                 _loggingService?.SetCommandStatusBusy(false);
 
@@ -554,6 +599,7 @@ namespace GitWorkTree.ViewModel
                 IsLoading = false;
                 IsRefreshing = false;
                 _loggingService?.SetCommandStatusBusy(false);
+                CurrentState = ManageWorktreesState.NoRepository;
             }
         }
 

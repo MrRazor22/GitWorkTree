@@ -268,7 +268,7 @@ namespace GitWorkTree.Tests
             {
                 IsNewBranchMode = true,
                 NewBranchName = "feature-1",
-                SelectedBranch = new BranchInfo("main", false),
+                SelectedBranch = new BranchInfo("main", "main", false),
                 FolderPath = @"C:\worktrees\feature-1"
             };
 
@@ -303,7 +303,7 @@ namespace GitWorkTree.Tests
             {
                 IsNewBranchMode = true,
                 NewBranchName = "feature-1",
-                SelectedBranch = new BranchInfo("main", false),
+                SelectedBranch = new BranchInfo("main", "main", false),
                 FolderPath = @"C:\worktrees\feature-1"
             };
 
@@ -392,7 +392,7 @@ namespace GitWorkTree.Tests
             {
                 IsNewBranchMode = true,
                 NewBranchName = "feature-1",
-                SelectedBranch = new BranchInfo("main", false),
+                SelectedBranch = new BranchInfo("main", "main", false),
                 FolderPath = @"C:\worktrees\feature-1"
             };
 
@@ -420,7 +420,7 @@ namespace GitWorkTree.Tests
             {
                 IsNewBranchMode = true,
                 NewBranchName = "feature-1",
-                SelectedBranch = new BranchInfo("main", false),
+                SelectedBranch = new BranchInfo("main", "main", false),
                 FolderPath = @"C:\worktrees\feature-1"
             };
 
@@ -448,7 +448,7 @@ namespace GitWorkTree.Tests
             {
                 IsNewBranchMode = true,
                 NewBranchName = "feature-1",
-                SelectedBranch = new BranchInfo("main", false),
+                SelectedBranch = new BranchInfo("main", "main", false),
                 FolderPath = @"C:\worktrees\feature-1"
             };
 
@@ -474,7 +474,7 @@ namespace GitWorkTree.Tests
             );
 
             // Act
-            viewModel.SelectedBranch = new BranchInfo("feature/foo", false);
+            viewModel.SelectedBranch = new BranchInfo("feature/foo", "feature/foo", false);
             await Task.Delay(200);
 
             // Assert
@@ -497,7 +497,7 @@ namespace GitWorkTree.Tests
             );
 
             // Act
-            viewModel.SelectedBranch = new BranchInfo("feature/foo", false);
+            viewModel.SelectedBranch = new BranchInfo("feature/foo", "feature/foo", false);
             await Task.Delay(200);
 
             // Assert
@@ -520,11 +520,60 @@ namespace GitWorkTree.Tests
             );
 
             // Act
-            viewModel.SelectedBranch = new BranchInfo("remotes/origin/feature/bar", false);
+            viewModel.SelectedBranch = new BranchInfo("feature/bar", "remotes/origin/feature/bar", false);
             await Task.Delay(200);
 
             // Assert
             Assert.AreEqual(@"C:\worktrees\feature\bar", viewModel.FolderPath);
+        }
+
+        [TestMethod]
+        public async Task PopulateBranches_Worktrees_RemoteBranchAndCustomRemoteName_HasLinkedWorktreeAndValidationFailure()
+        {
+            // Arrange
+            _mockGitService.Setup(g => g.GetBranchesAsync(It.IsAny<string>()))
+                .ReturnsAsync(new List<string> { "+ main", "remotes/origin/main", "remotes/custom-remote/main", "feature/other" });
+
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            );
+
+            await Task.Delay(200);
+
+            // Assert: Expecting 2 deduplicated branches ("main" and "feature/other") instead of 4
+            Assert.AreEqual(2, viewModel.Branches_Worktrees.Count);
+            
+            // "main" has worktree (deduplicated local + remote references, preserves local "main" as Name & FullRef)
+            Assert.AreEqual("main", viewModel.Branches_Worktrees[0].Name);
+            Assert.AreEqual("main", viewModel.Branches_Worktrees[0].FullRef);
+            Assert.IsTrue(viewModel.Branches_Worktrees[0].HasLinkedWorktree);
+
+            // "feature/other" should not have worktree
+            Assert.AreEqual("feature/other", viewModel.Branches_Worktrees[1].Name);
+            Assert.AreEqual("feature/other", viewModel.Branches_Worktrees[1].FullRef);
+            Assert.IsFalse(viewModel.Branches_Worktrees[1].HasLinkedWorktree);
+
+            // By default, since IsExistingBranchMode is true and "main" has worktree, the SelectedBranch should be "feature/other"
+            Assert.AreEqual("feature/other", viewModel.SelectedBranch.Name);
+
+            // If we select a branch that has a worktree, we get a validation error
+            viewModel.SelectedBranch = viewModel.Branches_Worktrees[0]; // main
+            var error = viewModel["SelectedBranch"];
+            Assert.AreEqual("This branch already has a worktree.", error);
+
+            // If we switch to New Branch Mode, validation is skipped
+            viewModel.IsNewBranchMode = true;
+            viewModel.SelectedBranch = viewModel.Branches_Worktrees[0]; // main
+            Assert.AreEqual("main", viewModel.SelectedBranch.Name);
+
+            viewModel.IsNewBranchMode = false; // Switch back to Existing Branch Mode
+            // It should detect "main" has a worktree, and auto-select the first one without: "feature/other"
+            Assert.AreEqual("feature/other", viewModel.SelectedBranch.Name);
         }
     }
 }

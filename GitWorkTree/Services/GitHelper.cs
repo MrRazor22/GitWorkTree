@@ -33,7 +33,7 @@ namespace GitWorkTree.Services
         }
 
         public static string ToGitCommandExecutableFormat(this string branchName) => Regex.Match(branchName,
-                @"(?:\+?\s?(?:remotes?\/(?:origin|main|upstream)\/(?:HEAD -> (?:origin|main|upstream)\/)?|remotes?\/(?:origin|main|upstream)\/)?|[^\/]+\/)?([^\/]+(?:\/[^\/]+)*)$")
+                @"(?:\+?\s?(?:remotes?\/(?:[^\/]+)\/(?:HEAD -> (?:[^\/]+)\/)?|remotes?\/(?:[^\/]+)\/)?|[^\/]+\/)?([^\/]+(?:\/[^\/]+)*)$")
                 .Groups[1].Value ?? branchName;
     }
 

@@ -68,7 +68,15 @@ namespace GitWorkTree.ViewModel
                     _isNewBranchMode = value;
                     OnPropertyChanged(nameof(IsNewBranchMode));
                     OnPropertyChanged(nameof(IsExistingBranchMode));
-                    OnPropertyChanged(nameof(SelectedBranch)); // re-evaluate SelectedBranch validation when mode switches
+                    if (!_isNewBranchMode && SelectedBranch != null && SelectedBranch.HasLinkedWorktree && Branches_Worktrees != null)
+                    {
+                        var firstNoWorktree = Branches_Worktrees.FirstOrDefault(b => !b.HasLinkedWorktree);
+                        if (firstNoWorktree != null)
+                        {
+                            SelectedBranch = firstNoWorktree;
+                        }
+                    }
+
                     CommandManager.InvalidateRequerySuggested();
                     UpdateFolderPath();
 
@@ -398,6 +406,30 @@ namespace GitWorkTree.ViewModel
         private List<string> GetBranches_Worktrees()
         {
             _loggingService?.SetCommandStatusBusy();
+            
+            bool useFallback = false;
+            try
+            {
+                var factory = ThreadHelper.JoinableTaskFactory;
+                if (factory == null)
+                {
+                    useFallback = true;
+                }
+            }
+            catch
+            {
+                useFallback = true;
+            }
+
+            if (useFallback)
+            {
+                if (commandType == CommandType.Create)
+                    return _gitService.GetBranchesAsync(_activeRepositoryPath).GetAwaiter().GetResult();
+                else if (commandType == CommandType.Manage)
+                    return _gitService.GetWorkTreePathsAsync(_activeRepositoryPath).GetAwaiter().GetResult();
+                return null;
+            }
+
             return ThreadHelper.JoinableTaskFactory.Run(async () =>
             {
                 if (commandType == CommandType.Create)
@@ -418,33 +450,112 @@ namespace GitWorkTree.ViewModel
                     _loggingService?.UpdateStatusBar("No Branches/Worktrees available for this repository");
                     return false;
                 }
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                Branches_Worktrees.Clear();
-                foreach (var item in branches_Worktrees)
+
+                bool switchThread = false;
+                try
                 {
-                    string branchName = item.Trim();
-                    bool hasWorktree = false;
-                    if (commandType == CommandType.Create)
+                    if (ThreadHelper.JoinableTaskFactory != null)
                     {
-                        if (branchName.StartsWith("+ "))
+                        switchThread = true;
+                    }
+                }
+                catch
+                {
+                    switchThread = false;
+                }
+
+                if (switchThread)
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                }
+                Branches_Worktrees.Clear();
+
+                if (commandType == CommandType.Create)
+                {
+                    var uniqueBranches = new Dictionary<string, (string originalRef, bool hasWorktree)>(StringComparer.OrdinalIgnoreCase);
+                    var insertionOrder = new List<string>();
+
+                    foreach (var item in branches_Worktrees)
+                    {
+                        string trimmed = item.Trim();
+                        if (string.IsNullOrWhiteSpace(trimmed) || trimmed.Contains("HEAD") || trimmed.Contains("->"))
                         {
-                            branchName = branchName.Substring(2).Trim();
+                            continue;
+                        }
+
+                        bool hasWorktree = false;
+                        string cleanName = trimmed;
+                        if (trimmed.StartsWith("+ "))
+                        {
+                            cleanName = trimmed.Substring(2).Trim();
                             hasWorktree = true;
                         }
-                        else if (branchName.StartsWith("+"))
+                        else if (trimmed.StartsWith("+"))
                         {
-                            branchName = branchName.Substring(1).Trim();
+                            cleanName = trimmed.Substring(1).Trim();
                             hasWorktree = true;
+                        }
+
+                        string logicalName = cleanName.ToGitCommandExecutableFormat();
+                        if (string.IsNullOrEmpty(logicalName))
+                        {
+                            continue;
+                        }
+
+                        if (!uniqueBranches.ContainsKey(logicalName))
+                        {
+                            uniqueBranches[logicalName] = (trimmed, hasWorktree);
+                            insertionOrder.Add(logicalName);
+                        }
+                        else
+                        {
+                            var existing = uniqueBranches[logicalName];
+                            bool mergedHasWorktree = existing.hasWorktree || hasWorktree;
+                            string originalRef = existing.originalRef;
+
+                            if (originalRef.StartsWith("remotes/", StringComparison.OrdinalIgnoreCase) && !trimmed.StartsWith("remotes/", StringComparison.OrdinalIgnoreCase))
+                            {
+                                originalRef = trimmed;
+                            }
+
+                            uniqueBranches[logicalName] = (originalRef, mergedHasWorktree);
                         }
                     }
-                    Branches_Worktrees.Add(new BranchInfo(branchName, hasWorktree));
+
+                    foreach (var logicalName in insertionOrder)
+                    {
+                        var data = uniqueBranches[logicalName];
+                        string originalRef = data.originalRef;
+                        if (originalRef.StartsWith("+ "))
+                        {
+                            originalRef = originalRef.Substring(2).Trim();
+                        }
+                        else if (originalRef.StartsWith("+"))
+                        {
+                            originalRef = originalRef.Substring(1).Trim();
+                        }
+
+                        Branches_Worktrees.Add(new BranchInfo(logicalName, originalRef, data.hasWorktree));
+                    }
                 }
-                SelectedBranch = Branches_Worktrees.FirstOrDefault();
+                else
+                {
+                    foreach (var item in branches_Worktrees)
+                    {
+                        string path = item.Trim();
+                        Branches_Worktrees.Add(new BranchInfo(path, path, false));
+                    }
+                }
+
+                SelectedBranch = (commandType == CommandType.Create && IsExistingBranchMode)
+                    ? (Branches_Worktrees.FirstOrDefault(b => !b.HasLinkedWorktree) ?? Branches_Worktrees.FirstOrDefault())
+                    : Branches_Worktrees.FirstOrDefault();
                 _loggingService?.SetCommandStatusBusy(false);
                 return true;
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Exception in PopulateBranches_Worktrees: {ex}");
                 await _loggingService?.WriteToOutputWindowAsync($"Failed to Load Branches/Worktrees: {ex.Message}");
                 return false;
             }
@@ -549,7 +660,7 @@ namespace GitWorkTree.ViewModel
             if (IsNewBranchMode)
             {
                 string newBranch = NewBranchName.Trim();
-                string sourceBranch = SelectedBranch?.Name;
+                string sourceBranch = SelectedBranch?.FullRef;
 
                 // 1. Create new branch
                 var branchResult = await _gitService.CreateBranchAsync(_activeRepositoryPath, newBranch, sourceBranch).ConfigureAwait(false);
@@ -590,7 +701,7 @@ namespace GitWorkTree.ViewModel
             }
             else
             {
-                var worktreeResult = await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, SelectedBranch?.Name, _folderPath).ConfigureAwait(false);
+                var worktreeResult = await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, SelectedBranch?.FullRef, _folderPath).ConfigureAwait(false);
                 if (worktreeResult.Success)
                 {
                     Close_Dialog();

@@ -40,6 +40,9 @@ namespace GitWorkTree.Services
 
         public async Task WriteToOutputWindowAsync(string message, bool ShowOutputPane = false)
         {
+            var ambient = AmbientSession;
+            string prefix = ambient != null ? $"[{ambient.CommandName}] " : "";
+            string formattedMessage = $"{prefix}{message}";
 
             try
             {
@@ -50,7 +53,7 @@ namespace GitWorkTree.Services
                     if (outputPane == null) outputPane = CreatePane();
 
                     // Check for null before writing to the output pane
-                    string formattedMessage = $">{message + Environment.NewLine}";
+                    string vsOutputMessage = $">{formattedMessage + Environment.NewLine}";
 
                     if (ShowOutputPane)
                     {
@@ -58,7 +61,7 @@ namespace GitWorkTree.Services
                         dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput).Visible = true;
                     }
 
-                    outputPane?.OutputStringThreadSafe(formattedMessage);
+                    outputPane?.OutputStringThreadSafe(vsOutputMessage);
                 });
             }
             catch (Exception ex)
@@ -144,7 +147,7 @@ namespace GitWorkTree.Services
 
             public async Task LogAsync(string message, bool showOutputPane = false)
             {
-                await _parent.WriteToOutputWindowAsync($"[{CommandName}] {message}", showOutputPane);
+                await _parent.WriteToOutputWindowAsync(message, showOutputPane);
             }
 
             public async Task CompleteAsync(bool success)

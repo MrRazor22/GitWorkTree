@@ -19,12 +19,7 @@ namespace GitWorkTree.Services
 
         private async Task LogMessageAsync(ILoggingService outputWindow, string message, bool showOutputPane = false)
         {
-            var ambient = LoggingHelper.AmbientSession;
-            if (ambient != null)
-            {
-                await ambient.LogAsync(message, showOutputPane);
-            }
-            else if (outputWindow != null)
+            if (outputWindow != null)
             {
                 await outputWindow.WriteToOutputWindowAsync(message, showOutputPane);
             }

@@ -37,11 +37,11 @@ namespace GitWorkTree.Services
         Task<List<string>> GetWorkTreePathsAsync(string repositoryPath);
         Task<List<WorktreeInfo>> GetWorktreesAsync(string repositoryPath);
         Task<List<string>> GetBranchesAsync(string repositoryPath);
-        Task<bool> CreateBranchAsync(string repositoryPath, string newBranchName, string sourceBranchName);
-        Task<bool> DeleteBranchAsync(string repositoryPath, string branchName);
-        Task<bool> CreateWorkTreeAsync(string repositoryPath, string branchName, string workTreePath, bool shouldForceCreate);
-        Task<bool> RemoveWorkTreeAsync(string repositoryPath, string workTreePath, bool shouldForceCreate);
-        Task<bool> PruneAsync(string repositoryPath);
+        Task<GitOperationResult> CreateBranchAsync(string repositoryPath, string newBranchName, string sourceBranchName);
+        Task<GitOperationResult> DeleteBranchAsync(string repositoryPath, string branchName);
+        Task<GitOperationResult> CreateWorkTreeAsync(string repositoryPath, string branchName, string workTreePath);
+        Task<GitOperationResult> RemoveWorkTreeAsync(string repositoryPath, string workTreePath, bool shouldForceCreate);
+        Task<GitOperationResult> PruneAsync(string repositoryPath);
         Task<string> GetGitFolderDirectoryAsync(string currentSolutionPath);
         Task<bool> IsWorktreeDirtyAsync(string worktreePath);
         Task<(string Branch, string StatusSummary, List<string> Changes, List<GitCommitInfo> Outgoing)> GetWorkTreeDetailsAsync(string repositoryPath, string workTreePath);

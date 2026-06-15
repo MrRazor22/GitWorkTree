@@ -21,10 +21,13 @@ namespace GitWorkTree.Tests
             _mockLoggingService = new Mock<ILoggingService>();
             _mockCommandExecutor = new Mock<IGitCommandExecutor>();
 
-            // Mock the executor to succeed by default
             _mockCommandExecutor
                 .Setup(e => e.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Action<string>>()))
                 .ReturnsAsync(true);
+
+            _mockCommandExecutor
+                .Setup(e => e.ExecuteWithResultAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Action<string>>()))
+                .ReturnsAsync(new GitCommandExecutionResult(true));
 
             _gitHelper = new GitHelper(_mockLoggingService.Object, _mockCommandExecutor.Object, @"C:\git.exe");
         }
@@ -64,7 +67,7 @@ namespace GitWorkTree.Tests
             await _gitHelper.CreateBranchAsync(RepoPath, "new-branch", "main");
 
             // Assert
-            _mockCommandExecutor.Verify(e => e.ExecuteAsync(
+            _mockCommandExecutor.Verify(e => e.ExecuteWithResultAsync(
                 @"C:\git.exe",
                 It.Is<string>(args => args.StartsWith("-c core.longpaths=true branch new-branch")),
                 RepoPath,
@@ -78,7 +81,7 @@ namespace GitWorkTree.Tests
             await _gitHelper.DeleteBranchAsync(RepoPath, "old-branch");
 
             // Assert
-            _mockCommandExecutor.Verify(e => e.ExecuteAsync(
+            _mockCommandExecutor.Verify(e => e.ExecuteWithResultAsync(
                 @"C:\git.exe",
                 It.Is<string>(args => args.StartsWith("-c core.longpaths=true branch -D old-branch")),
                 RepoPath,
@@ -89,10 +92,10 @@ namespace GitWorkTree.Tests
         public async Task CreateWorkTreeAsync_PrependsLongPathsOption()
         {
             // Act
-            await _gitHelper.CreateWorkTreeAsync(RepoPath, "feature-branch", @"C:\WT", false);
+            await _gitHelper.CreateWorkTreeAsync(RepoPath, "feature-branch", @"C:\WT");
 
             // Assert
-            _mockCommandExecutor.Verify(e => e.ExecuteAsync(
+            _mockCommandExecutor.Verify(e => e.ExecuteWithResultAsync(
                 @"C:\git.exe",
                 It.Is<string>(args => args.StartsWith("-c core.longpaths=true worktree add")),
                 RepoPath,
@@ -106,7 +109,7 @@ namespace GitWorkTree.Tests
             await _gitHelper.RemoveWorkTreeAsync(RepoPath, @"C:\WT", false);
 
             // Assert
-            _mockCommandExecutor.Verify(e => e.ExecuteAsync(
+            _mockCommandExecutor.Verify(e => e.ExecuteWithResultAsync(
                 @"C:\git.exe",
                 It.Is<string>(args => args.StartsWith("-c core.longpaths=true worktree remove")),
                 RepoPath,
@@ -120,7 +123,7 @@ namespace GitWorkTree.Tests
             await _gitHelper.PruneAsync(RepoPath);
 
             // Assert
-            _mockCommandExecutor.Verify(e => e.ExecuteAsync(
+            _mockCommandExecutor.Verify(e => e.ExecuteWithResultAsync(
                 @"C:\git.exe",
                 It.Is<string>(args => args.StartsWith("-c core.longpaths=true worktree prune")),
                 RepoPath,

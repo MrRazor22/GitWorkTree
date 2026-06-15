@@ -64,6 +64,19 @@ namespace GitWorkTree.Services
             return await _commandExecutor.ExecuteAsync(_gitPath, fullArgument, gitCommandArgs.WorkingDirectory, outputHandler);
         }
 
+        private async Task<GitCommandExecutionResult> ExecuteWithResultAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null)
+        {
+            if (gitCommandArgs == null)
+            {
+                _loggingService?.WriteToOutputWindowAsync("The Git command arguments are null");
+                return new GitCommandExecutionResult(false, "The Git command arguments are null");
+            }
+
+            string fullArgument = $"-c core.longpaths=true {gitCommandArgs.Argument}";
+
+            return await _commandExecutor.ExecuteWithResultAsync(_gitPath, fullArgument, gitCommandArgs.WorkingDirectory, outputHandler);
+        }
+
         public async Task<List<string>> GetWorkTreePathsAsync(string repositoryPath)
         {
             List<string> workTreePaths = new List<string>();
@@ -187,9 +200,9 @@ namespace GitWorkTree.Services
             else return null;
         }
 
-        public async Task<bool> CreateBranchAsync(string repositoryPath, string newBranchName, string sourceBranchName)
+        public async Task<GitOperationResult> CreateBranchAsync(string repositoryPath, string newBranchName, string sourceBranchName)
         {
-            return await ExecuteAsync(new GitCommandArgs()
+            var result = await ExecuteWithResultAsync(new GitCommandArgs()
             {
                 Argument = $"branch {newBranchName} {sourceBranchName.ToGitCommandExecutableFormat()}",
                 WorkingDirectory = repositoryPath
@@ -197,11 +210,12 @@ namespace GitWorkTree.Services
             {
                 _loggingService?.WriteToOutputWindowAsync(line);
             });
+            return new GitOperationResult(result.Success, result.StandardError);
         }
 
-        public async Task<bool> DeleteBranchAsync(string repositoryPath, string branchName)
+        public async Task<GitOperationResult> DeleteBranchAsync(string repositoryPath, string branchName)
         {
-            return await ExecuteAsync(new GitCommandArgs()
+            var result = await ExecuteWithResultAsync(new GitCommandArgs()
             {
                 Argument = $"branch -D {branchName}",
                 WorkingDirectory = repositoryPath
@@ -209,26 +223,27 @@ namespace GitWorkTree.Services
             {
                 _loggingService?.WriteToOutputWindowAsync(line);
             });
+            return new GitOperationResult(result.Success, result.StandardError);
         }
 
-        public async Task<bool> CreateWorkTreeAsync
-            (string repositoryPath, string branchName, string workTreePath, bool shouldForceCreate)
+        public async Task<GitOperationResult> CreateWorkTreeAsync
+            (string repositoryPath, string branchName, string workTreePath)
         {
-            string force = shouldForceCreate ? "-f " : "";
-            return await ExecuteAsync(new GitCommandArgs()
+            var result = await ExecuteWithResultAsync(new GitCommandArgs()
             {
-                Argument = $"worktree add {force}{SolutionHelper.NormalizePath(workTreePath)} {branchName.ToGitCommandExecutableFormat()}",
+                Argument = $"worktree add {SolutionHelper.NormalizePath(workTreePath)} {branchName.ToGitCommandExecutableFormat()}",
                 WorkingDirectory = repositoryPath
             }, (line) =>
             {
                 _loggingService?.WriteToOutputWindowAsync(line);
             });
+            return new GitOperationResult(result.Success, result.StandardError);
         }
 
-        public async Task<bool> RemoveWorkTreeAsync(string repositoryPath, string workTreePath, bool shouldForceCreate)
+        public async Task<GitOperationResult> RemoveWorkTreeAsync(string repositoryPath, string workTreePath, bool shouldForceCreate)
         {
             string force = shouldForceCreate ? "-f " : "";
-            return await ExecuteAsync(new GitCommandArgs()
+            var result = await ExecuteWithResultAsync(new GitCommandArgs()
             {
                 Argument = $"worktree remove {force}{SolutionHelper.NormalizePath(workTreePath)}",
                 WorkingDirectory = repositoryPath
@@ -236,11 +251,12 @@ namespace GitWorkTree.Services
             {
                 _loggingService?.WriteToOutputWindowAsync(line);
             });
+            return new GitOperationResult(result.Success, result.StandardError);
         }
 
-        public async Task<bool> PruneAsync(string repositoryPath)
+        public async Task<GitOperationResult> PruneAsync(string repositoryPath)
         {
-            return await ExecuteAsync(new GitCommandArgs()
+            var result = await ExecuteWithResultAsync(new GitCommandArgs()
             {
                 Argument = "worktree prune --expire=now",
                 WorkingDirectory = repositoryPath
@@ -248,6 +264,7 @@ namespace GitWorkTree.Services
             {
                 _loggingService?.WriteToOutputWindowAsync(line);
             });
+            return new GitOperationResult(result.Success, result.StandardError);
         }
 
         public async Task<string> GetGitFolderDirectoryAsync(string currentSolutionPath)

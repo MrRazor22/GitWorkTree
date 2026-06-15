@@ -8,7 +8,9 @@
                         xmlns:toolkit="clr-namespace:Community.VisualStudio.Toolkit;assembly=Community.VisualStudio.Toolkit"
                         xmlns:viewmodel="clr-namespace:GitWorkTree.ViewModel"
                         xmlns:usercontrols="clr-namespace:GitWorkTree.View.UserControls"
-                        xmlns:converters="clr-namespace:GitWorkTree.View.Converters" 
+                        xmlns:converters="clr-namespace:GitWorkTree.View.Converters"
+                        xmlns:imaging="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.Imaging"
+                        xmlns:catalog="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.ImageCatalog"
                         toolkit:Themes.UseVsTheme="True"
                         mc:Ignorable="d"
                         Title="{Binding WindowTitle}"
@@ -18,7 +20,8 @@
                           FontSize="15"
                           FontWeight="DemiBold"
                           WindowStyle="SingleBorderWindow"
-                          ResizeMode="NoResize">
+                          ResizeMode="NoResize"
+                          Loaded="Window_Loaded">
     <Window.DataContext>
         <viewmodel:WorkTreeDialogViewModel/>
     </Window.DataContext>
@@ -42,6 +45,62 @@
                 <Trigger Property="Validation.HasError" Value="true">
                     <Setter Property="ToolTip" Value="{Binding RelativeSource={x:Static RelativeSource.Self}, Path=(Validation.Errors)[0].ErrorContent}"/>
                 </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Dropdown arrow geometry for the split-button chevron -->
+        <Geometry x:Key="ArrowDownGeometry">M 0 0 L 3 3 L 6 0</Geometry>
+
+        <Style x:Key="DropdownArrowPathStyle" TargetType="Path">
+            <Setter Property="Stroke" Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Action icon style: maps OpenBehavior string to a VS KnownMoniker CrispImage -->
+        <Style x:Key="ActionIconContentStyle" TargetType="ContentControl">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Content}" Value="DoNotOpen">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate>
+                                <imaging:CrispImage Width="14" Height="14"
+                                    Moniker="{x:Static catalog:KnownMonikers.Add}"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Content}" Value="CurrentWindow">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate>
+                                <imaging:CrispImage Width="14" Height="14"
+                                    Moniker="{x:Static catalog:KnownMonikers.Solution}"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Content}" Value="NewVSWindow">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate>
+                                <imaging:CrispImage Width="14" Height="14"
+                                    Moniker="{x:Static catalog:KnownMonikers.VisualStudio}"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Content}" Value="Explorer">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate>
+                                <imaging:CrispImage Width="14" Height="14"
+                                    Moniker="{x:Static catalog:KnownMonikers.FolderOpened}"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
             </Style.Triggers>
         </Style>
     </Window.Resources>
@@ -85,7 +144,7 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Row 0: New Branch Selection -->
-                    <RadioButton Grid.Row="0" Grid.Column="0" GroupName="BranchMode" IsChecked="{Binding IsNewBranchMode}" Content="New Branch:" VerticalAlignment="Center" FontSize="14" Margin="0,0,0,10"/>
+                    <RadioButton Grid.Row="0" Grid.Column="0" GroupName="BranchMode" IsChecked="{Binding IsNewBranchMode}" Checked="NewBranchRadioButton_Checked" Content="New Branch:" VerticalAlignment="Center" FontSize="14" Margin="0,0,0,10"/>
                     <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,2,0,10" VerticalAlignment="Center">
                         <TextBox x:Name="NewBranchTextBox" Margin="0" Padding="4" FontSize="14" IsEnabled="{Binding IsNewBranchMode}" Text="{Binding NewBranchName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" Validation.ErrorTemplate="{StaticResource ErrorTemplate}"/>
                         <StackPanel Orientation="Horizontal" Margin="2,4,0,2">
@@ -132,12 +191,12 @@
                                               Data="M9,2.5 A1.5,1.5 0 0,0 7.5,1 A1.5,1.5 0 0,0 6.1,2 L4.5,2 A1.5,1.5 0 0,0 3,3.5 L3,4.5 A1.5,1.5 0 0,0 4.5,6 L6,6 L6,8.5 A1.5,1.5 0 0,0 7.5,10 A1.5,1.5 0 0,0 9,8.5 A1.5,1.5 0 0,0 7.5,7 L6.5,7 L6.5,3.5 L7.5,3.5 A1.5,1.5 0 0,0 9,2.5 Z M4.5,5 A0.5,0.5 0 0,1 4,4.5 L4,3.5 A0.5,0.5 0 0,1 4.5,3 L6,3 L6,5 Z M7.5,2 A0.5,0.5 0 0,1 8,2.5 A0.5,0.5 0 0,1 7.5,3 A0.5,0.5 0 0,1 7,2.5 A0.5,0.5 0 0,1 7.5,2 Z M7.5,8 A0.5,0.5 0 0,1 8,8.5 A0.5,0.5 0 0,1 7.5,9 A0.5,0.5 0 0,1 7,8.5 A0.5,0.5 0 0,1 7.5,8 Z"/>
                                         <!-- Branch Name -->
                                         <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13"/>
-                                        <!-- Subtle Link Icon for linked worktree -->
-                                        <Path Grid.Column="2" Margin="15,0,2,0" Width="12" Height="12" VerticalAlignment="Center" Stretch="Uniform"
-                                              Fill="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}"
-                                              ToolTip="Has linked worktree"
-                                              Visibility="{Binding HasLinkedWorktree, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                              Data="M4.9,7.1 L7.1,4.9 C8.3,3.7 10.3,3.7 11.5,4.9 C12.7,6.1 12.7,8.1 11.5,9.3 L10.0,10.7 C9.5,11.2 8.7,11.4 8.0,11.3 M11.1,8.9 L8.9,11.1 C7.7,12.3 5.7,12.3 4.5,11.1 C3.3,9.9 3.3,7.9 4.5,6.7 L6.0,5.3 C6.5,4.8 7.3,4.6 8.0,4.7 M5.5,10.5 L10.5,5.5"/>
+                                        <!-- Worktree indicator: native VS icon, theme-safe -->
+                                        <imaging:CrispImage Grid.Column="2" Margin="8,0,2,0" Width="12" Height="12"
+                                              VerticalAlignment="Center"
+                                              Moniker="{x:Static catalog:KnownMonikers.Link}"
+                                              ToolTip="Branch already has a linked worktree"
+                                              Visibility="{Binding HasLinkedWorktree, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     </Grid>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
@@ -193,12 +252,12 @@
                                               Data="M9,2.5 A1.5,1.5 0 0,0 7.5,1 A1.5,1.5 0 0,0 6.1,2 L4.5,2 A1.5,1.5 0 0,0 3,3.5 L3,4.5 A1.5,1.5 0 0,0 4.5,6 L6,6 L6,8.5 A1.5,1.5 0 0,0 7.5,10 A1.5,1.5 0 0,0 9,8.5 A1.5,1.5 0 0,0 7.5,7 L6.5,7 L6.5,3.5 L7.5,3.5 A1.5,1.5 0 0,0 9,2.5 Z M4.5,5 A0.5,0.5 0 0,1 4,4.5 L4,3.5 A0.5,0.5 0 0,1 4.5,3 L6,3 L6,5 Z M7.5,2 A0.5,0.5 0 0,1 8,2.5 A0.5,0.5 0 0,1 7.5,3 A0.5,0.5 0 0,1 7,2.5 A0.5,0.5 0 0,1 7.5,2 Z M7.5,8 A0.5,0.5 0 0,1 8,8.5 A0.5,0.5 0 0,1 7.5,9 A0.5,0.5 0 0,1 7,8.5 A0.5,0.5 0 0,1 7.5,8 Z"/>
                                         <!-- Branch Name -->
                                         <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13"/>
-                                        <!-- Subtle Link Icon for linked worktree -->
-                                        <Path Grid.Column="2" Margin="15,0,2,0" Width="12" Height="12" VerticalAlignment="Center" Stretch="Uniform"
-                                              Fill="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}"
-                                              ToolTip="Has linked worktree"
-                                              Visibility="{Binding HasLinkedWorktree, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                              Data="M4.9,7.1 L7.1,4.9 C8.3,3.7 10.3,3.7 11.5,4.9 C12.7,6.1 12.7,8.1 11.5,9.3 L10.0,10.7 C9.5,11.2 8.7,11.4 8.0,11.3 M11.1,8.9 L8.9,11.1 C7.7,12.3 5.7,12.3 4.5,11.1 C3.3,9.9 3.3,7.9 4.5,6.7 L6.0,5.3 C6.5,4.8 7.3,4.6 8.0,4.7 M5.5,10.5 L10.5,5.5"/>
+                                        <!-- Worktree indicator: native VS icon, theme-safe -->
+                                        <imaging:CrispImage Grid.Column="2" Margin="8,0,2,0" Width="12" Height="12"
+                                              VerticalAlignment="Center"
+                                              Moniker="{x:Static catalog:KnownMonikers.Link}"
+                                              ToolTip="Branch already has a linked worktree"
+                                              Visibility="{Binding HasLinkedWorktree, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     </Grid>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
@@ -269,84 +328,27 @@
                         </Grid.ColumnDefinitions>
                         <Button Grid.Column="0" Command="{Binding OpenCommand}" CommandParameter="{Binding PreferredOpenAction}" FontSize="14" FontWeight="SemiBold" Padding="12,5">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <ContentControl Content="{Binding PreferredOpenAction}" Margin="0,0,6,0" VerticalAlignment="Center">
-                                    <ContentControl.Style>
-                                        <Style TargetType="ContentControl">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding PreferredOpenAction}" Value="CurrentWindow">
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate>
-                                                                <Viewbox Width="14" Height="14">
-                                                                    <Path Data="M2,2 h12 v12 H2 Z M3,5 h10 v8 H3 Z" Fill="#007ACC" />
-                                                                </Viewbox>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding PreferredOpenAction}" Value="NewVSWindow">
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate>
-                                                                <Viewbox Width="14" Height="14">
-                                                                    <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
-                                                                </Viewbox>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding PreferredOpenAction}" Value="DoNotOpen">
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate>
-                                                                <Viewbox Width="14" Height="14">
-                                                                    <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
-                                                                </Viewbox>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding PreferredOpenAction}" Value="Explorer">
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate>
-                                                                <Viewbox Width="14" Height="14">
-                                                                    <Path Data="M2,2 h4 l1.5,1.5 h6.5 v8.5 H2 Z" Fill="#EAA200" />
-                                                                </Viewbox>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ContentControl.Style>
-                                </ContentControl>
+                                <ContentControl Content="{Binding PreferredOpenAction}" Style="{StaticResource ActionIconContentStyle}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="Open" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                         <Button Grid.Column="1" Click="ButtonOpen_Click" Width="20" Padding="0">
-                            <Path Data="M 0 0 L 3 3 L 6 0" Stroke="Black" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Path Data="{StaticResource ArrowDownGeometry}" Style="{StaticResource DropdownArrowPathStyle}"/>
                             <Button.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="Open in Current Window" Command="{Binding OpenCommand}" CommandParameter="CurrentWindow">
                                         <MenuItem.Icon>
-                                            <Viewbox Width="16" Height="16">
-                                                <Path Data="M2,2 h12 v12 H2 Z M3,5 h10 v8 H3 Z" Fill="#007ACC" />
-                                            </Viewbox>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
-                                    <MenuItem Header="Open in New Window" Command="{Binding OpenCommand}" CommandParameter="NewVSWindow">
+                                    <MenuItem Header="Open in New VS Window" Command="{Binding OpenCommand}" CommandParameter="NewVSWindow">
                                         <MenuItem.Icon>
-                                            <Viewbox Width="16" Height="16">
-                                                <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
-                                            </Viewbox>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
                                     <MenuItem Header="Open in Explorer" Command="{Binding OpenCommand}" CommandParameter="Explorer">
                                         <MenuItem.Icon>
-                                            <Viewbox Width="16" Height="16">
-                                                <Path Data="M2,2 h4 l1.5,1.5 h6.5 v8.5 H2 Z" Fill="#EAA200" />
-                                            </Viewbox>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.FolderOpened}" Width="16" Height="16"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
                                 </ContextMenu>
@@ -358,9 +360,7 @@
             </Grid>
 
             <Grid Grid.Row="3" Margin="7">
-                <CheckBox x:Name="ForceCreateRemove" IsChecked="{Binding IsForceCreateRemove}" FontSize="14"
-                      Content="{Binding CommandType, Converter={StaticResource CommandTypeToForceCheckBoxTextConverter}}"
-                      VerticalAlignment="Center" HorizontalAlignment="Left" />
+
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button x:Name="Prune" Command="{Binding PruneCommand}" Content="Prune" Margin="0,0,7,0"
@@ -376,73 +376,27 @@
                         <Button Grid.Column="0" Command="{Binding CreateCommand}" CommandParameter="{Binding PreferredCreateAction}" 
                                 FontSize="14" FontWeight="SemiBold" Padding="12,5">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <ContentControl Content="{Binding PreferredCreateAction}" Margin="0,0,6,0" VerticalAlignment="Center">
-                                    <ContentControl.Style>
-                                        <Style TargetType="ContentControl">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding PreferredCreateAction}" Value="DoNotOpen">
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate>
-                                                                <Viewbox Width="14" Height="14">
-                                                                    <Path Data="M8,2 v12 M2,8 h12" Stroke="#565656" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                                                                </Viewbox>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding PreferredCreateAction}" Value="CurrentWindow">
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate>
-                                                                <Viewbox Width="14" Height="14">
-                                                                    <Path Data="M2,2 h12 v12 H2 Z M3,5 h10 v8 H3 Z" Fill="#007ACC" />
-                                                                </Viewbox>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding PreferredCreateAction}" Value="NewVSWindow">
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate>
-                                                                <Viewbox Width="14" Height="14">
-                                                                    <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
-                                                                </Viewbox>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ContentControl.Style>
-                                </ContentControl>
+                                <ContentControl Content="{Binding PreferredCreateAction}" Style="{StaticResource ActionIconContentStyle}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="Create" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                         <Button Grid.Column="1" Click="ButtonCreate_Click" Width="20" Padding="0">
-                            <Path Data="M 0 0 L 3 3 L 6 0" Stroke="Black" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Path Data="{StaticResource ArrowDownGeometry}" Style="{StaticResource DropdownArrowPathStyle}"/>
                             <Button.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="Create Only" Command="{Binding CreateCommand}" CommandParameter="DoNotOpen">
                                         <MenuItem.Icon>
-                                            <Viewbox Width="16" Height="16">
-                                                <Path Data="M8,2 v12 M2,8 h12" Stroke="#565656" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                                            </Viewbox>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Add}" Width="16" Height="16"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
                                     <MenuItem Header="Create and Open in Current Window" Command="{Binding CreateCommand}" CommandParameter="CurrentWindow">
                                         <MenuItem.Icon>
-                                            <Viewbox Width="16" Height="16">
-                                                <Path Data="M2,2 h12 v12 H2 Z M3,5 h10 v8 H3 Z" Fill="#007ACC" />
-                                            </Viewbox>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
-                                    <MenuItem Header="Create and Open in New Window" Command="{Binding CreateCommand}" CommandParameter="NewVSWindow">
+                                    <MenuItem Header="Create and Open in New VS Window" Command="{Binding CreateCommand}" CommandParameter="NewVSWindow">
                                         <MenuItem.Icon>
-                                            <Viewbox Width="16" Height="16">
-                                                <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
-                                            </Viewbox>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
                                 </ContextMenu>

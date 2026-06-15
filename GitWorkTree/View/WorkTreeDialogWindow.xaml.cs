@@ -71,5 +71,24 @@ namespace GitWorkTree.View
                 button.ContextMenu.IsOpen = true;
             }
         }
+
+        private void Window_Loaded(object sender, System.Windows.RoutedEventArgs e)
+        {
+            var vm = DataContext as WorkTreeDialogViewModel;
+            if (vm != null && vm.IsNewBranchMode && NewBranchTextBox != null)
+            {
+                NewBranchTextBox.Focus();
+                NewBranchTextBox.SelectAll();
+            }
+        }
+
+        private void NewBranchRadioButton_Checked(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (NewBranchTextBox != null)
+            {
+                NewBranchTextBox.Focus();
+                NewBranchTextBox.SelectAll();
+            }
+        }
     }
 }

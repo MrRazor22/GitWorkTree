@@ -63,7 +63,7 @@ namespace GitWorkTree.Commands
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
 
-                dialogViewModel = new WorkTreeDialogViewModel(ActiveRepositoryPath, _commandType, optionsSaved, gitService, solutionService, outputWindow);
+                dialogViewModel = new WorkTreeDialogViewModel(ActiveRepositoryPath, _commandType, optionsSaved, gitService, solutionService, outputWindow, serviceProvider: ServiceProvider.GlobalProvider);
                 WorkTreeDialogWindow dialog = new WorkTreeDialogWindow { DataContext = dialogViewModel };
 
                 dialog.ShowModal();

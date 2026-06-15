@@ -6,5 +6,6 @@ namespace GitWorkTree.Services
     public interface IGitCommandExecutor
     {
         Task<bool> ExecuteAsync(string gitPath, string arguments, string workingDirectory, Action<string> outputHandler);
+        Task<GitCommandExecutionResult> ExecuteWithResultAsync(string gitPath, string arguments, string workingDirectory, Action<string> outputHandler = null);
     }
 }

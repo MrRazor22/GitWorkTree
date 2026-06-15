@@ -88,6 +88,9 @@
       <DependentUpon>VSCommandTable.vsct</DependentUpon>
     </Compile>
     <Compile Include="Services\LoggingHelper.cs" />
+    <Compile Include="Services\GitCommandExecutionResult.cs" />
+    <Compile Include="Services\GitOperationResult.cs" />
+    <Compile Include="Helpers\DialogHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="source.extension.vsixmanifest">

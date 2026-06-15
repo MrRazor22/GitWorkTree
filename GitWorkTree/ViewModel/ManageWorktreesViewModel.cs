@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 using GitWorkTree.Services;
+using GitWorkTree.Helpers;
 using GitWorkTree.Commands;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.TeamFoundation.Git.Extensibility;
@@ -153,6 +154,7 @@ namespace GitWorkTree.ViewModel
         private readonly IGitService _gitService;
         private readonly ISolutionService _solutionService;
         private readonly ILoggingService _loggingService;
+        private readonly IServiceProvider _serviceProvider;
         private string _activeRepositoryPath;
         private System.ComponentModel.INotifyPropertyChanged _gitExtService;
         public string ActiveRepositoryPath
@@ -346,11 +348,14 @@ namespace GitWorkTree.ViewModel
 
         public ManageWorktreesViewModel() : this(null, null, null) { }
 
-        public ManageWorktreesViewModel(IGitService gitService = null, ISolutionService solutionService = null, ILoggingService loggingService = null)
+        public ManageWorktreesViewModel(IGitService gitService = null, ISolutionService solutionService = null, ILoggingService loggingService = null, IServiceProvider serviceProvider = null)
         {
             _loggingService = loggingService ?? LoggingHelper.Instance;
             _gitService = gitService ?? new GitHelper(_loggingService);
             _solutionService = solutionService ?? new SolutionHelper(_loggingService, _gitService);
+            // ManageWorktreesViewModel is instantiated from XAML — no injection path at runtime,
+            // so fall back to GlobalProvider when no explicit provider is supplied.
+            _serviceProvider = serviceProvider ?? ServiceProvider.GlobalProvider;
 
             RefreshCommand = new AsyncRelayCommand("Refresh Worktrees", async obj => await RefreshAsync(), null, _loggingService);
             CreateCommand = new AsyncRelayCommand("Create Worktree", async obj => await CreateWorktreeAsync(), null, _loggingService);
@@ -831,7 +836,11 @@ namespace GitWorkTree.ViewModel
 
         private async Task PruneWorktreeAsync()
         {
-            await _gitService.PruneAsync(ActiveRepositoryPath).ConfigureAwait(false);
+            var result = await _gitService.PruneAsync(ActiveRepositoryPath).ConfigureAwait(false);
+            if (!result.Success)
+            {
+                DialogHelper.ShowOperationError(_serviceProvider, "Prune Worktrees", result.ErrorMessage);
+            }
             await RefreshAsync().ConfigureAwait(false);
         }
 
@@ -873,21 +882,27 @@ namespace GitWorkTree.ViewModel
             if (SelectedWorktree == null || SelectedWorktree.IsMain || SelectedWorktree.IsCurrent) return;
 
             // First attempt: Standard Remove without force
-            bool success = await _gitService.RemoveWorkTreeAsync(ActiveRepositoryPath, SelectedWorktree.FullPath, shouldForceCreate: false).ConfigureAwait(false);
+            var result = await _gitService.RemoveWorkTreeAsync(ActiveRepositoryPath, SelectedWorktree.FullPath, shouldForceCreate: false).ConfigureAwait(false);
+            bool success = result.Success;
             if (!success)
             {
                 // Prompt with Force confirmation dialog if failed
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                var result = System.Windows.MessageBox.Show(
-                    $"Worktree '{SelectedWorktree.FolderName}' has uncommitted or staged changes. Force remove it?",
+                var msgResult = System.Windows.MessageBox.Show(
+                    $"Worktree '{SelectedWorktree.FolderName}' has uncommitted or staged changes. Force remove it?\n\nError Details:\n{result.ErrorMessage}",
                     "Force Remove Worktree",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning
                 );
 
-                if (result == MessageBoxResult.Yes)
+                if (msgResult == MessageBoxResult.Yes)
                 {
-                    success = await _gitService.RemoveWorkTreeAsync(ActiveRepositoryPath, SelectedWorktree.FullPath, shouldForceCreate: true).ConfigureAwait(false);
+                    var forceResult = await _gitService.RemoveWorkTreeAsync(ActiveRepositoryPath, SelectedWorktree.FullPath, shouldForceCreate: true).ConfigureAwait(false);
+                    success = forceResult.Success;
+                    if (!success)
+                    {
+                        DialogHelper.ShowOperationError(_serviceProvider, "Remove Worktree", forceResult.ErrorMessage);
+                    }
                 }
             }
 

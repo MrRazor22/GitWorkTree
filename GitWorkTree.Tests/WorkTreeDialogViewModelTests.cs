@@ -253,9 +253,9 @@ namespace GitWorkTree.Tests
         {
             // Arrange
             _mockGitService.Setup(g => g.CreateBranchAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
-                .ReturnsAsync(true);
-            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>(), It.IsAny<bool>()))
-                .ReturnsAsync(true);
+                .ReturnsAsync(new GitOperationResult(true));
+            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
+                .ReturnsAsync(new GitOperationResult(true));
 
             var viewModel = new WorkTreeDialogViewModel(
                 @"C:\repo",
@@ -277,7 +277,7 @@ namespace GitWorkTree.Tests
 
             // Assert
             _mockGitService.Verify(g => g.CreateBranchAsync(@"C:\repo", "feature-1", "main"), Times.Once);
-            _mockGitService.Verify(g => g.CreateWorkTreeAsync(@"C:\repo", "feature-1", @"C:\worktrees\feature-1", false), Times.Once);
+            _mockGitService.Verify(g => g.CreateWorkTreeAsync(@"C:\repo", "feature-1", @"C:\worktrees\feature-1"), Times.Once);
             _mockSolutionService.Verify(s => s.OpenSolution(@"C:\worktrees\feature-1", It.IsAny<bool>()), Times.Once);
         }
 
@@ -286,11 +286,11 @@ namespace GitWorkTree.Tests
         {
             // Arrange
             _mockGitService.Setup(g => g.CreateBranchAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
-                .ReturnsAsync(true);
-            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>(), It.IsAny<bool>()))
-                .ReturnsAsync(false);
+                .ReturnsAsync(new GitOperationResult(true));
+            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
+                .ReturnsAsync(new GitOperationResult(false, "Failed to create worktree"));
             _mockGitService.Setup(g => g.DeleteBranchAsync(It.IsAny<string>(), "feature-1"))
-                .ReturnsAsync(true);
+                .ReturnsAsync(new GitOperationResult(true));
 
             var viewModel = new WorkTreeDialogViewModel(
                 @"C:\repo",
@@ -312,7 +312,7 @@ namespace GitWorkTree.Tests
 
             // Assert
             _mockGitService.Verify(g => g.CreateBranchAsync(@"C:\repo", "feature-1", "main"), Times.Once);
-            _mockGitService.Verify(g => g.CreateWorkTreeAsync(@"C:\repo", "feature-1", @"C:\worktrees\feature-1", false), Times.Once);
+            _mockGitService.Verify(g => g.CreateWorkTreeAsync(@"C:\repo", "feature-1", @"C:\worktrees\feature-1"), Times.Once);
             _mockGitService.Verify(g => g.DeleteBranchAsync(@"C:\repo", "feature-1"), Times.Once);
             _mockSolutionService.Verify(s => s.OpenSolution(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
         }
@@ -377,9 +377,9 @@ namespace GitWorkTree.Tests
         public async Task CreateCommand_WithDoNotOpen_DoesNotOpenSolution()
         {
             _mockGitService.Setup(g => g.CreateBranchAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
-                .ReturnsAsync(true);
-            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>(), It.IsAny<bool>()))
-                .ReturnsAsync(true);
+                .ReturnsAsync(new GitOperationResult(true));
+            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
+                .ReturnsAsync(new GitOperationResult(true));
 
             var viewModel = new WorkTreeDialogViewModel(
                 @"C:\repo",
@@ -405,9 +405,9 @@ namespace GitWorkTree.Tests
         public async Task CreateCommand_WithCurrentWindow_OpensSolutionInCurrentWindow()
         {
             _mockGitService.Setup(g => g.CreateBranchAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
-                .ReturnsAsync(true);
-            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>(), It.IsAny<bool>()))
-                .ReturnsAsync(true);
+                .ReturnsAsync(new GitOperationResult(true));
+            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
+                .ReturnsAsync(new GitOperationResult(true));
 
             var viewModel = new WorkTreeDialogViewModel(
                 @"C:\repo",
@@ -433,9 +433,9 @@ namespace GitWorkTree.Tests
         public async Task CreateCommand_UpdatesPreferredCreateAction()
         {
             _mockGitService.Setup(g => g.CreateBranchAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
-                .ReturnsAsync(true);
-            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>(), It.IsAny<bool>()))
-                .ReturnsAsync(true);
+                .ReturnsAsync(new GitOperationResult(true));
+            _mockGitService.Setup(g => g.CreateWorkTreeAsync(It.IsAny<string>(), "feature-1", It.IsAny<string>()))
+                .ReturnsAsync(new GitOperationResult(true));
 
             var viewModel = new WorkTreeDialogViewModel(
                 @"C:\repo",

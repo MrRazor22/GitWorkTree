@@ -1,4 +1,5 @@
 using GitWorkTree.Commands;
+using GitWorkTree.Helpers;
 using GitWorkTree.Services;
 using Microsoft.VisualStudio.Threading;
 using System;
@@ -22,6 +23,7 @@ namespace GitWorkTree.ViewModel
         private bool _newBranchNameChanged;
         private bool _folderPathChanged;
         private bool _showAllErrors;
+        private readonly IServiceProvider _serviceProvider;
 
         #region UI Related Properties
         public ObservableCollection<BranchInfo> Branches_Worktrees { get; set; }
@@ -66,6 +68,7 @@ namespace GitWorkTree.ViewModel
                     _isNewBranchMode = value;
                     OnPropertyChanged(nameof(IsNewBranchMode));
                     OnPropertyChanged(nameof(IsExistingBranchMode));
+                    OnPropertyChanged(nameof(SelectedBranch)); // re-evaluate SelectedBranch validation when mode switches
                     CommandManager.InvalidateRequerySuggested();
                     UpdateFolderPath();
 
@@ -231,16 +234,6 @@ namespace GitWorkTree.ViewModel
             }
         }
 
-        private bool _isForceCreateRemove;
-        public bool IsForceCreateRemove
-        {
-            get { return _isForceCreateRemove; }
-            set
-            {
-                _isForceCreateRemove = value;
-                OnPropertyChanged(nameof(IsForceCreateRemove));
-            }
-        }
         #endregion
 
         #region IDataErrorInfo Validation
@@ -274,6 +267,9 @@ namespace GitWorkTree.ViewModel
             {
                 if (SelectedBranch == null || string.IsNullOrEmpty(SelectedBranch.Name))
                     return "No valid branch/Worktree selected";
+
+                if (commandType == CommandType.Create && IsExistingBranchMode && SelectedBranch.HasLinkedWorktree)
+                    return "This branch already has a worktree.";
             }
             if (propertyName == nameof(NewBranchName))
             {
@@ -360,11 +356,13 @@ namespace GitWorkTree.ViewModel
             General optionsSaved,
             IGitService gitService = null,
             ISolutionService solutionService = null,
-            ILoggingService loggingService = null)
+            ILoggingService loggingService = null,
+            IServiceProvider serviceProvider = null)
         {
             _loggingService = loggingService ?? LoggingHelper.Instance;
             _gitService = gitService ?? new GitHelper(_loggingService);
             _solutionService = solutionService ?? new SolutionHelper(_loggingService, _gitService);
+            _serviceProvider = serviceProvider;
 
             //init fields
             this.commandType = commandType;
@@ -518,8 +516,13 @@ namespace GitWorkTree.ViewModel
 
         private async Task<bool> Prune_WorkTree()
         {
-            return await _gitService.PruneAsync(_activeRepositoryPath).ConfigureAwait(false) &&
-                   await PopulateBranches_Worktrees().ConfigureAwait(false);
+            var result = await _gitService.PruneAsync(_activeRepositoryPath).ConfigureAwait(false);
+            if (!result.Success)
+            {
+                DialogHelper.ShowOperationError(_serviceProvider, "Prune Worktrees", result.ErrorMessage);
+                return false;
+            }
+            return await PopulateBranches_Worktrees().ConfigureAwait(false);
         }
 
         private async Task<bool> Create_WorkTree(object parameter)
@@ -549,14 +552,17 @@ namespace GitWorkTree.ViewModel
                 string sourceBranch = SelectedBranch?.Name;
 
                 // 1. Create new branch
-                if (!await _gitService.CreateBranchAsync(_activeRepositoryPath, newBranch, sourceBranch).ConfigureAwait(false))
+                var branchResult = await _gitService.CreateBranchAsync(_activeRepositoryPath, newBranch, sourceBranch).ConfigureAwait(false);
+                if (!branchResult.Success)
                 {
                     _loggingService?.UpdateStatusBar("Failed to create new branch.");
+                    DialogHelper.ShowOperationError(_serviceProvider, "Create Branch", branchResult.ErrorMessage);
                     return false;
                 }
 
                 // 2. Create worktree
-                if (await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, newBranch, _folderPath, _isForceCreateRemove).ConfigureAwait(false))
+                var worktreeResult = await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, newBranch, _folderPath).ConfigureAwait(false);
+                if (worktreeResult.Success)
                 {
                     Close_Dialog();
                     if (behavior == OpenBehavior.NewVSWindow)
@@ -572,8 +578,10 @@ namespace GitWorkTree.ViewModel
                 else
                 {
                     _loggingService?.UpdateStatusBar("Failed to create worktree. Rolling back branch creation.");
+                    DialogHelper.ShowOperationError(_serviceProvider, "Create Worktree", worktreeResult.ErrorMessage);
                     // Cleanup branch
-                    if (!await _gitService.DeleteBranchAsync(_activeRepositoryPath, newBranch).ConfigureAwait(false))
+                    var cleanupResult = await _gitService.DeleteBranchAsync(_activeRepositoryPath, newBranch).ConfigureAwait(false);
+                    if (!cleanupResult.Success)
                     {
                         await _loggingService?.WriteToOutputWindowAsync($"[Cleanup Failure] Failed to remove the orphan branch '{newBranch}'.");
                     }
@@ -582,7 +590,8 @@ namespace GitWorkTree.ViewModel
             }
             else
             {
-                if (await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, SelectedBranch?.Name, _folderPath, _isForceCreateRemove).ConfigureAwait(false))
+                var worktreeResult = await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, SelectedBranch?.Name, _folderPath).ConfigureAwait(false);
+                if (worktreeResult.Success)
                 {
                     Close_Dialog();
                     if (behavior == OpenBehavior.NewVSWindow)
@@ -595,6 +604,7 @@ namespace GitWorkTree.ViewModel
                     }
                     return true;
                 }
+                DialogHelper.ShowOperationError(_serviceProvider, "Create Worktree", worktreeResult.ErrorMessage);
                 return false;
             }
         }
@@ -603,11 +613,13 @@ namespace GitWorkTree.ViewModel
         {
             if (!IsValid) return false;
 
-            if (await _gitService.RemoveWorkTreeAsync(_activeRepositoryPath, SelectedBranch?.Name, _isForceCreateRemove).ConfigureAwait(false))
+            var result = await _gitService.RemoveWorkTreeAsync(_activeRepositoryPath, SelectedBranch?.Name, false).ConfigureAwait(false);
+            if (result.Success)
             {
                 await PopulateBranches_Worktrees().ConfigureAwait(false);
                 return true;
             }
+            DialogHelper.ShowOperationError(_serviceProvider, "Remove Worktree", result.ErrorMessage);
             return false;
         }
 

@@ -110,6 +110,63 @@ namespace GitWorkTree.View
                 }
             }
         }
+
+        private void TreeViewItem_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is TreeViewItem item)
+            {
+                if (!item.IsSelected)
+                {
+                    item.IsSelected = true;
+                    item.Focus();
+                }
+            }
+        }
+
+        private void TreeViewItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            var item = sender as TreeViewItem;
+            if (item == null) return;
+
+            var node = item.DataContext as HierarchyNode;
+            if (node == null || node.IsFolder || node.WorktreeItem == null) return;
+
+            var vm = DataContext as ManageWorktreesViewModel;
+            if (vm != null && vm.OpenCommand != null && vm.OpenCommand.CanExecute(vm.PreferredOpenAction))
+            {
+                vm.OpenCommand.Execute(vm.PreferredOpenAction);
+                e.Handled = true;
+            }
+        }
+
+        private void TreeView_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            var treeView = sender as TreeView;
+            if (treeView == null) return;
+
+            var node = treeView.SelectedItem as HierarchyNode;
+            if (node == null || node.IsFolder || node.WorktreeItem == null) return;
+
+            var vm = DataContext as ManageWorktreesViewModel;
+            if (vm == null) return;
+
+            if (e.Key == Key.Enter)
+            {
+                if (vm.OpenCommand != null && vm.OpenCommand.CanExecute(vm.PreferredOpenAction))
+                {
+                    vm.OpenCommand.Execute(vm.PreferredOpenAction);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Key.Delete)
+            {
+                if (vm.RemoveCommand != null && vm.RemoveCommand.CanExecute(null))
+                {
+                    vm.RemoveCommand.Execute(null);
+                    e.Handled = true;
+                }
+            }
+        }
     }
 
     internal static class GuidList

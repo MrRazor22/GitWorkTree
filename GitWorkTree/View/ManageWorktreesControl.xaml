@@ -495,11 +495,123 @@
                           VirtualizingPanel.IsVirtualizing="True"
                           VirtualizingPanel.VirtualizationMode="Recycling"
                           VirtualizingPanel.IsVirtualizingWhenGrouping="True"
-                          ScrollViewer.CanContentScroll="True">
+                          ScrollViewer.CanContentScroll="True"
+                          PreviewKeyDown="TreeView_PreviewKeyDown">
                     <TreeView.ItemContainerStyle>
                         <Style TargetType="TreeViewItem" BasedOn="{StaticResource VsTreeViewItemStyle}">
                             <Setter Property="IsExpanded" Value="True"/>
+                            <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}"/>
                             <EventSetter Event="PreviewMouseLeftButtonDown" Handler="TreeViewItem_PreviewMouseLeftButtonDown"/>
+                            <EventSetter Event="PreviewMouseRightButtonDown" Handler="TreeViewItem_PreviewMouseRightButtonDown"/>
+                            <EventSetter Event="MouseDoubleClick" Handler="TreeViewItem_MouseDoubleClick"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsFolder}" Value="False">
+                                    <Setter Property="ContextMenu">
+                                        <Setter.Value>
+                                            <ContextMenu>
+                                                <!-- MenuItem 1: Default/Preferred action -->
+                                                <MenuItem Command="{Binding PlacementTarget.Tag.OpenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                                                    <MenuItem.Style>
+                                                        <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding PlacementTarget.Tag.PreferredOpenAction, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="CurrentWindow">
+                                                                    <Setter Property="Header" Value="Open in Current Window"/>
+                                                                    <Setter Property="CommandParameter" Value="CurrentWindow"/>
+                                                                    <Setter Property="Icon">
+                                                                        <Setter.Value>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding PlacementTarget.Tag.PreferredOpenAction, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="NewVSWindow">
+                                                                    <Setter Property="Header" Value="Open in New VS Window"/>
+                                                                    <Setter Property="CommandParameter" Value="NewVSWindow"/>
+                                                                    <Setter Property="Icon">
+                                                                        <Setter.Value>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding PlacementTarget.Tag.PreferredOpenAction, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="DoNotOpen">
+                                                                    <Setter Property="Header" Value="Open in New VS Window"/>
+                                                                    <Setter Property="CommandParameter" Value="NewVSWindow"/>
+                                                                    <Setter Property="Icon">
+                                                                        <Setter.Value>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding PlacementTarget.Tag.PreferredOpenAction, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="Explorer">
+                                                                    <Setter Property="Header" Value="Open in New VS Window"/>
+                                                                    <Setter Property="CommandParameter" Value="NewVSWindow"/>
+                                                                    <Setter Property="Icon">
+                                                                        <Setter.Value>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </MenuItem.Style>
+                                                </MenuItem>
+                                                <!-- MenuItem 2: Alternative action -->
+                                                <MenuItem Command="{Binding PlacementTarget.Tag.OpenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                                                    <MenuItem.Style>
+                                                        <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding PlacementTarget.Tag.PreferredOpenAction, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="CurrentWindow">
+                                                                    <Setter Property="Header" Value="Open in New VS Window"/>
+                                                                    <Setter Property="CommandParameter" Value="NewVSWindow"/>
+                                                                    <Setter Property="Icon">
+                                                                        <Setter.Value>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding PlacementTarget.Tag.PreferredOpenAction, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="NewVSWindow">
+                                                                    <Setter Property="Header" Value="Open in Current Window"/>
+                                                                    <Setter Property="CommandParameter" Value="CurrentWindow"/>
+                                                                    <Setter Property="Icon">
+                                                                        <Setter.Value>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding PlacementTarget.Tag.PreferredOpenAction, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="DoNotOpen">
+                                                                    <Setter Property="Header" Value="Open in Current Window"/>
+                                                                    <Setter Property="CommandParameter" Value="CurrentWindow"/>
+                                                                    <Setter Property="Icon">
+                                                                        <Setter.Value>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding PlacementTarget.Tag.PreferredOpenAction, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="Explorer">
+                                                                    <Setter Property="Header" Value="Open in Current Window"/>
+                                                                    <Setter Property="CommandParameter" Value="CurrentWindow"/>
+                                                                    <Setter Property="Icon">
+                                                                        <Setter.Value>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </MenuItem.Style>
+                                                </MenuItem>
+                                                <Separator/>
+                                                <MenuItem Header="Remove..." 
+                                                          Command="{Binding PlacementTarget.Tag.RemoveCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+                                                          InputGestureText="Del">
+                                                    <MenuItem.Icon>
+                                                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Cancel}" Width="16" Height="16"/>
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                            </ContextMenu>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                            </Style.Triggers>
                         </Style>
                     </TreeView.ItemContainerStyle>
                     <TreeView.Resources>
@@ -603,8 +715,6 @@
                         <RowDefinition Height="Auto"/>
                         <!-- Split sections (Changes & Outgoing) -->
                         <RowDefinition Height="*"/>
-                        <!-- Action buttons -->
-                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
  
                     <!-- Row 0: Worktree Header details -->
@@ -927,94 +1037,7 @@
                         </StackPanel>
                     </ScrollViewer>
  
-                    <!-- Row 2: Action Buttons footer -->
-                    <Border Grid.Row="2" BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}" BorderThickness="0,1,0,0" Padding="12">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                <Grid Margin="0,0,6,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Button Grid.Column="0" Command="{Binding OpenCommand}" CommandParameter="{Binding PreferredOpenAction}" Width="75" Height="26" FontSize="12">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <ContentControl Content="{Binding PreferredOpenAction}" Margin="0,0,4,0" VerticalAlignment="Center">
-                                                <ContentControl.Style>
-                                                    <Style TargetType="ContentControl">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding PreferredOpenAction}" Value="CurrentWindow">
-                                                                <Setter Property="Template">
-                                                                    <Setter.Value>
-                                                                        <ControlTemplate>
-                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="14" Height="14"/>
-                                                                        </ControlTemplate>
-                                                                    </Setter.Value>
-                                                                </Setter>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding PreferredOpenAction}" Value="NewVSWindow">
-                                                                <Setter Property="Template">
-                                                                    <Setter.Value>
-                                                                        <ControlTemplate>
-                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="14" Height="14"/>
-                                                                        </ControlTemplate>
-                                                                    </Setter.Value>
-                                                                </Setter>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding PreferredOpenAction}" Value="DoNotOpen">
-                                                                <Setter Property="Template">
-                                                                    <Setter.Value>
-                                                                        <ControlTemplate>
-                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="14" Height="14"/>
-                                                                        </ControlTemplate>
-                                                                    </Setter.Value>
-                                                                </Setter>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding PreferredOpenAction}" Value="Explorer">
-                                                                <Setter Property="Template">
-                                                                    <Setter.Value>
-                                                                        <ControlTemplate>
-                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.OpenFolder}" Width="14" Height="14"/>
-                                                                        </ControlTemplate>
-                                                                    </Setter.Value>
-                                                                </Setter>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </ContentControl.Style>
-                                            </ContentControl>
-                                            <TextBlock Text="Open" VerticalAlignment="Center" />
-                                        </StackPanel>
-                                    </Button>
-                                    <Button Grid.Column="1" Click="ButtonOpen_Click" Width="12" Height="26" Padding="0">
-                                        <Path Data="M1,2.5 L4,5.5 L7,2.5" Stroke="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" StrokeThickness="1" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        <Button.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="Open in Current Window" Command="{Binding OpenCommand}" CommandParameter="CurrentWindow">
-                                                    <MenuItem.Icon>
-                                                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
-                                                    </MenuItem.Icon>
-                                                </MenuItem>
-                                                <MenuItem Header="Open in New VS Window" Command="{Binding OpenCommand}" CommandParameter="NewVSWindow">
-                                                    <MenuItem.Icon>
-                                                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
-                                                    </MenuItem.Icon>
-                                                </MenuItem>
-                                            </ContextMenu>
-                                        </Button.ContextMenu>
-                                    </Button>
-                                </Grid>
-                            </StackPanel>
- 
-                            <!-- Remove button -->
-                            <Button Grid.Column="2" Content="Remove" Command="{Binding RemoveCommand}" Width="90" Height="26" FontSize="12"/>
-                        </Grid>
-                    </Border>
+
                 </Grid>
  
                 <!-- LoadingWorktrees state panel -->

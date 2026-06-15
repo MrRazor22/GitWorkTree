@@ -92,6 +92,82 @@ namespace GitWorkTree.Services
             return isCompleted ? workTreePaths : null;
         }
 
+        public async Task<List<WorktreeInfo>> GetWorktreesAsync(string repositoryPath)
+        {
+            var worktrees = new List<WorktreeInfo>();
+            WorktreeInfo current = null;
+
+            var isCompleted = await ExecuteAsync(new GitCommandArgs()
+            {
+                WorkingDirectory = repositoryPath,
+                Argument = "worktree list --porcelain",
+            }, (line) =>
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    return;
+                }
+
+                if (line.StartsWith("worktree "))
+                {
+                    if (current != null)
+                    {
+                        worktrees.Add(current);
+                    }
+                    string rawPath = line.Substring("worktree ".Length).Trim();
+                    current = new WorktreeInfo
+                    {
+                        Path = Path.GetFullPath(rawPath)
+                    };
+                }
+                else if (current != null)
+                {
+                    if (line.StartsWith("HEAD "))
+                    {
+                        current.HeadCommit = line.Substring("HEAD ".Length).Trim();
+                    }
+                    else if (line.StartsWith("branch "))
+                    {
+                        string fullRef = line.Substring("branch ".Length).Trim();
+                        const string prefix = "refs/heads/";
+                        current.Branch = fullRef.StartsWith(prefix) ? fullRef.Substring(prefix.Length) : fullRef;
+                    }
+                    else if (line == "locked" || line.StartsWith("locked reason:"))
+                    {
+                        current.IsLocked = true;
+                    }
+                    else if (line == "prunable")
+                    {
+                        current.IsPrunable = true;
+                    }
+                }
+            });
+
+            if (current != null)
+            {
+                worktrees.Add(current);
+            }
+
+            if (isCompleted)
+            {
+                foreach (var w in worktrees)
+                {
+                    if (string.IsNullOrEmpty(w.Branch))
+                    {
+                        w.Branch = !string.IsNullOrEmpty(w.HeadCommit) && w.HeadCommit.Length >= 7
+                            ? $"({w.HeadCommit.Substring(0, 7)})"
+                            : "(detached HEAD)";
+                    }
+                }
+                if (worktrees.Count > 0)
+                {
+                    worktrees[0].IsMain = true;
+                }
+                return worktrees;
+            }
+            return null;
+        }
+
         public async Task<List<string>> GetBranchesAsync(string repositoryPath)
         {
             List<string> branches = new List<string>();
@@ -188,6 +264,137 @@ namespace GitWorkTree.Services
 
             if (isCompleted) return commandoutput;
             return null;
+        }
+
+        public async Task<(string Branch, string StatusSummary, List<string> Changes, List<GitCommitInfo> Outgoing)> GetWorkTreeDetailsAsync(string repositoryPath, string workTreePath)
+        {
+            string branch = "Unknown";
+            int staged = 0;
+            int unstaged = 0;
+            int untracked = 0;
+            int ahead = 0;
+            int behind = 0;
+            List<string> changes = new List<string>();
+            List<GitCommitInfo> outgoing = new List<GitCommitInfo>();
+
+            bool hasUpstream = false;
+            // 1. Get branch name
+            await ExecuteAsync(new GitCommandArgs()
+            {
+                WorkingDirectory = workTreePath,
+                Argument = "rev-parse --abbrev-ref HEAD"
+            }, (line) =>
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                    branch = line.Trim();
+            }).ConfigureAwait(false);
+
+            // 2. Status & Changes (porcelain)
+            await ExecuteAsync(new GitCommandArgs()
+            {
+                WorkingDirectory = workTreePath,
+                Argument = "status --porcelain -b"
+            }, (line) =>
+            {
+                if (string.IsNullOrWhiteSpace(line)) return;
+
+                if (line.StartsWith("## "))
+                {
+                    // If tracking branch is configured, line contains "..."
+                    hasUpstream = line.Contains("...");
+
+                    // Parse ahead/behind if present, e.g. ## master...origin/master [ahead 1, behind 2]
+                    var match = Regex.Match(line, @"\[ahead\s+(\d+)\]");
+                    if (match.Success) ahead = int.Parse(match.Groups[1].Value);
+                    
+                    match = Regex.Match(line, @"\[behind\s+(\d+)\]");
+                    if (match.Success) behind = int.Parse(match.Groups[1].Value);
+
+                    var aheadBehindMatch = Regex.Match(line, @"\[ahead\s+(\d+),\s+behind\s+(\d+)\]");
+                    if (aheadBehindMatch.Success)
+                    {
+                        ahead = int.Parse(aheadBehindMatch.Groups[1].Value);
+                        behind = int.Parse(aheadBehindMatch.Groups[2].Value);
+                    }
+                    return;
+                }
+
+                changes.Add(line);
+
+                string statusCodes = line.Substring(0, 2);
+                char indexStatus = statusCodes[0];
+                char workTreeStatus = statusCodes[1];
+
+                if (indexStatus == '?')
+                {
+                    untracked++;
+                }
+                else
+                {
+                    if (indexStatus != ' ' && indexStatus != 'U') staged++;
+                    if (workTreeStatus != ' ' && workTreeStatus != '?' && workTreeStatus != 'U') unstaged++;
+                }
+            }).ConfigureAwait(false);
+
+            // 3. Outgoing commits (git log @{u}..HEAD --pretty=format:"%H%x09%h%x09%s%x09%an%x09%ad" --date=short) if upstream is configured
+            if (hasUpstream)
+            {
+                await ExecuteAsync(new GitCommandArgs()
+                {
+                    WorkingDirectory = workTreePath,
+                    Argument = "log @{u}..HEAD --pretty=format:\"%H%x09%h%x09%s%x09%an%x09%ad\" --date=short -n 50"
+                }, (line) =>
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        string[] parts = line.Trim().Split('\t');
+                        if (parts.Length >= 5)
+                        {
+                            outgoing.Add(new GitCommitInfo(parts[0], parts[1], parts[2], parts[3], parts[4]));
+                        }
+                        else if (parts.Length >= 3)
+                        {
+                            outgoing.Add(new GitCommitInfo(parts[0], parts[1], parts[2]));
+                        }
+                    }
+                }).ConfigureAwait(false);
+            }
+
+            string statusSummary = $"{staged} staged, {unstaged + untracked} changes ({untracked} untracked) · ↑{ahead} ↓{behind}";
+
+            return (branch, statusSummary, changes, outgoing);
+        }
+
+        public async Task<bool> IsWorktreeDirtyAsync(string worktreePath)
+        {
+            bool isDirty = false;
+            await ExecuteAsync(new GitCommandArgs()
+            {
+                WorkingDirectory = worktreePath,
+                Argument = "status --porcelain -unormal"
+            }, (line) =>
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    isDirty = true;
+                }
+            }).ConfigureAwait(false);
+            return isDirty;
+        }
+
+        public async Task<string> ShowFileContentAsync(string repositoryPath, string revisionAndFilePath)
+        {
+            var contentBuilder = new StringBuilder();
+            bool success = await ExecuteAsync(new GitCommandArgs()
+            {
+                WorkingDirectory = repositoryPath,
+                Argument = $"show {revisionAndFilePath}"
+            }, (line) =>
+            {
+                contentBuilder.AppendLine(line);
+            }).ConfigureAwait(false);
+
+            return success ? contentBuilder.ToString() : null;
         }
     }
 }

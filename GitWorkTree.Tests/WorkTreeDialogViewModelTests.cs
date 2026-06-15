@@ -20,6 +20,10 @@ namespace GitWorkTree.Tests
         [TestInitialize]
         public void SetUp()
         {
+#pragma warning disable VSSDK005
+            _ = new Microsoft.VisualStudio.Threading.JoinableTaskContext();
+#pragma warning restore VSSDK005
+
             _mockGitService = new Mock<IGitService>();
             _mockSolutionService = new Mock<ISolutionService>();
             _mockLoggingService = new Mock<ILoggingService>();
@@ -68,10 +72,10 @@ namespace GitWorkTree.Tests
                 _mockSolutionService.Object,
                 _mockLoggingService.Object
             );
-            viewModel.SelectedBranch_Worktree = null;
+            viewModel.SelectedBranch = null;
 
             // Act
-            var error = viewModel["SelectedBranch_Worktree"];
+            var error = viewModel["SelectedBranch"];
 
             // Assert
             Assert.AreEqual("No valid branch/Worktree selected", error);
@@ -264,7 +268,7 @@ namespace GitWorkTree.Tests
             {
                 IsNewBranchMode = true,
                 NewBranchName = "feature-1",
-                SelectedBranch_Worktree = "main",
+                SelectedBranch = new BranchInfo("main", false),
                 FolderPath = @"C:\worktrees\feature-1"
             };
 
@@ -299,7 +303,7 @@ namespace GitWorkTree.Tests
             {
                 IsNewBranchMode = true,
                 NewBranchName = "feature-1",
-                SelectedBranch_Worktree = "main",
+                SelectedBranch = new BranchInfo("main", false),
                 FolderPath = @"C:\worktrees\feature-1"
             };
 
@@ -388,7 +392,7 @@ namespace GitWorkTree.Tests
             {
                 IsNewBranchMode = true,
                 NewBranchName = "feature-1",
-                SelectedBranch_Worktree = "main",
+                SelectedBranch = new BranchInfo("main", false),
                 FolderPath = @"C:\worktrees\feature-1"
             };
 
@@ -416,7 +420,7 @@ namespace GitWorkTree.Tests
             {
                 IsNewBranchMode = true,
                 NewBranchName = "feature-1",
-                SelectedBranch_Worktree = "main",
+                SelectedBranch = new BranchInfo("main", false),
                 FolderPath = @"C:\worktrees\feature-1"
             };
 
@@ -444,7 +448,7 @@ namespace GitWorkTree.Tests
             {
                 IsNewBranchMode = true,
                 NewBranchName = "feature-1",
-                SelectedBranch_Worktree = "main",
+                SelectedBranch = new BranchInfo("main", false),
                 FolderPath = @"C:\worktrees\feature-1"
             };
 
@@ -469,21 +473,12 @@ namespace GitWorkTree.Tests
                 _mockLoggingService.Object
             );
 
-            var tcs = new TaskCompletionSource<string>();
-            viewModel.PropertyChanged += (s, e) =>
-            {
-                if (e.PropertyName == nameof(viewModel.FolderPath))
-                {
-                    tcs.TrySetResult(viewModel.FolderPath);
-                }
-            };
-
             // Act
-            viewModel.SelectedBranch_Worktree = "feature/foo";
+            viewModel.SelectedBranch = new BranchInfo("feature/foo", false);
+            await Task.Delay(200);
 
             // Assert
-            var path = await tcs.Task;
-            Assert.AreEqual(@"C:\worktrees\feature\foo", path);
+            Assert.AreEqual(@"C:\worktrees\feature\foo", viewModel.FolderPath);
         }
 
         [TestMethod]
@@ -501,21 +496,12 @@ namespace GitWorkTree.Tests
                 _mockLoggingService.Object
             );
 
-            var tcs = new TaskCompletionSource<string>();
-            viewModel.PropertyChanged += (s, e) =>
-            {
-                if (e.PropertyName == nameof(viewModel.FolderPath))
-                {
-                    tcs.TrySetResult(viewModel.FolderPath);
-                }
-            };
-
             // Act
-            viewModel.SelectedBranch_Worktree = "feature/foo";
+            viewModel.SelectedBranch = new BranchInfo("feature/foo", false);
+            await Task.Delay(200);
 
             // Assert
-            var path = await tcs.Task;
-            Assert.AreEqual(@"C:\worktrees\feature-foo", path);
+            Assert.AreEqual(@"C:\worktrees\feature-foo", viewModel.FolderPath);
         }
 
         [TestMethod]
@@ -533,21 +519,12 @@ namespace GitWorkTree.Tests
                 _mockLoggingService.Object
             );
 
-            var tcs = new TaskCompletionSource<string>();
-            viewModel.PropertyChanged += (s, e) =>
-            {
-                if (e.PropertyName == nameof(viewModel.FolderPath))
-                {
-                    tcs.TrySetResult(viewModel.FolderPath);
-                }
-            };
-
             // Act
-            viewModel.SelectedBranch_Worktree = "remotes/origin/feature/bar";
+            viewModel.SelectedBranch = new BranchInfo("remotes/origin/feature/bar", false);
+            await Task.Delay(200);
 
             // Assert
-            var path = await tcs.Task;
-            Assert.AreEqual(@"C:\worktrees\feature\bar", path);
+            Assert.AreEqual(@"C:\worktrees\feature\bar", viewModel.FolderPath);
         }
     }
 }

@@ -4,6 +4,7 @@
                         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                         xmlns:platform="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+                        xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
                         xmlns:toolkit="clr-namespace:Community.VisualStudio.Toolkit;assembly=Community.VisualStudio.Toolkit"
                         xmlns:viewmodel="clr-namespace:GitWorkTree.ViewModel"
                         xmlns:usercontrols="clr-namespace:GitWorkTree.View.UserControls"
@@ -107,7 +108,7 @@
                     <RadioButton Grid.Row="1" Grid.Column="0" GroupName="BranchMode" IsChecked="{Binding IsExistingBranchMode}" Content="Base Branch:" VerticalAlignment="Center" FontSize="14"/>
                     <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,2,0,2" VerticalAlignment="Center">
                         <ComboBox Name="BranchName" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
-                                  ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                                  ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
                                   Padding="5" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
                                   VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True"
                                   Validation.ErrorTemplate="{StaticResource ErrorTemplate}"
@@ -117,6 +118,29 @@
                                     <VirtualizingStackPanel/>
                                 </ItemsPanelTemplate>
                             </ComboBox.ItemsPanel>
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <!-- Branch Icon -->
+                                        <Path Grid.Column="0" Width="12" Height="12" Margin="0,0,8,0" VerticalAlignment="Center" Stretch="Uniform"
+                                              Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+                                              Data="M9,2.5 A1.5,1.5 0 0,0 7.5,1 A1.5,1.5 0 0,0 6.1,2 L4.5,2 A1.5,1.5 0 0,0 3,3.5 L3,4.5 A1.5,1.5 0 0,0 4.5,6 L6,6 L6,8.5 A1.5,1.5 0 0,0 7.5,10 A1.5,1.5 0 0,0 9,8.5 A1.5,1.5 0 0,0 7.5,7 L6.5,7 L6.5,3.5 L7.5,3.5 A1.5,1.5 0 0,0 9,2.5 Z M4.5,5 A0.5,0.5 0 0,1 4,4.5 L4,3.5 A0.5,0.5 0 0,1 4.5,3 L6,3 L6,5 Z M7.5,2 A0.5,0.5 0 0,1 8,2.5 A0.5,0.5 0 0,1 7.5,3 A0.5,0.5 0 0,1 7,2.5 A0.5,0.5 0 0,1 7.5,2 Z M7.5,8 A0.5,0.5 0 0,1 8,8.5 A0.5,0.5 0 0,1 7.5,9 A0.5,0.5 0 0,1 7,8.5 A0.5,0.5 0 0,1 7.5,8 Z"/>
+                                        <!-- Branch Name -->
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13"/>
+                                        <!-- Subtle Link Icon for linked worktree -->
+                                        <Path Grid.Column="2" Margin="15,0,2,0" Width="12" Height="12" VerticalAlignment="Center" Stretch="Uniform"
+                                              Fill="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}"
+                                              ToolTip="Has linked worktree"
+                                              Visibility="{Binding HasLinkedWorktree, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                              Data="M4.9,7.1 L7.1,4.9 C8.3,3.7 10.3,3.7 11.5,4.9 C12.7,6.1 12.7,8.1 11.5,9.3 L10.0,10.7 C9.5,11.2 8.7,11.4 8.0,11.3 M11.1,8.9 L8.9,11.1 C7.7,12.3 5.7,12.3 4.5,11.1 C3.3,9.9 3.3,7.9 4.5,6.7 L6.0,5.3 C6.5,4.8 7.3,4.6 8.0,4.7 M5.5,10.5 L10.5,5.5"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
                         </ComboBox>
                         <StackPanel Orientation="Horizontal" Margin="2,4,0,2">
                             <StackPanel.Style>
@@ -145,7 +169,7 @@
                     </TextBlock>
                     <StackPanel Grid.Column="1" Margin="0,2,0,2" VerticalAlignment="Center">
                         <ComboBox Name="BranchNameManage" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
-                              ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                              ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
                               Padding="5" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
                               VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True"
                               Validation.ErrorTemplate="{StaticResource ErrorTemplate}"
@@ -155,6 +179,29 @@
                                     <VirtualizingStackPanel/>
                                 </ItemsPanelTemplate>
                             </ComboBox.ItemsPanel>
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <!-- Branch Icon -->
+                                        <Path Grid.Column="0" Width="12" Height="12" Margin="0,0,8,0" VerticalAlignment="Center" Stretch="Uniform"
+                                              Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+                                              Data="M9,2.5 A1.5,1.5 0 0,0 7.5,1 A1.5,1.5 0 0,0 6.1,2 L4.5,2 A1.5,1.5 0 0,0 3,3.5 L3,4.5 A1.5,1.5 0 0,0 4.5,6 L6,6 L6,8.5 A1.5,1.5 0 0,0 7.5,10 A1.5,1.5 0 0,0 9,8.5 A1.5,1.5 0 0,0 7.5,7 L6.5,7 L6.5,3.5 L7.5,3.5 A1.5,1.5 0 0,0 9,2.5 Z M4.5,5 A0.5,0.5 0 0,1 4,4.5 L4,3.5 A0.5,0.5 0 0,1 4.5,3 L6,3 L6,5 Z M7.5,2 A0.5,0.5 0 0,1 8,2.5 A0.5,0.5 0 0,1 7.5,3 A0.5,0.5 0 0,1 7,2.5 A0.5,0.5 0 0,1 7.5,2 Z M7.5,8 A0.5,0.5 0 0,1 8,8.5 A0.5,0.5 0 0,1 7.5,9 A0.5,0.5 0 0,1 7,8.5 A0.5,0.5 0 0,1 7.5,8 Z"/>
+                                        <!-- Branch Name -->
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13"/>
+                                        <!-- Subtle Link Icon for linked worktree -->
+                                        <Path Grid.Column="2" Margin="15,0,2,0" Width="12" Height="12" VerticalAlignment="Center" Stretch="Uniform"
+                                              Fill="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}"
+                                              ToolTip="Has linked worktree"
+                                              Visibility="{Binding HasLinkedWorktree, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                              Data="M4.9,7.1 L7.1,4.9 C8.3,3.7 10.3,3.7 11.5,4.9 C12.7,6.1 12.7,8.1 11.5,9.3 L10.0,10.7 C9.5,11.2 8.7,11.4 8.0,11.3 M11.1,8.9 L8.9,11.1 C7.7,12.3 5.7,12.3 4.5,11.1 C3.3,9.9 3.3,7.9 4.5,6.7 L6.0,5.3 C6.5,4.8 7.3,4.6 8.0,4.7 M5.5,10.5 L10.5,5.5"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
                         </ComboBox>
                         <StackPanel Orientation="Horizontal" Margin="2,4,0,2">
                             <StackPanel.Style>

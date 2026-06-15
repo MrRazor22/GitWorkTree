@@ -69,7 +69,13 @@
     <Compile Include="Commands\ManageWorkTrees.cs" />
     <Compile Include="GitWorkTreePackage.cs" />
     <Compile Include="ViewModel\WorkTreeDialogViewModel.cs" />
+    <Compile Include="ViewModel\BranchInfo.cs" />
+    <Compile Include="ViewModel\ManageWorktreesViewModel.cs" />
     <Compile Include="View\Converters\CommandTypeToForceCreateTextConverter.cs" />
+    <Compile Include="View\ManageWorktreesToolWindow.cs" />
+    <Compile Include="View\ManageWorktreesControl.xaml.cs">
+      <DependentUpon>ManageWorktreesControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="View\UserControls\FolderEntry.xaml.cs">
       <DependentUpon>FolderEntry.xaml</DependentUpon>
     </Compile>
@@ -121,6 +127,10 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <Page Include="View\ManageWorktreesControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="View\UserControls\FolderEntry.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

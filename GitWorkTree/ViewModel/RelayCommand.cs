@@ -6,6 +6,7 @@ namespace GitWorkTree.ViewModel
 {
     public class RelayCommand : ICommand
     {
+        private readonly string _commandName;
         private readonly Func<object, bool> _execute;
         private readonly Predicate<object> _canExecute;
         private readonly ILoggingService _loggingService;
@@ -16,11 +17,17 @@ namespace GitWorkTree.ViewModel
             remove { CommandManager.RequerySuggested -= value; }
         }
 
-        public RelayCommand(Func<object, bool> execute, Predicate<object> canExecute = null, ILoggingService loggingService = null)
+        public RelayCommand(string commandName, Func<object, bool> execute, Predicate<object> canExecute = null, ILoggingService loggingService = null)
         {
+            _commandName = commandName;
             _execute = execute ?? throw new ArgumentNullException(nameof(execute));
             _canExecute = canExecute;
             _loggingService = loggingService;
+        }
+
+        public RelayCommand(Func<object, bool> execute, Predicate<object> canExecute = null, ILoggingService loggingService = null)
+            : this("GitWorkTree Action", execute, canExecute, loggingService)
+        {
         }
 
         public bool CanExecute(object parameter)
@@ -33,18 +40,27 @@ namespace GitWorkTree.ViewModel
             if (!CanExecute(parameter)) return;
 
             bool result = false;
-            try
+            using (var session = _loggingService?.StartSession(_commandName))
             {
-                _loggingService?.SetCommandStatusBusy();
-                result = _execute(parameter);
-            }
-            catch (Exception ex)
-            {
-                _loggingService?.WriteToOutputWindowAsync($"{Vsix.Name} Command execution failed: {ex.Message}");
-            }
-            finally
-            {
-                _loggingService?.SetCommandCompletionStatus(result);
+                try
+                {
+                    result = _execute(parameter);
+                    if (session != null)
+                    {
+                        Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() => session.CompleteAsync(result));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (session != null)
+                    {
+                        Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(async () =>
+                        {
+                            await session.LogAsync($"Command execution failed: {ex.Message}", true);
+                            await session.CompleteAsync(false);
+                        });
+                    }
+                }
             }
         }
     }

@@ -9,6 +9,7 @@ namespace GitWorkTree.Services
 {
     public class GitCommandExecutor : IGitCommandExecutor
     {
+        private static int _commandCounter = 0;
         private readonly ILoggingService _loggingService;
 
         public GitCommandExecutor(ILoggingService loggingService)
@@ -16,23 +17,39 @@ namespace GitWorkTree.Services
             _loggingService = loggingService;
         }
 
+        private async Task LogMessageAsync(ILoggingService outputWindow, string message, bool showOutputPane = false)
+        {
+            var ambient = LoggingHelper.AmbientSession;
+            if (ambient != null)
+            {
+                await ambient.LogAsync(message, showOutputPane);
+            }
+            else if (outputWindow != null)
+            {
+                await outputWindow.WriteToOutputWindowAsync(message, showOutputPane);
+            }
+        }
+
         public async Task<bool> ExecuteAsync(string gitPath, string arguments, string workingDirectory, Action<string> outputHandler)
         {
+            int cmdId = System.Threading.Interlocked.Increment(ref _commandCounter);
+            string logPrefix = $"[Cmd #{cmdId}]";
             ILoggingService outputWindow = _loggingService ?? LoggingHelper.Instance;
 
             if (string.IsNullOrEmpty(workingDirectory))
             {
-                outputWindow?.WriteToOutputWindowAsync("The working directory is invalid or not loaded yet");
+                await LogMessageAsync(outputWindow, $"{logPrefix} The working directory is invalid or not loaded yet");
                 return false;
             }
 
             if (!File.Exists(gitPath))
             {
-                outputWindow?.WriteToOutputWindowAsync($"Git executable not found at: {gitPath}", true);
+                await LogMessageAsync(outputWindow, $"{logPrefix} Git executable not found at: {gitPath}", true);
                 return false;
             }
 
-            outputWindow?.WriteToOutputWindowAsync($"Executing Git command: {arguments}", true);
+            await LogMessageAsync(outputWindow, $"{logPrefix} Executing Git command: {arguments}", false);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             try
             {
@@ -65,7 +82,7 @@ namespace GitWorkTree.Services
                     if (e.Data != null)
                     {
                         errorBuilder.AppendLine(e.Data);
-                        outputWindow?.WriteToOutputWindowAsync(e.Data).Forget();
+                        _ = LogMessageAsync(outputWindow, $"{logPrefix} {e.Data}");
                     }
                 };
 
@@ -74,20 +91,24 @@ namespace GitWorkTree.Services
                 process.BeginErrorReadLine();
 
                 await process.WaitForExitAsync();
+                stopwatch.Stop();
 
                 bool isError = process.ExitCode != 0;
 
                 if (isError && errorBuilder.Length == 0)
-                    outputWindow?.WriteToOutputWindowAsync("Git failed but no error output captured.", true);
+                {
+                    await LogMessageAsync(outputWindow, $"{logPrefix} Git failed but no error output captured.", true);
+                }
 
-                var result = isError ? "failed" : "completed";
-                outputWindow?.WriteToOutputWindowAsync($"Command execution - {result}");
+                var status = isError ? "Failed" : "Completed";
+                await LogMessageAsync(outputWindow, $"{logPrefix} {status} (ExitCode={process.ExitCode}, {stopwatch.ElapsedMilliseconds}ms): git {arguments}");
 
                 return !isError;
             }
             catch (Exception ex)
             {
-                outputWindow?.WriteToOutputWindowAsync($"An error occurred during Git command execution: {ex.Message}", true);
+                stopwatch.Stop();
+                await LogMessageAsync(outputWindow, $"{logPrefix} Failed (Exception after {stopwatch.ElapsedMilliseconds}ms during git {arguments}): {ex.Message}", true);
                 return false;
             }
         }

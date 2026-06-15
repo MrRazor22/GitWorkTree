@@ -7,6 +7,7 @@ namespace GitWorkTree.ViewModel
 {
     public class AsyncRelayCommand : IAsyncCommand
     {
+        private readonly string _commandName;
         private readonly Func<object, Task> _execute;
         private readonly Predicate<object> _canExecute;
         private readonly ILoggingService _loggingService;
@@ -41,11 +42,17 @@ namespace GitWorkTree.ViewModel
             }
         }
 
-        public AsyncRelayCommand(Func<object, Task> execute, Predicate<object> canExecute = null, ILoggingService loggingService = null)
+        public AsyncRelayCommand(string commandName, Func<object, Task> execute, Predicate<object> canExecute = null, ILoggingService loggingService = null)
         {
+            _commandName = commandName;
             _execute = execute ?? throw new ArgumentNullException(nameof(execute));
             _canExecute = canExecute;
             _loggingService = loggingService;
+        }
+
+        public AsyncRelayCommand(Func<object, Task> execute, Predicate<object> canExecute = null, ILoggingService loggingService = null)
+            : this("GitWorkTree Action", execute, canExecute, loggingService)
+        {
         }
 
         public bool CanExecute(object parameter)
@@ -60,23 +67,45 @@ namespace GitWorkTree.ViewModel
                 return;
             }
 
-            try
+            bool result = false;
+            using (var session = _loggingService?.StartSession(_commandName))
             {
-                IsExecuting = true;
-                _loggingService?.SetCommandStatusBusy();
-
-                await _execute(parameter);
-            }
-            finally
-            {
-                IsExecuting = false;
-                _loggingService?.SetCommandStatusBusy(false);
+                try
+                {
+                    IsExecuting = true;
+                    await _execute(parameter);
+                    result = true;
+                    if (session != null)
+                    {
+                        await session.CompleteAsync(true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (session != null)
+                    {
+                        await session.LogAsync($"Command execution failed: {ex.Message}", true);
+                        await session.CompleteAsync(false);
+                    }
+                    throw;
+                }
+                finally
+                {
+                    IsExecuting = false;
+                }
             }
         }
 
         public async void Execute(object parameter)
         {
-            await ExecuteAsync(parameter);
+            try
+            {
+                await ExecuteAsync(parameter);
+            }
+            catch (Exception)
+            {
+                // Already logged in ExecuteAsync, swallow to prevent crashing the host environment
+            }
         }
 
         public void RaiseCanExecuteChanged()

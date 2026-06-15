@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell.Interop;
 
@@ -62,6 +65,107 @@ namespace GitWorkTree.Services
             {
                 // Handle or log the exception during logging
                 Console.WriteLine($"Error: {ex.Message} while logging: {message}");
+            }
+        }
+
+        public static readonly System.Threading.AsyncLocal<ILoggingSession> _ambientSession = new System.Threading.AsyncLocal<ILoggingSession>();
+        public static ILoggingSession AmbientSession
+        {
+            get => _ambientSession.Value;
+            set => _ambientSession.Value = value;
+        }
+
+        private readonly object _sessionLock = new object();
+        private readonly List<string> _activeSessions = new List<string>();
+
+        public ILoggingSession StartSession(string commandName)
+        {
+            var session = new LoggingSession(this, commandName);
+            AmbientSession = session;
+
+            lock (_sessionLock)
+            {
+                _activeSessions.Add(commandName);
+            }
+
+            _ = UpdateSessionStatusAsync();
+            return session;
+        }
+
+        private async Task UpdateSessionStatusAsync()
+        {
+            string status;
+            lock (_sessionLock)
+            {
+                if (_activeSessions.Count > 0)
+                {
+                    status = $"{Vsix.Name} - Running: {string.Join(", ", _activeSessions)}...";
+                }
+                else
+                {
+                    status = "";
+                }
+            }
+            await UpdateStatusBarInternal(status);
+        }
+
+        private async Task CompleteSessionAsync(string commandName, bool success)
+        {
+            lock (_sessionLock)
+            {
+                _activeSessions.Remove(commandName);
+            }
+
+            lock (_sessionLock)
+            {
+                if (_activeSessions.Count > 0)
+                {
+                    _ = UpdateSessionStatusAsync();
+                    return;
+                }
+            }
+
+            string status = $"{Vsix.Name} command '{commandName}' {(success ? "completed" : "failed")}";
+            await UpdateStatusBarInternal(status);
+        }
+
+        private class LoggingSession : ILoggingSession
+        {
+            private readonly LoggingHelper _parent;
+            private bool _completed;
+
+            public string CommandName { get; }
+
+            public LoggingSession(LoggingHelper parent, string commandName)
+            {
+                _parent = parent;
+                CommandName = commandName;
+            }
+
+            public async Task LogAsync(string message, bool showOutputPane = false)
+            {
+                await _parent.WriteToOutputWindowAsync($"[{CommandName}] {message}", showOutputPane);
+            }
+
+            public async Task CompleteAsync(bool success)
+            {
+                if (!_completed)
+                {
+                    _completed = true;
+                    await _parent.CompleteSessionAsync(CommandName, success);
+                }
+            }
+
+            public void Dispose()
+            {
+                if (!_completed)
+                {
+                    _ = CompleteAsync(false);
+                }
+                if (AmbientSession == this)
+                {
+                    AmbientSession = null;
+                }
             }
         }
 

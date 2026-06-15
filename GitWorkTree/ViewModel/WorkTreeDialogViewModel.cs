@@ -386,11 +386,11 @@ namespace GitWorkTree.ViewModel
             ActiveRepositoryPath = gitRepositoryPath;
 
             // Initialize commands
-            PruneCommand = new AsyncRelayCommand(async obj => await Prune_WorkTree(), null, _loggingService);
-            CreateCommand = new AsyncRelayCommand(async obj => await Create_WorkTree(obj), obj => IsValid, _loggingService);
-            RemoveCommand = new AsyncRelayCommand(async obj => await Remove_WorkTree(), obj => IsValid, _loggingService);
-            OpenCommand = new AsyncRelayCommand(async obj => await Open_WorkTree(obj), obj => IsValid, _loggingService);
-            CancelCommand = new RelayCommand(obj => Close_Dialog(), null, _loggingService);
+            PruneCommand = new AsyncRelayCommand("Prune Worktrees", async obj => await Prune_WorkTree(), null, _loggingService);
+            CreateCommand = new AsyncRelayCommand("Create Worktree", async obj => await Create_WorkTree(obj), obj => IsValid, _loggingService);
+            RemoveCommand = new AsyncRelayCommand("Remove Worktree", async obj => await Remove_WorkTree(), obj => IsValid, _loggingService);
+            OpenCommand = new AsyncRelayCommand("Open Worktree", async obj => await Open_WorkTree(obj), obj => IsValid, _loggingService);
+            CancelCommand = new RelayCommand("Cancel Dialog", obj => Close_Dialog(), null, _loggingService);
 
             _newBranchNameChanged = false;
             _folderPathChanged = false;

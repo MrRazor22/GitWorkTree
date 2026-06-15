@@ -377,7 +377,7 @@
                         <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Refresh}" Width="16" Height="16"/>
                     </Button>
                     <Button Style="{StaticResource VsToolbarButton}" Command="{Binding PruneCommand}" ToolTip="Prune Worktrees: Clean up reference information for worktree folders that have been manually deleted from disk" Width="22" Height="22" Padding="3">
-                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.BranchDeleted}" Width="16" Height="16"/>
+                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.DeleteFolder}" Width="16" Height="16"/>
                     </Button>
                 </StackPanel>
 
@@ -400,7 +400,7 @@
                             <Run Text="{Binding ActiveRepositoryPath}"/>
                         </Hyperlink>
                     </TextBlock>
-                    <Button Command="{Binding CopyRepositoryPathCommand}" ToolTip="Copy Repository Path to Clipboard" Margin="6,0,0,0" Padding="1" Background="Transparent" BorderThickness="0" Width="14" Height="14" VerticalAlignment="Center" Style="{StaticResource VsToolbarButton}">
+                    <Button Command="{Binding CopyRepositoryPathCommand}" ToolTip="Copy Repository Path to Clipboard" Margin="6,0,0,0" Padding="1" Background="Transparent" BorderThickness="0" Width="16" Height="16" VerticalAlignment="Center" Style="{StaticResource VsToolbarButton}">
                         <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Copy}" Width="14" Height="14"/>
                     </Button>
                 </StackPanel>
@@ -511,8 +511,14 @@
                                                 <DataTrigger Binding="{Binding IsFolder}" Value="True">
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
-                                                <DataTrigger Binding="{Binding WorktreeItem}" Value="{x:Null}">
+                                                <DataTrigger Binding="{Binding WorktreeItem}">
+                                                    <DataTrigger.Value>
+                                                        <x:Null/>
+                                                    </DataTrigger.Value>
                                                     <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
                                     </StackPanel.Style>
                                     
                                     <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.FolderClosed}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
@@ -537,31 +543,31 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-  
+   
                                     <!-- Bullet indicator for Dirty worktree -->
                                     <Ellipse Grid.Column="0" Width="6" Height="6" Fill="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="{Binding WorktreeItem.IsDirty, Converter={StaticResource BoolToVis}}" ToolTip="Has uncommitted changes"/>
-  
+   
                                     <!-- Branch Icon -->
-                                    <imaging:CrispImage Grid.Column="1" Moniker="{x:Static catalog:KnownMonikers.GitBranch}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <imaging:CrispImage Grid.Column="1" Moniker="{x:Static catalog:KnownMonikers.Branch}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
 
                                     <TextBlock Grid.Column="2" Text="{Binding WorktreeItem.FolderName}" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="12"/>
-  
+   
                                     <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
                                         <!-- Current Badge -->
-                                        <Border CornerRadius="2" BorderThickness="1" 
+                                        <Border CornerRadius="10" BorderThickness="1" 
                                                 BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}" 
                                                 Background="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}" 
-                                                Padding="4,1" Margin="2,0"
+                                                Padding="5,1" Margin="2,0"
                                                 Visibility="{Binding WorktreeItem.IsCurrent, Converter={StaticResource BoolToVis}}">
                                             <TextBlock Text="current" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.HighlightTextKey}}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                                         </Border>
                                         <!-- Main Badge -->
-                                        <Border CornerRadius="2" BorderThickness="1" 
+                                        <Border CornerRadius="10" BorderThickness="1" 
                                                 BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}" 
                                                 Background="Transparent" 
-                                                Padding="4,1" Margin="2,0"
+                                                Padding="5,1" Margin="2,0"
                                                 Visibility="{Binding WorktreeItem.IsMain, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="main" Foreground="Gray" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                            <TextBlock Text="main" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.GrayTextKey}}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                                         </Border>
                                     </StackPanel>
                                 </Grid>
@@ -617,22 +623,22 @@
                             <TextBlock Text="Status:" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                 <!-- Total Changes -->
-                                <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,4,0" Data="M11.2,1.2 C11.6,0.8 12.2,0.8 12.6,1.2 L13.8,2.4 C14.2,2.8 14.2,3.4 13.8,3.8 L12.5,5.1 L9.9,2.5 L11.2,1.2 Z M9.0,3.4 L1.0,11.4 L1.0,14.0 L3.6,14.0 L11.6,6.0 L9.0,3.4 Z" ToolTip="Uncommitted Changes"/>
+                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Edit}" Width="12" Height="12" Margin="0,0,4,0" ToolTip="Uncommitted Changes"/>
                                 <TextBlock Text="{Binding Changes.Count}" FontSize="12" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,2,0" FontWeight="SemiBold"/>
-                                <TextBlock Text=" changes" FontSize="12" Foreground="Gray" Margin="0,0,16,0"/>
+                                <TextBlock Text=" changes" FontSize="12" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.GrayTextKey}}" Margin="0,0,16,0"/>
 
                                 <!-- Separator -->
-                                <TextBlock Text="|" Foreground="Gray" Margin="0,0,16,0" FontSize="12"/>
+                                <TextBlock Text="|" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.GrayTextKey}}" Margin="0,0,16,0" FontSize="12"/>
 
                                 <!-- Ahead (Outgoing) -->
-                                <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,4,0" Data="M6,1.5 L11,6.5 L10,7.5 L6.7,4.2 L6.7,13.5 L5.3,13.5 L5.3,4.2 L2,7.5 L1,6.5 Z" ToolTip="Outgoing Commits (Ahead)"/>
+                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Upload}" Width="12" Height="12" Margin="0,0,4,0" ToolTip="Outgoing Commits (Ahead)"/>
                                 <TextBlock Text="{Binding AheadCount}" FontSize="12" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,2,0" FontWeight="SemiBold"/>
-                                <TextBlock Text=" ahead" FontSize="12" Foreground="Gray" Margin="0,0,16,0"/>
+                                <TextBlock Text=" ahead" FontSize="12" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.GrayTextKey}}" Margin="0,0,16,0"/>
 
                                 <!-- Behind (Incoming) -->
-                                <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,4,0" Data="M6,13.5 L1,8.5 L2,7.5 L5.3,10.8 L5.3,1.5 L6.7,1.5 L6.7,10.8 L10,7.5 L11,8.5 Z" ToolTip="Incoming Commits (Behind)"/>
+                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Download}" Width="12" Height="12" Margin="0,0,4,0" ToolTip="Incoming Commits (Behind)"/>
                                 <TextBlock Text="{Binding BehindCount}" FontSize="12" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,2,0" FontWeight="SemiBold"/>
-                                <TextBlock Text=" behind" FontSize="12" Foreground="Gray"/>
+                                <TextBlock Text=" behind" FontSize="12" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.GrayTextKey}}"/>
                             </StackPanel>
                         </Grid>
 
@@ -660,9 +666,7 @@
                                     </Hyperlink>
                                 </TextBlock>
                                 <Button Command="{Binding CopyPathCommand}" ToolTip="Copy Path to Clipboard" Margin="6,0,0,0" Padding="1" Background="Transparent" BorderThickness="0" Width="16" Height="16" VerticalAlignment="Center" Style="{StaticResource VsToolbarButton}">
-                                    <Viewbox Width="12" Height="12">
-                                        <Path Data="M2,4 h5 v6 H2 Z M4,2 h5 v6 H8 V3 H4 Z" Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" />
-                                    </Viewbox>
+                                    <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Copy}" Width="14" Height="14"/>
                                 </Button>
                             </StackPanel>
                         </Grid>
@@ -701,7 +705,7 @@
                                     </TreeView.ItemContainerStyle>
                                     <TreeView.Resources>
                                         <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
-                                            <Grid Margin="2,0" HorizontalAlignment="Stretch">
+                                            <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="*"/>
@@ -717,10 +721,8 @@
 
                                                 <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="11" Style="{StaticResource PrimaryTextBlockStyle}"/>
 
-                                                <!-- Status Badge (far right) -->
-                                                <Border Grid.Column="2" Margin="12,0,4,0" Padding="4,0" VerticalAlignment="Center" CornerRadius="2" x:Name="StatusBadge" Visibility="Collapsed">
-                                                    <TextBlock x:Name="StatusText" Text="{Binding Status}" FontSize="10" FontWeight="Bold"/>
-                                                </Border>
+                                                <!-- Status Text (far right) -->
+                                                <TextBlock Grid.Column="2" x:Name="StatusText" Text="{Binding Status}" Margin="12,0,4,0" VerticalAlignment="Center" FontSize="11" FontWeight="Bold" Visibility="Collapsed"/>
                                             </Grid>
 
                                             <HierarchicalDataTemplate.Triggers>
@@ -729,25 +731,25 @@
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding IsFile}" Value="True">
                                                     <Setter TargetName="FileIcon" Property="Visibility" Value="Visible"/>
-                                                    <Setter TargetName="StatusBadge" Property="Visibility" Value="Visible"/>
+                                                    <Setter TargetName="StatusText" Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
 
-                                                <!-- Colors and ToolTips for status badges -->
+                                                <!-- Colors and ToolTips for status -->
                                                 <DataTrigger Binding="{Binding Status}" Value="M">
                                                     <Setter TargetName="StatusText" Property="Foreground" Value="#D29A2E"/>
-                                                    <Setter TargetName="StatusBadge" Property="ToolTip" Value="Modified"/>
+                                                    <Setter TargetName="RowGrid" Property="ToolTip" Value="Modified"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding Status}" Value="A">
                                                     <Setter TargetName="StatusText" Property="Foreground" Value="#57B05C"/>
-                                                    <Setter TargetName="StatusBadge" Property="ToolTip" Value="Added"/>
+                                                    <Setter TargetName="RowGrid" Property="ToolTip" Value="Added"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding Status}" Value="D">
                                                     <Setter TargetName="StatusText" Property="Foreground" Value="#E05B5B"/>
-                                                    <Setter TargetName="StatusBadge" Property="ToolTip" Value="Deleted"/>
+                                                    <Setter TargetName="RowGrid" Property="ToolTip" Value="Deleted"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding Status}" Value="??">
                                                     <Setter TargetName="StatusText" Property="Foreground" Value="Gray"/>
-                                                    <Setter TargetName="StatusBadge" Property="ToolTip" Value="Untracked"/>
+                                                    <Setter TargetName="RowGrid" Property="ToolTip" Value="Untracked"/>
                                                 </DataTrigger>
                                             </HierarchicalDataTemplate.Triggers>
                                         </HierarchicalDataTemplate>
@@ -774,7 +776,7 @@
                                     </TreeView.ItemContainerStyle>
                                     <TreeView.Resources>
                                         <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
-                                            <Grid Margin="2,0" HorizontalAlignment="Stretch">
+                                            <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="*"/>
@@ -790,10 +792,8 @@
 
                                                 <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="11" Style="{StaticResource PrimaryTextBlockStyle}"/>
 
-                                                <!-- Status Badge (far right) -->
-                                                <Border Grid.Column="2" Margin="12,0,4,0" Padding="4,0" VerticalAlignment="Center" CornerRadius="2" x:Name="StatusBadge" Visibility="Collapsed">
-                                                    <TextBlock x:Name="StatusText" Text="{Binding Status}" FontSize="10" FontWeight="Bold"/>
-                                                </Border>
+                                                <!-- Status Text (far right) -->
+                                                <TextBlock Grid.Column="2" x:Name="StatusText" Text="{Binding Status}" Margin="12,0,4,0" VerticalAlignment="Center" FontSize="11" FontWeight="Bold" Visibility="Collapsed"/>
                                             </Grid>
 
                                             <HierarchicalDataTemplate.Triggers>
@@ -802,25 +802,25 @@
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding IsFile}" Value="True">
                                                     <Setter TargetName="FileIcon" Property="Visibility" Value="Visible"/>
-                                                    <Setter TargetName="StatusBadge" Property="Visibility" Value="Visible"/>
+                                                    <Setter TargetName="StatusText" Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
 
-                                                <!-- Colors and ToolTips for status badges -->
+                                                <!-- Colors and ToolTips for status -->
                                                 <DataTrigger Binding="{Binding Status}" Value="M">
                                                     <Setter TargetName="StatusText" Property="Foreground" Value="#D29A2E"/>
-                                                    <Setter TargetName="StatusBadge" Property="ToolTip" Value="Modified"/>
+                                                    <Setter TargetName="RowGrid" Property="ToolTip" Value="Modified"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding Status}" Value="A">
                                                     <Setter TargetName="StatusText" Property="Foreground" Value="#57B05C"/>
-                                                    <Setter TargetName="StatusBadge" Property="ToolTip" Value="Added"/>
+                                                    <Setter TargetName="RowGrid" Property="ToolTip" Value="Added"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding Status}" Value="D">
                                                     <Setter TargetName="StatusText" Property="Foreground" Value="#E05B5B"/>
-                                                    <Setter TargetName="StatusBadge" Property="ToolTip" Value="Deleted"/>
+                                                    <Setter TargetName="RowGrid" Property="ToolTip" Value="Deleted"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding Status}" Value="??">
                                                     <Setter TargetName="StatusText" Property="Foreground" Value="Gray"/>
-                                                    <Setter TargetName="StatusBadge" Property="ToolTip" Value="Untracked"/>
+                                                    <Setter TargetName="RowGrid" Property="ToolTip" Value="Untracked"/>
                                                 </DataTrigger>
                                             </HierarchicalDataTemplate.Triggers>
                                         </HierarchicalDataTemplate>
@@ -865,9 +865,13 @@
                                                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemInactiveBrushKey}}"/>
                                                                 <Setter Property="Foreground" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemInactiveTextBrushKey}}"/>
                                                             </MultiTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarMouseOverBackgroundGradientKey}}"/>
-                                                            </Trigger>
+                                                            <MultiTrigger>
+                                                                 <MultiTrigger.Conditions>
+                                                                     <Condition Property="IsMouseOver" Value="True"/>
+                                                                     <Condition Property="IsSelected" Value="False"/>
+                                                                 </MultiTrigger.Conditions>
+                                                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarMouseOverBackgroundGradientKey}}"/>
+                                                             </MultiTrigger>
                                                         </ControlTemplate.Triggers>
                                                     </ControlTemplate>
                                                 </Setter.Value>
@@ -936,9 +940,7 @@
                                                                 <Setter Property="Template">
                                                                     <Setter.Value>
                                                                         <ControlTemplate>
-                                                                            <Viewbox Width="12" Height="12">
-                                                                                <Path Data="M2,2 h12 v12 H2 Z M3,5 h10 v8 H3 Z" Fill="#007ACC" />
-                                                                            </Viewbox>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="14" Height="14"/>
                                                                         </ControlTemplate>
                                                                     </Setter.Value>
                                                                 </Setter>
@@ -947,9 +949,7 @@
                                                                 <Setter Property="Template">
                                                                     <Setter.Value>
                                                                         <ControlTemplate>
-                                                                            <Viewbox Width="12" Height="12">
-                                                                                <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
-                                                                            </Viewbox>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="14" Height="14"/>
                                                                         </ControlTemplate>
                                                                     </Setter.Value>
                                                                 </Setter>
@@ -958,9 +958,7 @@
                                                                 <Setter Property="Template">
                                                                     <Setter.Value>
                                                                         <ControlTemplate>
-                                                                            <Viewbox Width="12" Height="12">
-                                                                                <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
-                                                                            </Viewbox>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="14" Height="14"/>
                                                                         </ControlTemplate>
                                                                     </Setter.Value>
                                                                 </Setter>
@@ -969,9 +967,7 @@
                                                                 <Setter Property="Template">
                                                                     <Setter.Value>
                                                                         <ControlTemplate>
-                                                                            <Viewbox Width="12" Height="12">
-                                                                                <Path Data="M2,2 h4 l1.5,1.5 h6.5 v8.5 H2 Z" Fill="#EAA200" />
-                                                                            </Viewbox>
+                                                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.OpenFolder}" Width="14" Height="14"/>
                                                                         </ControlTemplate>
                                                                     </Setter.Value>
                                                                 </Setter>
@@ -983,22 +979,18 @@
                                             <TextBlock Text="Open" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </Button>
-                                    <Button Grid.Column="1" Click="ButtonOpen_Click" Width="14" Height="26" Padding="0">
-                                        <Path Data="M 0 0 L 3 3 L 6 0" Stroke="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Click="ButtonOpen_Click" Width="12" Height="26" Padding="0">
+                                        <Path Data="M1,2.5 L4,5.5 L7,2.5" Stroke="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" StrokeThickness="1" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         <Button.ContextMenu>
                                             <ContextMenu>
                                                 <MenuItem Header="Open in Current Window" Command="{Binding OpenCommand}" CommandParameter="CurrentWindow">
                                                     <MenuItem.Icon>
-                                                        <Viewbox Width="16" Height="16">
-                                                            <Path Data="M2,2 h12 v12 H2 Z M3,5 h10 v8 H3 Z" Fill="#007ACC" />
-                                                        </Viewbox>
+                                                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
                                                     </MenuItem.Icon>
                                                 </MenuItem>
                                                 <MenuItem Header="Open in New VS Window" Command="{Binding OpenCommand}" CommandParameter="NewVSWindow">
                                                     <MenuItem.Icon>
-                                                        <Viewbox Width="16" Height="16">
-                                                            <Path Data="M2,6 h10 v8 H2 Z M5,2 h12 v8 H15 V4 H5 Z" Fill="#007ACC" />
-                                                        </Viewbox>
+                                                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
                                                     </MenuItem.Icon>
                                                 </MenuItem>
                                             </ContextMenu>
@@ -1008,7 +1000,7 @@
                             </StackPanel>
  
                             <!-- Remove button -->
-                            <Button Grid.Column="2" Content="Remove" Command="{Binding RemoveCommand}" Width="90" Height="26" FontSize="12" Foreground="Red"/>
+                            <Button Grid.Column="2" Content="Remove" Command="{Binding RemoveCommand}" Width="90" Height="26" FontSize="12"/>
                         </Grid>
                     </Border>
                 </Grid>

@@ -722,6 +722,16 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
  
+                    <!-- Thin Indeterminate Progress Bar at the top of the details view -->
+                    <ProgressBar Grid.Row="0" Height="3" IsIndeterminate="True" VerticalAlignment="Top" Panel.ZIndex="1000"
+                                 Visibility="{Binding IsLoadingDetails, Converter={StaticResource BoolToVis}}"
+                                 Background="Transparent" BorderThickness="0" 
+                                 Foreground="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}"/>
+
+                    <!-- Subtle semi-transparent dimming overlay -->
+                    <Border Grid.RowSpan="2" Background="#15808080" Panel.ZIndex="999" IsHitTestVisible="True"
+                            Visibility="{Binding IsLoadingDetails, Converter={StaticResource BoolToVis}}"/>
+ 
                     <!-- Row 0: Worktree Header details -->
                     <StackPanel Grid.Row="0" Margin="12,12,12,6">
                         <TextBlock Text="{Binding SelectedWorktree.FolderName}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" Margin="0,0,0,8"/>

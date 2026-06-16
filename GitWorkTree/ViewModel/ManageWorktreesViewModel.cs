@@ -115,6 +115,8 @@ namespace GitWorkTree.ViewModel
             }
         }
 
+        public DateTime LastStatusCheckUtc { get; set; } = DateTime.MinValue;
+
         public WorktreeItemViewModel(string fullPath, string folderName, bool isMain, bool isCurrent, string branchName = null, bool isDirty = false)
         {
             FullPath = fullPath;
@@ -227,6 +229,15 @@ namespace GitWorkTree.ViewModel
             set { _isRefreshing = value; OnPropertyChanged(nameof(IsRefreshing)); OnPropertyChanged(nameof(IsAnyLoading)); }
         }
 
+        private bool _isLoadingDetails;
+        public bool IsLoadingDetails
+        {
+            get => _isLoadingDetails;
+            set { _isLoadingDetails = value; OnPropertyChanged(nameof(IsLoadingDetails)); }
+        }
+
+        private static readonly TimeSpan StatusRefreshCache = TimeSpan.FromSeconds(30);
+
         public bool IsAnyLoading => IsLoading || IsRefreshing;
 
         private ManageWorktreesState _currentState = ManageWorktreesState.WarmingUp;
@@ -244,8 +255,10 @@ namespace GitWorkTree.ViewModel
         }
 
         private System.Threading.CancellationTokenSource _enrichmentCts;
+        private System.Threading.CancellationTokenSource _debounceCts;
         private bool _refreshInProgress;
         private bool _refreshPending;
+        private bool _pendingIsManual;
         private readonly object _refreshLock = new object();
 
         private class WorktreeFailureInfo
@@ -410,7 +423,7 @@ namespace GitWorkTree.ViewModel
             // so fall back to GlobalProvider when no explicit provider is supplied.
             _serviceProvider = serviceProvider ?? ServiceProvider.GlobalProvider;
 
-            RefreshCommand = new AsyncRelayCommand("Refresh Worktrees", async obj => await RefreshAsync(), null, _loggingService);
+            RefreshCommand = new AsyncRelayCommand("Refresh Worktrees", async obj => await RefreshAsync(isManual: true), null, _loggingService);
             CreateCommand = new AsyncRelayCommand("Create Worktree", async obj => await CreateWorktreeAsync(), null, _loggingService);
             PruneCommand = new AsyncRelayCommand("Prune Worktrees", async obj => await PruneWorktreeAsync(), null, _loggingService);
             OpenCommand = new AsyncRelayCommand("Open Worktree", async obj => await OpenWorktreeAsync(obj), obj => IsWorktreeSelected, _loggingService);
@@ -471,7 +484,7 @@ namespace GitWorkTree.ViewModel
                 
                 if (!string.IsNullOrEmpty(ActiveRepositoryPath))
                 {
-                    _ = RefreshAsync();
+                    _ = RefreshAsync(isManual: false);
                 }
                 else
                 {
@@ -514,9 +527,23 @@ namespace GitWorkTree.ViewModel
         {
             if (e.PropertyName == "ActiveRepositories")
             {
-                _ = ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+                if (_debounceCts != null)
                 {
-                    await RefreshAsync();
+                    try { _debounceCts.Cancel(); _debounceCts.Dispose(); } catch { }
+                }
+                _debounceCts = new System.Threading.CancellationTokenSource();
+                var token = _debounceCts.Token;
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(300, token);
+                        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                        await RefreshAsync(isManual: false);
+                    }
+                    catch (TaskCanceledException) { }
+                    catch (OperationCanceledException) { }
                 });
             }
         }
@@ -531,10 +558,14 @@ namespace GitWorkTree.ViewModel
         public ICommand CopyRepositoryPathCommand { get; }
         public ICommand ExplorePathCommand { get; }
 
-        public async Task RefreshAsync()
+        public async Task RefreshAsync(bool isManual = false)
         {
             lock (_refreshLock)
             {
+                if (isManual)
+                {
+                    _pendingIsManual = true;
+                }
                 if (_refreshInProgress)
                 {
                     _refreshPending = true;
@@ -545,11 +576,21 @@ namespace GitWorkTree.ViewModel
 
             try
             {
-                await RefreshInternalAsync();
+                bool activeManual = isManual;
+                lock (_refreshLock)
+                {
+                    if (_pendingIsManual)
+                    {
+                        activeManual = true;
+                        _pendingIsManual = false;
+                    }
+                }
+                await RefreshInternalAsync(activeManual);
             }
             finally
             {
                 bool shouldRefreshAgain = false;
+                bool nextManual = false;
                 lock (_refreshLock)
                 {
                     _refreshInProgress = false;
@@ -557,6 +598,8 @@ namespace GitWorkTree.ViewModel
                     {
                         _refreshPending = false;
                         shouldRefreshAgain = true;
+                        nextManual = _pendingIsManual;
+                        _pendingIsManual = false;
                     }
                 }
 
@@ -565,13 +608,13 @@ namespace GitWorkTree.ViewModel
                     _ = Task.Run(async () =>
                     {
                         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                        await RefreshAsync();
+                        await RefreshAsync(nextManual);
                     });
                 }
             }
         }
 
-        private async Task RefreshInternalAsync()
+        private async Task RefreshInternalAsync(bool isManual)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             ResolveActiveRepositoryPath();
@@ -586,10 +629,13 @@ namespace GitWorkTree.ViewModel
                 CurrentState = ManageWorktreesState.LoadingWorktrees;
             }
 
-            // Clear the failure/backoff tracking so that manual/explicit refreshes immediately retry everything
-            lock (_failureLock)
+            // Clear the failure tracking only when user explicitly invokes refresh (isManual == true)
+            if (isManual)
             {
-                _failureTracking.Clear();
+                lock (_failureLock)
+                {
+                    _failureTracking.Clear();
+                }
             }
 
             // 1. Cancel previous enrichment
@@ -682,10 +728,19 @@ namespace GitWorkTree.ViewModel
                     if (existingItemsMap.TryGetValue(info.Path, out var cached))
                     {
                         item.IsDirty = cached.IsDirty;
-                        // On manual refresh, we want to clear the error state and let it retry immediately
-                        item.HasRefreshError = false;
-                        item.LastErrorMessage = string.Empty;
-                        item.ErrorSummary = string.Empty;
+                        if (!isManual)
+                        {
+                            item.HasRefreshError = cached.HasRefreshError;
+                            item.LastErrorMessage = cached.LastErrorMessage;
+                            item.ErrorSummary = cached.ErrorSummary;
+                        }
+                        else
+                        {
+                            // Clear warning status on manual refresh
+                            item.HasRefreshError = false;
+                            item.LastErrorMessage = string.Empty;
+                            item.ErrorSummary = string.Empty;
+                        }
                     }
 
                     RawWorktrees.Add(item);
@@ -708,7 +763,7 @@ namespace GitWorkTree.ViewModel
 
                 // 2. Start background enrichment for dirty states
                 IsRefreshing = true;
-                _ = EnrichWorktreesAsync(RawWorktrees.ToList(), token);
+                _ = EnrichWorktreesAsync(RawWorktrees.ToList(), token, isManual);
             }
             catch (Exception ex)
             {
@@ -720,114 +775,30 @@ namespace GitWorkTree.ViewModel
             }
         }
 
-        private async Task EnrichWorktreesAsync(List<WorktreeItemViewModel> items, System.Threading.CancellationToken token)
+        private async Task EnrichWorktreesAsync(List<WorktreeItemViewModel> items, System.Threading.CancellationToken token, bool isManual)
         {
             try
             {
-                using (var semaphore = new System.Threading.SemaphoreSlim(4))
+                // 1. Process active/current worktree first and await it
+                var currentItem = items.FirstOrDefault(x => x.IsCurrent);
+                if (currentItem != null)
                 {
-                    var tasks = items.Select(async item =>
+                    await EnrichSingleItemAsync(currentItem, token, isManual).ConfigureAwait(false);
+                }
+
+                // 2. Process other worktrees with strict concurrency throttling of 2 (letting tasks run naturally)
+                using (var semaphore = new System.Threading.SemaphoreSlim(2))
+                {
+                    var otherItems = items.Where(x => !x.IsCurrent).ToList();
+                    var tasks = otherItems.Select(async item =>
                     {
                         await semaphore.WaitAsync(token).ConfigureAwait(false);
                         try
                         {
-                            token.ThrowIfCancellationRequested();
-
-                            lock (_failureLock)
-                            {
-                                if (_failureTracking.TryGetValue(item.FullPath, out var failInfo))
-                                {
-                                    if (DateTime.UtcNow < failInfo.NextRetryTimeUtc)
-                                    {
-                                        item.IsLoadingStatus = false;
-                                        return;
-                                    }
-                                }
-                            }
-
-                            token.ThrowIfCancellationRequested();
-                            item.IsLoadingStatus = true;
-
-                            // Missing Directory Fast Path: skip Git execution entirely
-                            if (!System.IO.Directory.Exists(item.FullPath))
-                            {
-                                item.IsDirty = false;
-                                item.HasRefreshError = true;
-                                item.ErrorSummary = "Worktree folder missing.";
-                                item.LastErrorMessage = $"Directory not found: {item.FullPath}";
-                                return;
-                            }
-
-                            var result = await _gitService.IsWorktreeDirtyAsync(item.FullPath).ConfigureAwait(false);
-                            token.ThrowIfCancellationRequested();
-
-                            if (result.Success)
-                            {
-                                item.IsDirty = result.Value;
-                                item.HasRefreshError = false;
-                                item.LastErrorMessage = string.Empty;
-                                item.ErrorSummary = string.Empty;
-
-                                lock (_failureLock)
-                                {
-                                    _failureTracking.Remove(item.FullPath);
-                                }
-                            }
-                            else
-                            {
-                                item.IsDirty = false;
-                                item.HasRefreshError = true;
-                                item.LastErrorMessage = result.ErrorMessage;
-                                item.ErrorSummary = "Unable to refresh worktree status. See Output window for details.";
-
-                                int currentFailCount = 1;
-                                lock (_failureLock)
-                                {
-                                    if (_failureTracking.TryGetValue(item.FullPath, out var failInfo))
-                                    {
-                                        failInfo.FailureCount++;
-                                        currentFailCount = failInfo.FailureCount;
-                                    }
-                                    else
-                                    {
-                                        failInfo = new WorktreeFailureInfo { FailureCount = 1 };
-                                        _failureTracking[item.FullPath] = failInfo;
-                                    }
-
-                                    TimeSpan backoffDuration;
-                                    if (currentFailCount == 1)
-                                    {
-                                        backoffDuration = TimeSpan.FromSeconds(30);
-                                    }
-                                    else if (currentFailCount == 2)
-                                    {
-                                        backoffDuration = TimeSpan.FromMinutes(2);
-                                    }
-                                    else
-                                    {
-                                        backoffDuration = TimeSpan.FromMinutes(5);
-                                    }
-
-                                    failInfo.NextRetryTimeUtc = DateTime.UtcNow.Add(backoffDuration);
-                                }
-
-                                _loggingService?.WriteToOutputWindowAsync(
-                                    $"Failed to refresh status for {item.FolderName} ({item.FullPath}). " +
-                                    $"Error: {result.ErrorMessage}. Backoff attempt: {currentFailCount}. Skipping checks for the next retry interval."
-                                );
-                            }
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Ignore
-                        }
-                        catch (Exception ex)
-                        {
-                            _loggingService?.WriteToOutputWindowAsync($"Failed to get status for {item.FolderName}: {ex.Message}");
+                            await EnrichSingleItemAsync(item, token, isManual).ConfigureAwait(false);
                         }
                         finally
                         {
-                            item.IsLoadingStatus = false;
                             semaphore.Release();
                         }
                     });
@@ -847,6 +818,121 @@ namespace GitWorkTree.ViewModel
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 IsRefreshing = false;
+            }
+        }
+
+        private async Task EnrichSingleItemAsync(WorktreeItemViewModel item, System.Threading.CancellationToken token, bool isManual)
+        {
+            try
+            {
+                token.ThrowIfCancellationRequested();
+
+                // Skip checking if this is an auto-refresh and the status check was done recently (within 30s)
+                if (!isManual && DateTime.UtcNow - item.LastStatusCheckUtc < StatusRefreshCache)
+                {
+                    return;
+                }
+
+                // Skip checking if we are in the temporary failure retry backoff period
+                lock (_failureLock)
+                {
+                    if (_failureTracking.TryGetValue(item.FullPath, out var failInfo))
+                    {
+                        if (DateTime.UtcNow < failInfo.NextRetryTimeUtc)
+                        {
+                            return;
+                        }
+                    }
+                }
+
+                token.ThrowIfCancellationRequested();
+                item.IsLoadingStatus = true;
+
+                // Missing Directory Fast Path: skip Git execution entirely
+                if (!System.IO.Directory.Exists(item.FullPath))
+                {
+                    item.IsDirty = false;
+                    item.HasRefreshError = true;
+                    item.ErrorSummary = "Worktree folder missing.";
+                    item.LastErrorMessage = $"Directory not found: {item.FullPath}";
+                    lock (_failureLock)
+                    {
+                        _failureTracking[item.FullPath] = new WorktreeFailureInfo { FailureCount = 1, NextRetryTimeUtc = DateTime.UtcNow.AddMinutes(2) };
+                    }
+                    return;
+                }
+
+                var result = await _gitService.IsWorktreeDirtyAsync(item.FullPath).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+
+                if (result.Success)
+                {
+                    item.IsDirty = result.Value;
+                    item.HasRefreshError = false;
+                    item.LastErrorMessage = string.Empty;
+                    item.ErrorSummary = string.Empty;
+
+                    lock (_failureLock)
+                    {
+                        _failureTracking.Remove(item.FullPath);
+                    }
+                }
+                else
+                {
+                    item.IsDirty = false;
+                    item.HasRefreshError = true;
+                    item.LastErrorMessage = result.ErrorMessage;
+                    item.ErrorSummary = "Unable to refresh worktree status. See Output window for details.";
+
+                    int currentFailCount = 1;
+                    lock (_failureLock)
+                    {
+                        if (_failureTracking.TryGetValue(item.FullPath, out var failInfo))
+                        {
+                            failInfo.FailureCount++;
+                            currentFailCount = failInfo.FailureCount;
+                        }
+                        else
+                        {
+                            failInfo = new WorktreeFailureInfo { FailureCount = 1 };
+                            _failureTracking[item.FullPath] = failInfo;
+                        }
+
+                        TimeSpan backoffDuration;
+                        if (currentFailCount == 1)
+                        {
+                            backoffDuration = TimeSpan.FromSeconds(30);
+                        }
+                        else if (currentFailCount == 2)
+                        {
+                            backoffDuration = TimeSpan.FromMinutes(2);
+                        }
+                        else
+                        {
+                            backoffDuration = TimeSpan.FromMinutes(5);
+                        }
+
+                        failInfo.NextRetryTimeUtc = DateTime.UtcNow.Add(backoffDuration);
+                    }
+
+                    _loggingService?.WriteToOutputWindowAsync(
+                        $"Failed to refresh status for {item.FolderName} ({item.FullPath}). " +
+                        $"Error: {result.ErrorMessage}. Backoff attempt: {currentFailCount}. Skipping checks for the next retry interval."
+                    );
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore
+            }
+            catch (Exception ex)
+            {
+                _loggingService?.WriteToOutputWindowAsync($"Failed to get status for {item.FolderName}: {ex.Message}");
+            }
+            finally
+            {
+                item.LastStatusCheckUtc = DateTime.UtcNow;
+                item.IsLoadingStatus = false;
             }
         }
 
@@ -920,7 +1006,9 @@ namespace GitWorkTree.ViewModel
 
             try
             {
-                IsLoading = true;
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                IsLoadingDetails = true;
+
                 var worktree = SelectedWorktree;
                 var details = await _gitService.GetWorkTreeDetailsAsync(ActiveRepositoryPath, worktree.FullPath).ConfigureAwait(false);
 
@@ -957,10 +1045,8 @@ namespace GitWorkTree.ViewModel
             }
             finally
             {
-                if (!token.IsCancellationRequested)
-                {
-                    IsLoading = false;
-                }
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                IsLoadingDetails = false;
             }
         }
 

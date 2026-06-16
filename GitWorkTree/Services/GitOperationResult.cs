@@ -11,4 +11,18 @@ namespace GitWorkTree.Services
             ErrorMessage = errorMessage;
         }
     }
+
+    public sealed class GitOperationResult<T>
+    {
+        public bool Success { get; }
+        public T Value { get; }
+        public string ErrorMessage { get; }
+
+        public GitOperationResult(bool success, T value, string errorMessage = "")
+        {
+            Success = success;
+            Value = value;
+            ErrorMessage = errorMessage;
+        }
+    }
 }

@@ -43,7 +43,7 @@ namespace GitWorkTree.Services
         Task<GitOperationResult> RemoveWorkTreeAsync(string repositoryPath, string workTreePath, bool shouldForceCreate);
         Task<GitOperationResult> PruneAsync(string repositoryPath);
         Task<string> GetGitFolderDirectoryAsync(string currentSolutionPath);
-        Task<bool> IsWorktreeDirtyAsync(string worktreePath);
+        Task<GitOperationResult<bool>> IsWorktreeDirtyAsync(string worktreePath);
         Task<(string Branch, string StatusSummary, List<string> Changes, List<GitCommitInfo> Outgoing)> GetWorkTreeDetailsAsync(string repositoryPath, string workTreePath);
         Task<string> ShowFileContentAsync(string repositoryPath, string revisionAndFilePath);
     }

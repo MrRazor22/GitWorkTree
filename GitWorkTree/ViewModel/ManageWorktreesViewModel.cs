@@ -73,6 +73,48 @@ namespace GitWorkTree.ViewModel
             }
         }
 
+        private bool _hasRefreshError;
+        public bool HasRefreshError
+        {
+            get => _hasRefreshError;
+            set
+            {
+                if (_hasRefreshError != value)
+                {
+                    _hasRefreshError = value;
+                    OnPropertyChanged(nameof(HasRefreshError));
+                }
+            }
+        }
+
+        private string _lastErrorMessage = string.Empty;
+        public string LastErrorMessage
+        {
+            get => _lastErrorMessage;
+            set
+            {
+                if (_lastErrorMessage != value)
+                {
+                    _lastErrorMessage = value;
+                    OnPropertyChanged(nameof(LastErrorMessage));
+                }
+            }
+        }
+
+        private string _errorSummary = string.Empty;
+        public string ErrorSummary
+        {
+            get => _errorSummary;
+            set
+            {
+                if (_errorSummary != value)
+                {
+                    _errorSummary = value;
+                    OnPropertyChanged(nameof(ErrorSummary));
+                }
+            }
+        }
+
         public WorktreeItemViewModel(string fullPath, string folderName, bool isMain, bool isCurrent, string branchName = null, bool isDirty = false)
         {
             FullPath = fullPath;
@@ -202,6 +244,17 @@ namespace GitWorkTree.ViewModel
         }
 
         private System.Threading.CancellationTokenSource _enrichmentCts;
+        private bool _refreshInProgress;
+        private bool _refreshPending;
+        private readonly object _refreshLock = new object();
+
+        private class WorktreeFailureInfo
+        {
+            public int FailureCount { get; set; }
+            public DateTime NextRetryTimeUtc { get; set; }
+        }
+        private readonly Dictionary<string, WorktreeFailureInfo> _failureTracking = new Dictionary<string, WorktreeFailureInfo>(StringComparer.OrdinalIgnoreCase);
+        private readonly object _failureLock = new object();
 
         public ObservableCollection<WorktreeItemViewModel> RawWorktrees { get; } = new ObservableCollection<WorktreeItemViewModel>();
         public ObservableCollection<HierarchyNode> WorktreeHierarchy { get; } = new ObservableCollection<HierarchyNode>();
@@ -480,6 +533,46 @@ namespace GitWorkTree.ViewModel
 
         public async Task RefreshAsync()
         {
+            lock (_refreshLock)
+            {
+                if (_refreshInProgress)
+                {
+                    _refreshPending = true;
+                    return;
+                }
+                _refreshInProgress = true;
+            }
+
+            try
+            {
+                await RefreshInternalAsync();
+            }
+            finally
+            {
+                bool shouldRefreshAgain = false;
+                lock (_refreshLock)
+                {
+                    _refreshInProgress = false;
+                    if (_refreshPending)
+                    {
+                        _refreshPending = false;
+                        shouldRefreshAgain = true;
+                    }
+                }
+
+                if (shouldRefreshAgain)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                        await RefreshAsync();
+                    });
+                }
+            }
+        }
+
+        private async Task RefreshInternalAsync()
+        {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             ResolveActiveRepositoryPath();
             if (string.IsNullOrEmpty(ActiveRepositoryPath))
@@ -491,6 +584,12 @@ namespace GitWorkTree.ViewModel
             if (RawWorktrees.Count == 0)
             {
                 CurrentState = ManageWorktreesState.LoadingWorktrees;
+            }
+
+            // Clear the failure/backoff tracking so that manual/explicit refreshes immediately retry everything
+            lock (_failureLock)
+            {
+                _failureTracking.Clear();
             }
 
             // 1. Cancel previous enrichment
@@ -559,6 +658,9 @@ namespace GitWorkTree.ViewModel
                     }
                 }
 
+                // Preserve existing items state to prevent flickering
+                var existingItemsMap = RawWorktrees.ToDictionary(x => x.FullPath, StringComparer.OrdinalIgnoreCase);
+
                 RawWorktrees.Clear();
 
                 string normalizedMainRepoPath = Path.GetFullPath(mainRepoPath).TrimEnd('\\', '/');
@@ -576,6 +678,16 @@ namespace GitWorkTree.ViewModel
                         isCurrent: isCurrent,
                         branchName: info.Branch
                     );
+
+                    if (existingItemsMap.TryGetValue(info.Path, out var cached))
+                    {
+                        item.IsDirty = cached.IsDirty;
+                        // On manual refresh, we want to clear the error state and let it retry immediately
+                        item.HasRefreshError = false;
+                        item.LastErrorMessage = string.Empty;
+                        item.ErrorSummary = string.Empty;
+                    }
+
                     RawWorktrees.Add(item);
                 }
 
@@ -620,10 +732,90 @@ namespace GitWorkTree.ViewModel
                         try
                         {
                             token.ThrowIfCancellationRequested();
-                            item.IsLoadingStatus = true;
-                            bool isDirty = await _gitService.IsWorktreeDirtyAsync(item.FullPath).ConfigureAwait(false);
+
+                            lock (_failureLock)
+                            {
+                                if (_failureTracking.TryGetValue(item.FullPath, out var failInfo))
+                                {
+                                    if (DateTime.UtcNow < failInfo.NextRetryTimeUtc)
+                                    {
+                                        item.IsLoadingStatus = false;
+                                        return;
+                                    }
+                                }
+                            }
+
                             token.ThrowIfCancellationRequested();
-                            item.IsDirty = isDirty;
+                            item.IsLoadingStatus = true;
+
+                            // Missing Directory Fast Path: skip Git execution entirely
+                            if (!System.IO.Directory.Exists(item.FullPath))
+                            {
+                                item.IsDirty = false;
+                                item.HasRefreshError = true;
+                                item.ErrorSummary = "Worktree folder missing.";
+                                item.LastErrorMessage = $"Directory not found: {item.FullPath}";
+                                return;
+                            }
+
+                            var result = await _gitService.IsWorktreeDirtyAsync(item.FullPath).ConfigureAwait(false);
+                            token.ThrowIfCancellationRequested();
+
+                            if (result.Success)
+                            {
+                                item.IsDirty = result.Value;
+                                item.HasRefreshError = false;
+                                item.LastErrorMessage = string.Empty;
+                                item.ErrorSummary = string.Empty;
+
+                                lock (_failureLock)
+                                {
+                                    _failureTracking.Remove(item.FullPath);
+                                }
+                            }
+                            else
+                            {
+                                item.IsDirty = false;
+                                item.HasRefreshError = true;
+                                item.LastErrorMessage = result.ErrorMessage;
+                                item.ErrorSummary = "Unable to refresh worktree status. See Output window for details.";
+
+                                int currentFailCount = 1;
+                                lock (_failureLock)
+                                {
+                                    if (_failureTracking.TryGetValue(item.FullPath, out var failInfo))
+                                    {
+                                        failInfo.FailureCount++;
+                                        currentFailCount = failInfo.FailureCount;
+                                    }
+                                    else
+                                    {
+                                        failInfo = new WorktreeFailureInfo { FailureCount = 1 };
+                                        _failureTracking[item.FullPath] = failInfo;
+                                    }
+
+                                    TimeSpan backoffDuration;
+                                    if (currentFailCount == 1)
+                                    {
+                                        backoffDuration = TimeSpan.FromSeconds(30);
+                                    }
+                                    else if (currentFailCount == 2)
+                                    {
+                                        backoffDuration = TimeSpan.FromMinutes(2);
+                                    }
+                                    else
+                                    {
+                                        backoffDuration = TimeSpan.FromMinutes(5);
+                                    }
+
+                                    failInfo.NextRetryTimeUtc = DateTime.UtcNow.Add(backoffDuration);
+                                }
+
+                                _loggingService?.WriteToOutputWindowAsync(
+                                    $"Failed to refresh status for {item.FolderName} ({item.FullPath}). " +
+                                    $"Error: {result.ErrorMessage}. Backoff attempt: {currentFailCount}. Skipping checks for the next retry interval."
+                                );
+                            }
                         }
                         catch (OperationCanceledException)
                         {

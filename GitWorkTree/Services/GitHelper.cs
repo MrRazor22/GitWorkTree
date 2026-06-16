@@ -382,10 +382,10 @@ namespace GitWorkTree.Services
             return (branch, statusSummary, changes, outgoing);
         }
 
-        public async Task<bool> IsWorktreeDirtyAsync(string worktreePath)
+        public async Task<GitOperationResult<bool>> IsWorktreeDirtyAsync(string worktreePath)
         {
             bool isDirty = false;
-            await ExecuteAsync(new GitCommandArgs()
+            var result = await ExecuteWithResultAsync(new GitCommandArgs()
             {
                 WorkingDirectory = worktreePath,
                 Argument = "status --porcelain -uno"
@@ -396,7 +396,15 @@ namespace GitWorkTree.Services
                     isDirty = true;
                 }
             }).ConfigureAwait(false);
-            return isDirty;
+
+            if (result.Success)
+            {
+                return new GitOperationResult<bool>(true, isDirty);
+            }
+            else
+            {
+                return new GitOperationResult<bool>(false, false, result.StandardError);
+            }
         }
 
         public async Task<string> ShowFileContentAsync(string repositoryPath, string revisionAndFilePath)

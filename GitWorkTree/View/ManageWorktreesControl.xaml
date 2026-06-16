@@ -660,8 +660,13 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
    
-                                    <!-- Bullet indicator for Dirty worktree -->
-                                    <Ellipse Grid.Column="0" Width="6" Height="6" Fill="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="{Binding WorktreeItem.IsDirty, Converter={StaticResource BoolToVis}}" ToolTip="Has uncommitted changes"/>
+                                    <!-- Status / Dirty indicators -->
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
+                                        <!-- Bullet indicator for Dirty worktree -->
+                                        <Ellipse Width="6" Height="6" Fill="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}" Margin="0,0,2,0" VerticalAlignment="Center" Visibility="{Binding WorktreeItem.IsDirty, Converter={StaticResource BoolToVis}}" ToolTip="Has uncommitted changes"/>
+                                        <!-- Warning icon for refresh error -->
+                                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.StatusWarning}" Width="14" Height="14" Margin="0,0,2,0" VerticalAlignment="Center" Visibility="{Binding WorktreeItem.HasRefreshError, Converter={StaticResource BoolToVis}}" ToolTip="{Binding WorktreeItem.ErrorSummary}"/>
+                                    </StackPanel>
    
                                     <!-- Branch Icon -->
                                     <imaging:CrispImage Grid.Column="1" Moniker="{x:Static catalog:KnownMonikers.Branch}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>

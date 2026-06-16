@@ -295,18 +295,7 @@ namespace GitWorkTree.Services
             List<GitCommitInfo> outgoing = new List<GitCommitInfo>();
 
             bool hasUpstream = false;
-            // 1. Get branch name
-            await ExecuteAsync(new GitCommandArgs()
-            {
-                WorkingDirectory = workTreePath,
-                Argument = "rev-parse --abbrev-ref HEAD"
-            }, (line) =>
-            {
-                if (!string.IsNullOrWhiteSpace(line))
-                    branch = line.Trim();
-            }).ConfigureAwait(false);
-
-            // 2. Status & Changes (porcelain)
+            // 1. Status & Changes (porcelain) - also extracts branch name
             await ExecuteAsync(new GitCommandArgs()
             {
                 WorkingDirectory = workTreePath,
@@ -319,6 +308,24 @@ namespace GitWorkTree.Services
                 {
                     // If tracking branch is configured, line contains "..."
                     hasUpstream = line.Contains("...");
+
+                    // Parse branch name, e.g. "master...origin/master [ahead 1]" -> "master"
+                    string branchPart = line.Substring(3).Trim();
+                    int bracketIdx = branchPart.IndexOf('[');
+                    if (bracketIdx >= 0)
+                    {
+                        branchPart = branchPart.Substring(0, bracketIdx).Trim();
+                    }
+
+                    int dotIdx = branchPart.IndexOf("...");
+                    if (dotIdx > 0)
+                    {
+                        branch = branchPart.Substring(0, dotIdx);
+                    }
+                    else
+                    {
+                        branch = branchPart;
+                    }
 
                     // Parse ahead/behind if present, e.g. ## master...origin/master [ahead 1, behind 2]
                     var match = Regex.Match(line, @"\[ahead\s+(\d+)\]");

@@ -356,6 +356,8 @@ namespace GitWorkTree.ViewModel
         }
         #endregion
 
+        public bool IsWorktreeCreated { get; private set; }
+
         public WorkTreeDialogViewModel() : this(null, CommandType.Create, null, null, null, null) { }
         
         public WorkTreeDialogViewModel(
@@ -675,6 +677,7 @@ namespace GitWorkTree.ViewModel
                 var worktreeResult = await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, newBranch, _folderPath).ConfigureAwait(false);
                 if (worktreeResult.Success)
                 {
+                    IsWorktreeCreated = true;
                     Close_Dialog();
                     if (behavior == OpenBehavior.NewVSWindow)
                     {
@@ -704,6 +707,7 @@ namespace GitWorkTree.ViewModel
                 var worktreeResult = await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, SelectedBranch?.FullRef, _folderPath).ConfigureAwait(false);
                 if (worktreeResult.Success)
                 {
+                    IsWorktreeCreated = true;
                     Close_Dialog();
                     if (behavior == OpenBehavior.NewVSWindow)
                     {

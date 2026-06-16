@@ -260,6 +260,8 @@ namespace GitWorkTree.ViewModel
         private bool _refreshPending;
         private bool _pendingIsManual;
         private readonly object _refreshLock = new object();
+        private bool _isDialogOrCommandActive;
+        private DateTime _lastDialogCloseTimeUtc = DateTime.MinValue;
 
         private class WorktreeFailureInfo
         {
@@ -527,6 +529,13 @@ namespace GitWorkTree.ViewModel
         {
             if (e.PropertyName == "ActiveRepositories")
             {
+                // VS fires multiple ActiveRepositories events during modal dialog focus restoration.
+                // Ignore them briefly to prevent redundant refreshes.
+                if (_isDialogOrCommandActive || (DateTime.UtcNow - _lastDialogCloseTimeUtc) < TimeSpan.FromSeconds(1.5))
+                {
+                    return; // Ignore ActiveRepositories change notifications while dialog/command is active or immediately after it closes
+                }
+
                 if (_debounceCts != null)
                 {
                     try { _debounceCts.Cancel(); _debounceCts.Dispose(); } catch { }
@@ -733,13 +742,15 @@ namespace GitWorkTree.ViewModel
                             item.HasRefreshError = cached.HasRefreshError;
                             item.LastErrorMessage = cached.LastErrorMessage;
                             item.ErrorSummary = cached.ErrorSummary;
+                            item.LastStatusCheckUtc = cached.LastStatusCheckUtc;
                         }
                         else
                         {
-                            // Clear warning status on manual refresh
+                            // Clear warning status and status check cache on manual refresh
                             item.HasRefreshError = false;
                             item.LastErrorMessage = string.Empty;
                             item.ErrorSummary = string.Empty;
+                            item.LastStatusCheckUtc = DateTime.MinValue;
                         }
                     }
 
@@ -1010,6 +1021,7 @@ namespace GitWorkTree.ViewModel
                 IsLoadingDetails = true;
 
                 var worktree = SelectedWorktree;
+
                 var details = await _gitService.GetWorkTreeDetailsAsync(ActiveRepositoryPath, worktree.FullPath).ConfigureAwait(false);
 
                 token.ThrowIfCancellationRequested();
@@ -1019,6 +1031,15 @@ namespace GitWorkTree.ViewModel
                 token.ThrowIfCancellationRequested();
 
                 if (SelectedWorktree != worktree) return;
+
+                // Clear the worktree's failure/warning state only after a successful load
+                worktree.HasRefreshError = false;
+                worktree.ErrorSummary = string.Empty;
+                worktree.LastErrorMessage = string.Empty;
+                lock (_failureLock)
+                {
+                    _failureTracking.Remove(worktree.FullPath);
+                }
 
                 DetailBranchName = details.Branch;
                 DetailStatusSummary = details.StatusSummary;
@@ -1042,6 +1063,16 @@ namespace GitWorkTree.ViewModel
             catch (Exception ex)
             {
                 await _loggingService?.WriteToOutputWindowAsync($"Failed to load details for {SelectedWorktree?.FolderName}: {ex.Message}");
+                if (SelectedWorktree != null)
+                {
+                    SelectedWorktree.HasRefreshError = true;
+                    SelectedWorktree.ErrorSummary = "Unable to refresh worktree status. See Output window for details.";
+                    SelectedWorktree.LastErrorMessage = ex.Message;
+                    lock (_failureLock)
+                    {
+                        _failureTracking[SelectedWorktree.FullPath] = new WorktreeFailureInfo { FailureCount = 1 };
+                    }
+                }
             }
             finally
             {
@@ -1099,16 +1130,28 @@ namespace GitWorkTree.ViewModel
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             try
             {
+                _isDialogOrCommandActive = true;
                 var createCommandExecutor = new CommandExecutor(CommandType.Create);
                 if (createCommandExecutor.PreRequisite())
                 {
                     createCommandExecutor.Execute();
-                    await RefreshAsync();
+                    _lastDialogCloseTimeUtc = DateTime.UtcNow;
+                    _isDialogOrCommandActive = false;
+
+                    if (createCommandExecutor.IsWorktreeCreated)
+                    {
+                        await RefreshAsync(isManual: true);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 await _loggingService?.WriteToOutputWindowAsync($"Failed to open create dialog: {ex.Message}");
+            }
+            finally
+            {
+                _lastDialogCloseTimeUtc = DateTime.UtcNow;
+                _isDialogOrCommandActive = false;
             }
         }
 

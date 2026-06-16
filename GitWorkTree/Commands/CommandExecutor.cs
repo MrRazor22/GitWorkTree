@@ -76,5 +76,7 @@ namespace GitWorkTree.Commands
                 return false;
             }
         }
+
+        public bool IsWorktreeCreated => dialogViewModel?.IsWorktreeCreated ?? false;
     }
 }

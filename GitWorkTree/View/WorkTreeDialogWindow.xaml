@@ -294,10 +294,18 @@
                         <ColumnDefinition Width="20*"></ColumnDefinition>
                         <ColumnDefinition Width="80*"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
-                    <TextBlock d:Visibility="Visible"
-                        FontWeight="SemiBold" Name="Path" Text="Path:"  
-                       Grid.Column="0" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Left" >
-                    </TextBlock>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                        <TextBlock d:Visibility="Visible"
+                            FontWeight="SemiBold" Name="Path" Text="Path:"  
+                            FontSize="14" VerticalAlignment="Center" />
+                        <Button Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" 
+                                Command="{Binding OpenOptionsCommand}"
+                                Margin="4,0,0,0" VerticalAlignment="Center" Padding="1" Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                ToolTip="Path settings (Default Directory, Sub-Folder, Branch Hierarchy) can be configured in Tools > Options > GitWorkTree. Click to open settings.">
+                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.StatusInformation}" 
+                                                Width="14" Height="14" />
+                        </Button>
+                    </StackPanel>
                     <StackPanel Grid.Column="1" Margin="0,2,0,2" VerticalAlignment="Center">
                         <usercontrols:FolderEntry x:Name="folderEntry" d:Visibility="Visible"
                             FolderPath="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" 

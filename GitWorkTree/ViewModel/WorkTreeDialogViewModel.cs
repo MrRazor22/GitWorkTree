@@ -417,6 +417,7 @@ namespace GitWorkTree.ViewModel
             RemoveCommand = new AsyncRelayCommand("Remove Worktree", async obj => await Remove_WorkTree(), obj => IsValid, _loggingService);
             OpenCommand = new AsyncRelayCommand("Open Worktree", async obj => await Open_WorkTree(obj), obj => IsValid, _loggingService);
             CancelCommand = new RelayCommand("Cancel Dialog", obj => Close_Dialog(), null, _loggingService);
+            OpenOptionsCommand = new AsyncRelayCommand("Open Settings", async obj => await OpenOptionsAsync(), null, _loggingService);
 
             _newBranchNameChanged = false;
             _folderPathChanged = false;
@@ -644,6 +645,23 @@ namespace GitWorkTree.ViewModel
         public IAsyncCommand RemoveCommand { get; }
         public IAsyncCommand OpenCommand { get; }
         public ICommand CancelCommand { get; }
+        public IAsyncCommand OpenOptionsCommand { get; }
+
+        private async Task OpenOptionsAsync()
+        {
+            try
+            {
+                await SafeSwitchToMainThreadAsync();
+                await VS.Settings.OpenAsync<OptionsProvider.GeneralOptions>();
+            }
+            catch (Exception ex)
+            {
+                if (_loggingService != null)
+                {
+                    await _loggingService.WriteToOutputWindowAsync($"Failed to open options: {ex.Message}");
+                }
+            }
+        }
 
         private async Task<bool> Prune_WorkTree()
         {

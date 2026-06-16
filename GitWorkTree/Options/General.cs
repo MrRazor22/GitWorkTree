@@ -46,7 +46,7 @@ namespace GitWorkTree
         public string WorktreeSubFolder { get; set; }
 
         [DisplayName("Preserve Branch Hierarchy")]
-        [Description("Preserve branch hierarchy in worktree paths.\n\nEnabled:\nfeature/foo → Worktrees\\feature\\foo\n\nDisabled:\nfeature/foo → Worktrees\\feature-foo")]
+        [Description("Preserve branch hierarchy in worktree paths.\nExample: 'feature/foo' becomes 'Worktrees\\feature\\foo' (enabled) or 'Worktrees\\feature-foo' (disabled).")]
         [DefaultValue(true)]
         public bool PreserveBranchHierarchy { get; set; } = true;
 

@@ -295,8 +295,7 @@ namespace GitWorkTree.Services
             List<GitCommitInfo> outgoing = new List<GitCommitInfo>();
 
             bool hasUpstream = false;
-            // 1. Status & Changes (porcelain) - also extracts branch name
-            await ExecuteAsync(new GitCommandArgs()
+            bool statusSuccess = await ExecuteAsync(new GitCommandArgs()
             {
                 WorkingDirectory = workTreePath,
                 Argument = "status --porcelain -b"
@@ -306,8 +305,8 @@ namespace GitWorkTree.Services
 
                 if (line.StartsWith("## "))
                 {
-                    // If tracking branch is configured, line contains "..."
-                    hasUpstream = line.Contains("...");
+                    // If tracking branch is configured and not gone, line contains "..."
+                    hasUpstream = line.Contains("...") && !line.Contains("[gone]");
 
                     // Parse branch name, e.g. "master...origin/master [ahead 1]" -> "master"
                     string branchPart = line.Substring(3).Trim();
@@ -359,6 +358,11 @@ namespace GitWorkTree.Services
                     if (workTreeStatus != ' ' && workTreeStatus != '?' && workTreeStatus != 'U') unstaged++;
                 }
             }).ConfigureAwait(false);
+
+            if (!statusSuccess)
+            {
+                throw new InvalidOperationException($"Git status command failed for worktree: {workTreePath}");
+            }
 
             // 3. Outgoing commits (git log @{u}..HEAD --pretty=format:"%H%x09%h%x09%s%x09%an%x09%ad" --date=short) if upstream is configured
             if (hasUpstream)

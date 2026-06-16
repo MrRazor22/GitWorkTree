@@ -242,6 +242,24 @@ namespace GitWorkTree.ViewModel
             }
         }
 
+        private bool _isBusy;
+        public bool IsBusy
+        {
+            get => _isBusy;
+            set
+            {
+                if (_isBusy != value)
+                {
+                    _isBusy = value;
+                    OnPropertyChanged(nameof(IsBusy));
+                    OnPropertyChanged(nameof(IsNotBusy));
+                    CommandManager.InvalidateRequerySuggested();
+                }
+            }
+        }
+
+        public bool IsNotBusy => !_isBusy;
+
         #endregion
 
         #region IDataErrorInfo Validation
@@ -629,13 +647,21 @@ namespace GitWorkTree.ViewModel
 
         private async Task<bool> Prune_WorkTree()
         {
-            var result = await _gitService.PruneAsync(_activeRepositoryPath).ConfigureAwait(false);
-            if (!result.Success)
+            try
             {
-                DialogHelper.ShowOperationError(_serviceProvider, "Prune Worktrees", result.ErrorMessage);
-                return false;
+                IsBusy = true;
+                var result = await _gitService.PruneAsync(_activeRepositoryPath).ConfigureAwait(false);
+                if (!result.Success)
+                {
+                    DialogHelper.ShowOperationError(_serviceProvider, "Prune Worktrees", result.ErrorMessage);
+                    return false;
+                }
+                return await PopulateBranches_Worktrees().ConfigureAwait(false);
             }
-            return await PopulateBranches_Worktrees().ConfigureAwait(false);
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         private async Task<bool> Create_WorkTree(object parameter)
@@ -659,83 +685,105 @@ namespace GitWorkTree.ViewModel
 
             if (!IsValid) return false;
 
-            if (IsNewBranchMode)
+            string targetBranch = IsNewBranchMode ? NewBranchName.Trim() : SelectedBranch?.Name;
+            if (_loggingService != null)
             {
-                string newBranch = NewBranchName.Trim();
-                string sourceBranch = SelectedBranch?.FullRef;
+                await _loggingService.WriteToOutputWindowAsync($"Creating worktree for branch '{targetBranch}'...", true);
+            }
 
-                // 1. Create new branch
-                var branchResult = await _gitService.CreateBranchAsync(_activeRepositoryPath, newBranch, sourceBranch).ConfigureAwait(false);
-                if (!branchResult.Success)
+            try
+            {
+                IsBusy = true;
+                if (IsNewBranchMode)
                 {
-                    _loggingService?.UpdateStatusBar("Failed to create new branch.");
-                    DialogHelper.ShowOperationError(_serviceProvider, "Create Branch", branchResult.ErrorMessage);
-                    return false;
-                }
+                    string newBranch = NewBranchName.Trim();
+                    string sourceBranch = SelectedBranch?.FullRef;
 
-                // 2. Create worktree
-                var worktreeResult = await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, newBranch, _folderPath).ConfigureAwait(false);
-                if (worktreeResult.Success)
-                {
-                    IsWorktreeCreated = true;
-                    Close_Dialog();
-                    if (behavior == OpenBehavior.NewVSWindow)
+                    // 1. Create new branch
+                    var branchResult = await _gitService.CreateBranchAsync(_activeRepositoryPath, newBranch, sourceBranch).ConfigureAwait(false);
+                    if (!branchResult.Success)
                     {
-                        await _solutionService.OpenSolution(FolderPath, false).ConfigureAwait(false);
+                        _loggingService?.UpdateStatusBar("Failed to create new branch.");
+                        DialogHelper.ShowOperationError(_serviceProvider, "Create Branch", branchResult.ErrorMessage);
+                        return false;
                     }
-                    else if (behavior == OpenBehavior.CurrentWindow)
+
+                    // 2. Create worktree
+                    var worktreeResult = await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, newBranch, _folderPath).ConfigureAwait(false);
+                    if (worktreeResult.Success)
                     {
-                        await _solutionService.OpenSolution(FolderPath, true).ConfigureAwait(false);
+                        IsWorktreeCreated = true;
+                        Close_Dialog();
+                        if (behavior == OpenBehavior.NewVSWindow)
+                        {
+                            await _solutionService.OpenSolution(FolderPath, false).ConfigureAwait(false);
+                        }
+                        else if (behavior == OpenBehavior.CurrentWindow)
+                        {
+                            await _solutionService.OpenSolution(FolderPath, true).ConfigureAwait(false);
+                        }
+                        return true;
                     }
-                    return true;
+                    else
+                    {
+                        _loggingService?.UpdateStatusBar("Failed to create worktree. Rolling back branch creation.");
+                        DialogHelper.ShowOperationError(_serviceProvider, "Create Worktree", worktreeResult.ErrorMessage);
+                        // Cleanup branch
+                        var cleanupResult = await _gitService.DeleteBranchAsync(_activeRepositoryPath, newBranch).ConfigureAwait(false);
+                        if (!cleanupResult.Success)
+                        {
+                            await _loggingService?.WriteToOutputWindowAsync($"[Cleanup Failure] Failed to remove the orphan branch '{newBranch}'.");
+                        }
+                        return false;
+                    }
                 }
                 else
                 {
-                    _loggingService?.UpdateStatusBar("Failed to create worktree. Rolling back branch creation.");
-                    DialogHelper.ShowOperationError(_serviceProvider, "Create Worktree", worktreeResult.ErrorMessage);
-                    // Cleanup branch
-                    var cleanupResult = await _gitService.DeleteBranchAsync(_activeRepositoryPath, newBranch).ConfigureAwait(false);
-                    if (!cleanupResult.Success)
+                    var worktreeResult = await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, SelectedBranch?.FullRef, _folderPath).ConfigureAwait(false);
+                    if (worktreeResult.Success)
                     {
-                        await _loggingService?.WriteToOutputWindowAsync($"[Cleanup Failure] Failed to remove the orphan branch '{newBranch}'.");
+                        IsWorktreeCreated = true;
+                        Close_Dialog();
+                        if (behavior == OpenBehavior.NewVSWindow)
+                        {
+                            await _solutionService.OpenSolution(FolderPath, false).ConfigureAwait(false);
+                        }
+                        else if (behavior == OpenBehavior.CurrentWindow)
+                        {
+                            await _solutionService.OpenSolution(FolderPath, true).ConfigureAwait(false);
+                        }
+                        return true;
                     }
+                    DialogHelper.ShowOperationError(_serviceProvider, "Create Worktree", worktreeResult.ErrorMessage);
                     return false;
                 }
             }
-            else
+            finally
             {
-                var worktreeResult = await _gitService.CreateWorkTreeAsync(_activeRepositoryPath, SelectedBranch?.FullRef, _folderPath).ConfigureAwait(false);
-                if (worktreeResult.Success)
-                {
-                    IsWorktreeCreated = true;
-                    Close_Dialog();
-                    if (behavior == OpenBehavior.NewVSWindow)
-                    {
-                        await _solutionService.OpenSolution(FolderPath, false).ConfigureAwait(false);
-                    }
-                    else if (behavior == OpenBehavior.CurrentWindow)
-                    {
-                        await _solutionService.OpenSolution(FolderPath, true).ConfigureAwait(false);
-                    }
-                    return true;
-                }
-                DialogHelper.ShowOperationError(_serviceProvider, "Create Worktree", worktreeResult.ErrorMessage);
-                return false;
+                IsBusy = false;
             }
         }
 
         private async Task<bool> Remove_WorkTree()
         {
             if (!IsValid) return false;
-
-            var result = await _gitService.RemoveWorkTreeAsync(_activeRepositoryPath, SelectedBranch?.Name, false).ConfigureAwait(false);
-            if (result.Success)
+ 
+            try
             {
-                await PopulateBranches_Worktrees().ConfigureAwait(false);
-                return true;
+                IsBusy = true;
+                var result = await _gitService.RemoveWorkTreeAsync(_activeRepositoryPath, SelectedBranch?.Name, false).ConfigureAwait(false);
+                if (result.Success)
+                {
+                    await PopulateBranches_Worktrees().ConfigureAwait(false);
+                    return true;
+                }
+                DialogHelper.ShowOperationError(_serviceProvider, "Remove Worktree", result.ErrorMessage);
+                return false;
             }
-            DialogHelper.ShowOperationError(_serviceProvider, "Remove Worktree", result.ErrorMessage);
-            return false;
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         private async Task<bool> Open_WorkTree(object parameter)
@@ -753,29 +801,37 @@ namespace GitWorkTree.ViewModel
             PreferredOpenAction = behavior;
 
             if (!IsValid) return false;
-
-            if (behavior == OpenBehavior.Explorer)
+ 
+            try
             {
-                try
+                IsBusy = true;
+                if (behavior == OpenBehavior.Explorer)
                 {
-                    System.Diagnostics.Process.Start("explorer.exe", SelectedBranch?.Name);
-                    return true;
+                    try
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", SelectedBranch?.Name);
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        await _loggingService?.WriteToOutputWindowAsync($"Failed to open folder in Explorer: {ex.Message}");
+                        return false;
+                    }
                 }
-                catch (Exception ex)
-                {
-                    await _loggingService?.WriteToOutputWindowAsync($"Failed to open folder in Explorer: {ex.Message}");
-                    return false;
-                }
-            }
 
-            if (behavior == OpenBehavior.DoNotOpen)
+                if (behavior == OpenBehavior.DoNotOpen)
+                {
+                    behavior = OpenBehavior.NewVSWindow;
+                }
+
+                bool openInCurrent = (behavior == OpenBehavior.CurrentWindow);
+                if (openInCurrent) Close_Dialog();
+                return await _solutionService.OpenSolution(SelectedBranch?.Name, openInCurrent).ConfigureAwait(false);
+            }
+            finally
             {
-                behavior = OpenBehavior.NewVSWindow;
+                IsBusy = false;
             }
-
-            bool openInCurrent = (behavior == OpenBehavior.CurrentWindow);
-            if (openInCurrent) Close_Dialog();
-            return await _solutionService.OpenSolution(SelectedBranch?.Name, openInCurrent).ConfigureAwait(false);
         }
 
         public bool Close_Dialog()

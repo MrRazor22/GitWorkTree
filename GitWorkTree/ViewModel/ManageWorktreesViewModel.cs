@@ -529,8 +529,9 @@ namespace GitWorkTree.ViewModel
         {
             if (e.PropertyName == "ActiveRepositories")
             {
-                // VS fires multiple ActiveRepositories events during modal dialog focus restoration.
-                // Ignore them briefly to prevent redundant refreshes.
+                // VS fires multiple repository change notifications during
+                // modal dialog focus restoration. Suppress them briefly to
+                // avoid redundant refresh storms.
                 if (_isDialogOrCommandActive || (DateTime.UtcNow - _lastDialogCloseTimeUtc) < TimeSpan.FromSeconds(1.5))
                 {
                     return; // Ignore ActiveRepositories change notifications while dialog/command is active or immediately after it closes

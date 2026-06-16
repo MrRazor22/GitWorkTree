@@ -106,6 +106,12 @@
     </Window.Resources>
 
     <Grid Margin="10">
+        <!-- Dialog-level indeterminate loading indicator (active when busy) -->
+        <ProgressBar Height="2" IsIndeterminate="True" VerticalAlignment="Top" Panel.ZIndex="1000"
+                     Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}"
+                     Background="Transparent" BorderThickness="0" 
+                     Foreground="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
+
         <Grid Grid.Row="0" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"></RowDefinition>
@@ -131,7 +137,7 @@
             </Grid>
 
 
-            <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid Grid.Row="1" Margin="0,0,0,12" IsEnabled="{Binding IsNotBusy}">
                 <!-- If commandType is Manage, we show standard layout. If commandType is Create, we show the radio buttons. -->
                 <Grid Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}">
                     <Grid.RowDefinitions>
@@ -281,7 +287,7 @@
             </Grid>
 
 
-            <Grid Grid.Row="2" >
+            <Grid Grid.Row="2" IsEnabled="{Binding IsNotBusy}">
                 <Grid d:Visibility="Collapsed"
                 Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}" Height="auto" Width="auto">
                     <Grid.ColumnDefinitions>
@@ -365,10 +371,10 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button x:Name="Prune" Command="{Binding PruneCommand}" Content="Prune" Margin="0,0,7,0"
                             Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"
-                            FontSize="14" FontWeight="SemiBold" Padding="12,5" />
+                            FontSize="14" FontWeight="SemiBold" Padding="12,5" IsEnabled="{Binding IsNotBusy}" />
 
                     <!-- Create Split Button (Visible in Create mode / ManageCommandTypeVisibilityConverter) -->
-                    <Grid Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}" Margin="0,0,7,0">
+                    <Grid Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}" Margin="0,0,7,0" IsEnabled="{Binding IsNotBusy}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
@@ -408,7 +414,7 @@
                     <Button Content="Remove" Command="{Binding RemoveCommand}" Margin="0,0,7,0"
                             Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"
                             FontSize="14" FontWeight="SemiBold" Padding="12,5"
-                            Name="buttonRemove" />
+                            Name="buttonRemove" IsEnabled="{Binding IsNotBusy}" />
 
                     <Button Content="Cancel" FontSize="14" FontWeight="SemiBold" Padding="12,5"
                             Command="{Binding CancelCommand}" Name="button3" />

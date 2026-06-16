@@ -421,7 +421,7 @@
             </Grid.Style>
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock Text="Loading repository..." FontSize="13" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                <ProgressBar Width="200" Height="4" IsIndeterminate="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}"/>
+                <ProgressBar Width="200" Height="3" IsIndeterminate="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
             </StackPanel>
         </Grid>
 
@@ -473,11 +473,10 @@
                 <ColumnDefinition Width="*" MinWidth="300"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Loading Indicator -->
             <ProgressBar Height="2" IsIndeterminate="True" VerticalAlignment="Top" Panel.ZIndex="999"
                          Visibility="{Binding IsAnyLoading, Converter={StaticResource BoolToVis}}"
                          Background="Transparent" BorderThickness="0" 
-                         Foreground="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}"/>
+                         Foreground="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
 
             <!-- Left Pane -->
             <Grid Grid.Column="0" Margin="4">
@@ -722,11 +721,10 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
  
-                    <!-- Thin Indeterminate Progress Bar at the top of the details view -->
-                    <ProgressBar Grid.Row="0" Height="3" IsIndeterminate="True" VerticalAlignment="Top" Panel.ZIndex="1000"
+                    <ProgressBar Grid.Row="0" Height="2" IsIndeterminate="True" VerticalAlignment="Top" Panel.ZIndex="1000"
                                  Visibility="{Binding IsLoadingDetails, Converter={StaticResource BoolToVis}}"
                                  Background="Transparent" BorderThickness="0" 
-                                 Foreground="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}"/>
+                                 Foreground="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
 
                     <!-- Subtle semi-transparent dimming overlay -->
                     <Border Grid.RowSpan="2" Background="#15808080" Panel.ZIndex="999" IsHitTestVisible="True"
@@ -1069,7 +1067,7 @@
                     </Grid.Style>
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                         <TextBlock Text="Loading worktrees..." FontSize="12" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                        <ProgressBar Width="150" Height="4" IsIndeterminate="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}"/>
+                        <ProgressBar Width="150" Height="3" IsIndeterminate="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
                     </StackPanel>
                 </Grid>
 

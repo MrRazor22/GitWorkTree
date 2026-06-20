@@ -775,7 +775,7 @@ namespace GitWorkTree.ViewModel
 
                 // 2. Start background enrichment for dirty states
                 IsRefreshing = true;
-                _ = EnrichWorktreesAsync(RawWorktrees.ToList(), token, isManual);
+                await EnrichWorktreesAsync(RawWorktrees.ToList(), token, isManual);
             }
             catch (Exception ex)
             {
@@ -787,13 +787,36 @@ namespace GitWorkTree.ViewModel
             }
         }
 
+        private bool ShouldSkipEnrichment(WorktreeItemViewModel item, bool isManual)
+        {
+            // Skip checking if this is an auto-refresh and the status check was done recently (within 30s)
+            if (!isManual && DateTime.UtcNow - item.LastStatusCheckUtc < StatusRefreshCache)
+            {
+                return true;
+            }
+
+            // Skip checking if we are in the temporary failure retry backoff period
+            lock (_failureLock)
+            {
+                if (_failureTracking.TryGetValue(item.FullPath, out var failInfo))
+                {
+                    if (DateTime.UtcNow < failInfo.NextRetryTimeUtc)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private async Task EnrichWorktreesAsync(List<WorktreeItemViewModel> items, System.Threading.CancellationToken token, bool isManual)
         {
             try
             {
                 // 1. Process active/current worktree first and await it
                 var currentItem = items.FirstOrDefault(x => x.IsCurrent);
-                if (currentItem != null)
+                if (currentItem != null && !ShouldSkipEnrichment(currentItem, isManual))
                 {
                     await EnrichSingleItemAsync(currentItem, token, isManual).ConfigureAwait(false);
                 }
@@ -801,7 +824,7 @@ namespace GitWorkTree.ViewModel
                 // 2. Process other worktrees with strict concurrency throttling of 2 (letting tasks run naturally)
                 using (var semaphore = new System.Threading.SemaphoreSlim(2))
                 {
-                    var otherItems = items.Where(x => !x.IsCurrent).ToList();
+                    var otherItems = items.Where(x => !x.IsCurrent && !ShouldSkipEnrichment(x, isManual)).ToList();
                     var tasks = otherItems.Select(async item =>
                     {
                         await semaphore.WaitAsync(token).ConfigureAwait(false);
@@ -839,22 +862,9 @@ namespace GitWorkTree.ViewModel
             {
                 token.ThrowIfCancellationRequested();
 
-                // Skip checking if this is an auto-refresh and the status check was done recently (within 30s)
-                if (!isManual && DateTime.UtcNow - item.LastStatusCheckUtc < StatusRefreshCache)
+                if (ShouldSkipEnrichment(item, isManual))
                 {
                     return;
-                }
-
-                // Skip checking if we are in the temporary failure retry backoff period
-                lock (_failureLock)
-                {
-                    if (_failureTracking.TryGetValue(item.FullPath, out var failInfo))
-                    {
-                        if (DateTime.UtcNow < failInfo.NextRetryTimeUtc)
-                        {
-                            return;
-                        }
-                    }
                 }
 
                 token.ThrowIfCancellationRequested();

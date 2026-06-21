@@ -199,7 +199,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <!-- Bd Border spans the full width of the parent (stretching) -->
-                            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True" TextElement.Foreground="{TemplateBinding Foreground}">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="3,0,0,0" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True" TextElement.Foreground="{TemplateBinding Foreground}">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="16"/>
@@ -245,16 +245,18 @@
                                 <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemActiveBrushKey}}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemActiveTextBrushKey}}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarMouseOverBackgroundGradientKey}}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"/>
                             </Trigger>
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
                                     <Condition Property="IsSelected" Value="True"/>
                                     <Condition Property="IsSelectionActive" Value="False"/>
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemInactiveBrushKey}}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource {x:Static platformUI:TreeViewColors.SelectedItemInactiveTextBrushKey}}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarMouseOverBackgroundGradientKey}}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"/>
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -379,7 +381,7 @@
                     <Button Style="{StaticResource VsToolbarButton}" Command="{Binding PruneCommand}" ToolTip="Prune Worktrees: Clean up reference information for worktree folders that have been manually deleted from disk" Width="22" Height="22" Padding="3">
                         <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.DeleteFolder}" Width="16" Height="16"/>
                     </Button>
-                </StackPanel>
+                 </StackPanel>
 
                 <!-- Repository link header similar to Visual Studio's layout, docked to the right -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,6,0">
@@ -466,12 +468,32 @@
             </Grid.Style>
             <Grid.ColumnDefinitions>
                 <!-- Left Pane (Search and tree) -->
-                <ColumnDefinition Width="280" MinWidth="150"/>
+                <ColumnDefinition MinWidth="150">
+                    <ColumnDefinition.Style>
+                        <Style TargetType="ColumnDefinition">
+                            <Setter Property="Width" Value="1*"/>
+                        </Style>
+                    </ColumnDefinition.Style>
+                </ColumnDefinition>
                 <!-- Splitter -->
-                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="Auto"/>
                 <!-- Right Pane (Detail view) -->
-                <ColumnDefinition Width="*" MinWidth="300"/>
+                <ColumnDefinition>
+                    <ColumnDefinition.Style>
+                        <Style TargetType="ColumnDefinition">
+                            <Setter Property="Width" Value="2*"/>
+                            <Setter Property="MinWidth" Value="300"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsDetailsPaneVisible}" Value="False">
+                                    <Setter Property="MinWidth" Value="0"/>
+                                    <Setter Property="MaxWidth" Value="0"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ColumnDefinition.Style>
+                </ColumnDefinition>
             </Grid.ColumnDefinitions>
+
 
             <ProgressBar Height="2" IsIndeterminate="True" VerticalAlignment="Top" Panel.ZIndex="999"
                          Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
@@ -485,7 +507,34 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <TextBox Grid.Row="0" Style="{StaticResource VsSearchTextBox}" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
+                <Grid Grid.Row="0" Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Style="{StaticResource VsSearchTextBox}" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button Grid.Column="1" Style="{StaticResource VsToolbarButton}" Command="{Binding ToggleDetailsPaneCommand}" ToolTip="Toggle Details Pane" Width="22" Height="22" Margin="4,0,0,0" VerticalAlignment="Center">
+                        <Path x:Name="CollapsePath" 
+                              Stroke="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" 
+                              StrokeThickness="1.5" 
+                              Width="8" Height="12" 
+                              HorizontalAlignment="Center" 
+                              VerticalAlignment="Center" 
+                              SnapsToDevicePixels="True">
+                            <Path.Style>
+                                <Style TargetType="Path">
+                                    <Setter Property="Data" Value="M 6,2 L 2,6 L 6,10"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsDetailsPaneVisible}" Value="True">
+                                            <Setter Property="Data" Value="M 2,2 L 6,6 L 2,10"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Path.Style>
+                        </Path>
+                    </Button>
+                </Grid>
+
                 <!-- Hierarchical TreeView mimicking Manage Branches -->
                 <TreeView Grid.Row="1" ItemsSource="{Binding WorktreeHierarchy}" SelectedItemChanged="TreeView_SelectedItemChanged"
                           Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"
@@ -495,6 +544,7 @@
                           VirtualizingPanel.VirtualizationMode="Recycling"
                           VirtualizingPanel.IsVirtualizingWhenGrouping="True"
                           ScrollViewer.CanContentScroll="True"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                           PreviewKeyDown="TreeView_PreviewKeyDown">
                     <TreeView.ItemContainerStyle>
                         <Style TargetType="TreeViewItem" BasedOn="{StaticResource VsTreeViewItemStyle}">
@@ -507,7 +557,7 @@
                                 <DataTrigger Binding="{Binding IsFolder}" Value="False">
                                     <Setter Property="ContextMenu">
                                         <Setter.Value>
-                                            <ContextMenu>
+                                            <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
                                                 <!-- MenuItem 1: Default/Preferred action -->
                                                 <MenuItem Command="{Binding PlacementTarget.Tag.OpenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
                                                     <MenuItem.Style>
@@ -599,6 +649,36 @@
                                                     </MenuItem.Style>
                                                 </MenuItem>
                                                 <Separator/>
+                                                 <MenuItem Header="Open in File Explorer"
+                                                           Command="{Binding PlacementTarget.Tag.ExplorePathCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                           CommandParameter="{Binding WorktreeItem.FullPath}">
+                                                     <MenuItem.Icon>
+                                                         <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.FolderOpened}" Width="16" Height="16"/>
+                                                     </MenuItem.Icon>
+                                                 </MenuItem>
+                                                 <MenuItem Header="Copy Worktree Path"
+                                                           Command="{Binding PlacementTarget.Tag.CopyPathCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                                                     <MenuItem.Icon>
+                                                         <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Copy}" Width="16" Height="16"/>
+                                                     </MenuItem.Icon>
+                                                 </MenuItem>
+                                                 <MenuItem Header="Show Details"
+                                                           Command="{Binding PlacementTarget.Tag.ShowDetailsPaneCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                                                     <MenuItem.Icon>
+                                                         <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.History}" Width="16" Height="16"/>
+                                                     </MenuItem.Icon>
+                                                     <MenuItem.Style>
+                                                         <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                             <Setter Property="Visibility" Value="Collapsed"/>
+                                                             <Style.Triggers>
+                                                                 <DataTrigger Binding="{Binding PlacementTarget.Tag.IsDetailsPaneVisible, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="False">
+                                                                     <Setter Property="Visibility" Value="Visible"/>
+                                                                 </DataTrigger>
+                                                             </Style.Triggers>
+                                                         </Style>
+                                                     </MenuItem.Style>
+                                                 </MenuItem>
+                                                <Separator/>
                                                 <MenuItem Header="Remove..." 
                                                           Command="{Binding PlacementTarget.Tag.RemoveCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
                                                           InputGestureText="Del">
@@ -606,7 +686,7 @@
                                                         <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Cancel}" Width="16" Height="16"/>
                                                     </MenuItem.Icon>
                                                 </MenuItem>
-                                            </ContextMenu>
+                                             </ContextMenu>
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
@@ -658,29 +738,70 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- Branch Icon -->
-                                    <imaging:CrispImage Grid.Column="0" Moniker="{x:Static catalog:KnownMonikers.Branch}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                     <!-- Branch Icon (Worktree is a branch checkout) -->
+                                     <imaging:CrispImage Grid.Column="0" Moniker="{x:Static catalog:KnownMonikers.Branch}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+ 
+                                     <TextBlock Grid.Column="1" Text="{Binding WorktreeItem.FolderName}" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="12" TextTrimming="CharacterEllipsis"/>
 
-                                    <TextBlock Grid.Column="1" Text="{Binding WorktreeItem.FolderName}" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="12"/>
-
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
-                                        <!-- Current Badge -->
-                                        <Border CornerRadius="3" BorderThickness="1" 
-                                                BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}" 
-                                                Background="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}" 
-                                                Padding="5,1" Margin="2,0"
-                                                Visibility="{Binding WorktreeItem.IsCurrent, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="current" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.HighlightTextKey}}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <!-- Main Badge -->
-                                        <Border CornerRadius="3" BorderThickness="1" 
-                                                BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}" 
-                                                Background="Transparent" 
-                                                Padding="5,1" Margin="2,0"
-                                                Visibility="{Binding WorktreeItem.IsMain, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="main" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.GrayTextKey}}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </StackPanel>
+                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="4,0,0,0">
+                                         <!-- Current Badge -->
+                                         <Border CornerRadius="3" BorderThickness="1" 
+                                                 Padding="5,1" Margin="2,0"
+                                                 Visibility="{Binding WorktreeItem.IsCurrent, Converter={StaticResource BoolToVis}}">
+                                             <Border.Style>
+                                                 <Style TargetType="Border">
+                                                     <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}"/>
+                                                     <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
+                                                     <Style.Triggers>
+                                                         <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+                                                             <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightTextKey}}"/>
+                                                             <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightTextKey}}"/>
+                                                         </DataTrigger>
+                                                     </Style.Triggers>
+                                                 </Style>
+                                             </Border.Style>
+                                             <TextBlock Text="current" FontSize="10" FontWeight="Bold" VerticalAlignment="Center">
+                                                 <TextBlock.Style>
+                                                     <Style TargetType="TextBlock">
+                                                         <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightTextKey}}"/>
+                                                         <Style.Triggers>
+                                                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+                                                                 <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
+                                                             </DataTrigger>
+                                                         </Style.Triggers>
+                                                     </Style>
+                                                 </TextBlock.Style>
+                                             </TextBlock>
+                                         </Border>
+                                         <!-- Main Badge -->
+                                         <Border CornerRadius="3" BorderThickness="1" 
+                                                 Background="Transparent" 
+                                                 Padding="5,1" Margin="2,0"
+                                                 Visibility="{Binding WorktreeItem.IsMain, Converter={StaticResource BoolToVis}}">
+                                             <Border.Style>
+                                                 <Style TargetType="Border">
+                                                     <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}"/>
+                                                     <Style.Triggers>
+                                                         <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+                                                             <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightTextKey}}"/>
+                                                         </DataTrigger>
+                                                     </Style.Triggers>
+                                                 </Style>
+                                             </Border.Style>
+                                             <TextBlock Text="main" FontSize="10" FontWeight="Bold" VerticalAlignment="Center">
+                                                 <TextBlock.Style>
+                                                     <Style TargetType="TextBlock">
+                                                         <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.GrayTextKey}}"/>
+                                                         <Style.Triggers>
+                                                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+                                                                 <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightTextKey}}"/>
+                                                             </DataTrigger>
+                                                         </Style.Triggers>
+                                                     </Style>
+                                                 </TextBlock.Style>
+                                             </TextBlock>
+                                         </Border>
+                                     </StackPanel>
                                 </Grid>
                             </Grid>
                         </HierarchicalDataTemplate>
@@ -689,10 +810,20 @@
             </Grid>
  
             <!-- Splitter -->
-            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}"/>
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent"
+                          Visibility="{Binding IsDetailsPaneVisible, Converter={StaticResource BoolToVis}}">
+                <GridSplitter.Template>
+                    <ControlTemplate TargetType="GridSplitter">
+                        <Border Background="Transparent" Width="5" HorizontalAlignment="Center">
+                            <Rectangle Width="1" Fill="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+                        </Border>
+                    </ControlTemplate>
+                </GridSplitter.Template>
+            </GridSplitter>
  
             <!-- Right Pane: Details & Interactive Actions -->
-            <Grid Grid.Column="2" Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}">
+            <Grid Grid.Column="2" Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"
+                  Visibility="{Binding IsDetailsPaneVisible, Converter={StaticResource BoolToVis}}">
                 <!-- Details view -->
                 <Grid>
                     <Grid.Style>
@@ -828,6 +959,78 @@
                                     <TreeView.Resources>
                                         <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
                                             <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch">
+                                                <Grid.ContextMenu>
+                                                    <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                                        <MenuItem Header="Open" Click="OpenWithVisualStudio_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                             <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                        <MenuItem Click="OpenContainingFolder_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.FolderOpened}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Setter Property="Header" Value="Open Containing Folder"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                            <Setter Property="Header" Value="Open in File Explorer"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                        <MenuItem Header="Copy Full Path" Click="CopyFullPath_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Copy}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                             <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                         <Separator>
+                                                             <Separator.Style>
+                                                                 <Style TargetType="Separator" BasedOn="{StaticResource {x:Type Separator}}">
+                                                                     <Style.Triggers>
+                                                                         <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                              <Setter Property="Visibility" Value="Collapsed"/>
+                                                                         </DataTrigger>
+                                                                     </Style.Triggers>
+                                                                 </Style>
+                                                             </Separator.Style>
+                                                         </Separator>
+                                                        <MenuItem Header="Copy Relative Path" Click="CopyRelativePath_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Copy}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                             <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                    </ContextMenu>
+                                                </Grid.ContextMenu>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="*"/>
@@ -902,7 +1105,79 @@
                                     </TreeView.ItemContainerStyle>
                                     <TreeView.Resources>
                                         <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
-                                            <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch">
+                                                                                        <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch">
+                                                <Grid.ContextMenu>
+                                                    <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                                        <MenuItem Header="Open" Click="OpenWithVisualStudio_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                             <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                        <MenuItem Click="OpenContainingFolder_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.FolderOpened}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Setter Property="Header" Value="Open Containing Folder"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                            <Setter Property="Header" Value="Open in File Explorer"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                        <MenuItem Header="Copy Full Path" Click="CopyFullPath_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Copy}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                             <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                         <Separator>
+                                                             <Separator.Style>
+                                                                 <Style TargetType="Separator" BasedOn="{StaticResource {x:Type Separator}}">
+                                                                     <Style.Triggers>
+                                                                         <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                              <Setter Property="Visibility" Value="Collapsed"/>
+                                                                         </DataTrigger>
+                                                                     </Style.Triggers>
+                                                                 </Style>
+                                                             </Separator.Style>
+                                                         </Separator>
+                                                        <MenuItem Header="Copy Relative Path" Click="CopyRelativePath_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Copy}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                             <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                    </ContextMenu>
+                                                </Grid.ContextMenu>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="*"/>
@@ -986,7 +1261,79 @@
                                     </TreeView.ItemContainerStyle>
                                     <TreeView.Resources>
                                         <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
-                                            <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch">
+                                                                                        <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch">
+                                                <Grid.ContextMenu>
+                                                    <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                                        <MenuItem Header="Open" Click="OpenWithVisualStudio_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                             <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                        <MenuItem Click="OpenContainingFolder_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.FolderOpened}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Setter Property="Header" Value="Open Containing Folder"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                            <Setter Property="Header" Value="Open in File Explorer"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                        <MenuItem Header="Copy Full Path" Click="CopyFullPath_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Copy}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                             <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                         <Separator>
+                                                             <Separator.Style>
+                                                                 <Style TargetType="Separator" BasedOn="{StaticResource {x:Type Separator}}">
+                                                                     <Style.Triggers>
+                                                                         <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                              <Setter Property="Visibility" Value="Collapsed"/>
+                                                                         </DataTrigger>
+                                                                     </Style.Triggers>
+                                                                 </Style>
+                                                             </Separator.Style>
+                                                         </Separator>
+                                                        <MenuItem Header="Copy Relative Path" Click="CopyRelativePath_Click">
+                                                            <MenuItem.Icon>
+                                                                <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Copy}" Width="16" Height="16"/>
+                                                            </MenuItem.Icon>
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFile}" Value="False">
+                                                                             <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
+                                                        </MenuItem>
+                                                    </ContextMenu>
+                                                </Grid.ContextMenu>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="*"/>
@@ -1039,6 +1386,20 @@
                                           Style="{x:Null}"
                                           Background="Transparent" BorderThickness="0" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
                                           ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                    <ListView.ContextMenu>
+                                        <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                            <MenuItem Header="View Commit Details" Click="ViewCommitDetails_Click">
+                                                <MenuItem.Icon>
+                                                    <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.History}" Width="16" Height="16"/>
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                            <MenuItem Header="Copy Commit SHA" Click="CopyCommitSha_Click">
+                                                <MenuItem.Icon>
+                                                    <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Copy}" Width="16" Height="16"/>
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                        </ContextMenu>
+                                    </ListView.ContextMenu>
                                     <ListView.ItemContainerStyle>
                                         <Style TargetType="ListViewItem">
                                             <Setter Property="Background" Value="Transparent"/>
@@ -1081,7 +1442,10 @@
                                             <GridViewColumn Header="Message" Width="380">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>
-                                                        <TextBlock Text="{Binding Subject}" Style="{StaticResource PrimaryTextBlockStyle}"/>
+                                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                             <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Upload}" Width="12" Height="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                             <TextBlock Text="{Binding Subject}" Style="{StaticResource PrimaryTextBlockStyle}" VerticalAlignment="Center"/>
+                                                         </StackPanel>
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>

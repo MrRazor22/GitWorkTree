@@ -12,6 +12,8 @@
                         xmlns:imaging="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.Imaging"
                         xmlns:catalog="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.ImageCatalog"
                         toolkit:Themes.UseVsTheme="True"
+                        Background="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}"
+                        Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
                         mc:Ignorable="d"
                         Title="{Binding WindowTitle}"
                           Width="650"
@@ -349,7 +351,7 @@
                         <Button Grid.Column="1" Click="ButtonOpen_Click" Width="20" Padding="0">
                             <Path Data="{StaticResource ArrowDownGeometry}" Style="{StaticResource DropdownArrowPathStyle}"/>
                             <Button.ContextMenu>
-                                <ContextMenu>
+                                <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
                                     <MenuItem Header="Open in Current Window" Command="{Binding OpenCommand}" CommandParameter="CurrentWindow">
                                         <MenuItem.Icon>
                                             <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
@@ -397,7 +399,7 @@
                         <Button Grid.Column="1" Click="ButtonCreate_Click" Width="20" Padding="0">
                             <Path Data="{StaticResource ArrowDownGeometry}" Style="{StaticResource DropdownArrowPathStyle}"/>
                             <Button.ContextMenu>
-                                <ContextMenu>
+                                <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
                                     <MenuItem Header="Create Only" Command="{Binding CreateCommand}" CommandParameter="DoNotOpen">
                                         <MenuItem.Icon>
                                             <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Add}" Width="16" Height="16"/>

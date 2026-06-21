@@ -12,6 +12,7 @@ using GitWorkTree.Helpers;
 using GitWorkTree.Commands;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.TeamFoundation.Git.Extensibility;
+using Microsoft.VisualStudio.Imaging;
 
 namespace GitWorkTree.ViewModel
 {
@@ -229,6 +230,25 @@ namespace GitWorkTree.ViewModel
         public bool IsWorktreeSelected => SelectedWorktree != null;
         public bool CanRemoveWorktree => SelectedWorktree != null && !SelectedWorktree.IsMain && !SelectedWorktree.IsCurrent;
 
+        private bool _isDetailsPaneVisible = false;
+        public bool IsDetailsPaneVisible
+        {
+            get => _isDetailsPaneVisible;
+            set
+            {
+                if (_isDetailsPaneVisible != value)
+                {
+                    _isDetailsPaneVisible = value;
+                    OnPropertyChanged(nameof(IsDetailsPaneVisible));
+                    OnPropertyChanged(nameof(DetailsPaneMoniker));
+                }
+            }
+        }
+
+        public Microsoft.VisualStudio.Imaging.Interop.ImageMoniker DetailsPaneMoniker =>
+            _isDetailsPaneVisible ? Microsoft.VisualStudio.Imaging.KnownMonikers.Next : Microsoft.VisualStudio.Imaging.KnownMonikers.Previous;
+
+
         // Detailed Properties
         private string _detailBranchName;
         public string DetailBranchName
@@ -356,6 +376,9 @@ namespace GitWorkTree.ViewModel
                 }
             }, null, _loggingService);
 
+            ToggleDetailsPaneCommand = new RelayCommand("Toggle Details Pane", obj => { IsDetailsPaneVisible = !IsDetailsPaneVisible; return true; }, null, _loggingService);
+            ShowDetailsPaneCommand = new RelayCommand("Show Details Pane", obj => { IsDetailsPaneVisible = true; return true; }, null, _loggingService);
+
             InitializeRepositoryPath();
         }
 
@@ -474,6 +497,9 @@ namespace GitWorkTree.ViewModel
         public ICommand CopyPathCommand { get; }
         public ICommand CopyRepositoryPathCommand { get; }
         public ICommand ExplorePathCommand { get; }
+        public ICommand ToggleDetailsPaneCommand { get; }
+        public ICommand ShowDetailsPaneCommand { get; }
+
 
         public async Task RefreshAsync(bool isManual = false)
         {
@@ -1038,8 +1064,10 @@ namespace GitWorkTree.ViewModel
                 string statusPart = change.Substring(0, 2);
                 string fileRelativePath = change.Substring(3).Trim();
 
+                bool isFolder = statusPart == "??" && (fileRelativePath.EndsWith("/") || fileRelativePath.EndsWith("\\"));
+
                 // Normalize directory entries (e.g., untracked folders with trailing slashes)
-                if (fileRelativePath.EndsWith("/") || fileRelativePath.EndsWith("\\"))
+                if (isFolder)
                 {
                     fileRelativePath = fileRelativePath.TrimEnd('/', '\\');
                 }
@@ -1062,7 +1090,7 @@ namespace GitWorkTree.ViewModel
 
                 if (statusPart == "??")
                 {
-                    AddPathToTree(untrackedRoot, fileRelativePath, "??");
+                    AddPathToTree(untrackedRoot, fileRelativePath, "??", isFolder);
                 }
                 else
                 {
@@ -1071,19 +1099,14 @@ namespace GitWorkTree.ViewModel
 
                     if (isStaged)
                     {
-                        AddPathToTree(stagedRoot, fileRelativePath, statusPart[0].ToString());
+                        AddPathToTree(stagedRoot, fileRelativePath, statusPart[0].ToString(), isFolder);
                     }
                     if (isUnstaged)
                     {
-                        AddPathToTree(unstagedRoot, fileRelativePath, statusPart[1].ToString());
+                        AddPathToTree(unstagedRoot, fileRelativePath, statusPart[1].ToString(), isFolder);
                     }
                 }
             }
-
-            // Recursively update node properties (IsFolder, IsFile)
-            UpdateNodeTypes(stagedRoot);
-            UpdateNodeTypes(unstagedRoot);
-            UpdateNodeTypes(untrackedRoot);
 
             foreach (var child in stagedRoot.Children)
             {
@@ -1099,27 +1122,13 @@ namespace GitWorkTree.ViewModel
             }
         }
 
-        private void UpdateNodeTypes(GitChangeNode node)
-        {
-            if (node == null) return;
-            if (!node.IsCategory)
-            {
-                node.IsFolder = node.Children != null && node.Children.Count > 0;
-                node.IsFile = !node.IsFolder;
-            }
-            foreach (var child in node.Children)
-            {
-                UpdateNodeTypes(child);
-            }
-        }
-
         private int CountFiles(GitChangeNode node)
         {
             if (node.Children == null || node.Children.Count == 0) return 1;
             return node.Children.Sum(CountFiles);
         }
 
-        private void AddPathToTree(GitChangeNode root, string relativePath, string status)
+        private void AddPathToTree(GitChangeNode root, string relativePath, string status, bool isFolder = false)
         {
             string[] parts = relativePath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
             GitChangeNode current = root;
@@ -1133,7 +1142,22 @@ namespace GitWorkTree.ViewModel
                 if (child == null)
                 {
                     child = new GitChangeNode { Name = partName };
+                    if (!isLast)
+                    {
+                        child.IsFolder = true;
+                        child.IsFile = false;
+                    }
+                    else
+                    {
+                        child.IsFolder = isFolder;
+                        child.IsFile = !isFolder;
+                    }
                     current.Children.Add(child);
+                }
+                else if (!isLast)
+                {
+                    child.IsFolder = true;
+                    child.IsFile = false;
                 }
 
                 if (isLast)

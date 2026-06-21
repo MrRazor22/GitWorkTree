@@ -99,6 +99,92 @@ namespace GitWorkTree.View
             }
         }
 
+        private void OpenWithVisualStudio_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is GitChangeNode node && node.IsFile)
+            {
+                ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    await VS.Documents.OpenAsync(node.FullPath);
+                });
+            }
+        }
+
+        private void OpenContainingFolder_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is GitChangeNode node)
+            {
+                try
+                {
+                    if (node.IsFile)
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{node.FullPath}\"");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", $"\"{node.FullPath}\"");
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    var vm = DataContext as ManageWorktreesViewModel;
+                    vm?.RefreshCommand?.Execute(null); // Try refreshing tree or similar
+                }
+            }
+        }
+
+        private void CopyFullPath_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is GitChangeNode node)
+            {
+                try
+                {
+                    System.Windows.Clipboard.SetText(node.FullPath);
+                }
+                catch { }
+            }
+        }
+
+        private void CopyRelativePath_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is GitChangeNode node)
+            {
+                try
+                {
+                    System.Windows.Clipboard.SetText(node.RelativePath);
+                }
+                catch { }
+            }
+        }
+
+        private void ViewCommitDetails_Click(object sender, RoutedEventArgs e)
+        {
+            var commit = (sender is MenuItem menuItem ? menuItem.DataContext : null) as GitCommitInfo 
+                          ?? OutgoingListBox.SelectedItem as GitCommitInfo;
+            if (commit != null)
+            {
+                if (DataContext is ManageWorktreesViewModel vm && vm.OpenCommitDetailsCommand != null)
+                {
+                    vm.OpenCommitDetailsCommand.Execute(commit);
+                }
+            }
+        }
+
+        private void CopyCommitSha_Click(object sender, RoutedEventArgs e)
+        {
+            var commit = (sender is MenuItem menuItem ? menuItem.DataContext : null) as GitCommitInfo 
+                          ?? OutgoingListBox.SelectedItem as GitCommitInfo;
+            if (commit != null)
+            {
+                try
+                {
+                    System.Windows.Clipboard.SetText(commit.FullSha);
+                }
+                catch { }
+            }
+        }
+
         private void TreeViewItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is TreeViewItem item)

@@ -198,6 +198,7 @@ namespace GitWorkTree.ViewModel
 
         private WorktreeItemViewModel _selectedWorktree;
         private System.Threading.CancellationTokenSource _detailsCts;
+        private int _detailsLoadVersion;
         public WorktreeItemViewModel SelectedWorktree
         {
             get => _selectedWorktree;
@@ -740,6 +741,8 @@ namespace GitWorkTree.ViewModel
                 return;
             }
 
+            int version = ++_detailsLoadVersion;
+
             try
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -747,7 +750,7 @@ namespace GitWorkTree.ViewModel
 
                 var worktree = SelectedWorktree;
 
-                var details = await _gitService.GetWorkTreeDetailsAsync(ActiveRepositoryPath, worktree.FullPath).ConfigureAwait(false);
+                var details = await _gitService.GetWorkTreeDetailsAsync(ActiveRepositoryPath, worktree.FullPath, token).ConfigureAwait(false);
 
                 token.ThrowIfCancellationRequested();
 
@@ -755,7 +758,7 @@ namespace GitWorkTree.ViewModel
                 
                 token.ThrowIfCancellationRequested();
 
-                if (SelectedWorktree != worktree) return;
+                if (SelectedWorktree != worktree || version != _detailsLoadVersion) return;
 
                 DetailBranchName = details.Branch;
                 DetailStatusSummary = details.StatusSummary;

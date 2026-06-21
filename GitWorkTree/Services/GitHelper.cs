@@ -51,7 +51,7 @@ namespace GitWorkTree.Services
                 @"CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe");
         }
 
-        private async Task<bool> ExecuteAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null)
+        private async Task<bool> ExecuteAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null, System.Threading.CancellationToken cancellationToken = default)
         {
             if (gitCommandArgs == null)
             {
@@ -61,10 +61,10 @@ namespace GitWorkTree.Services
 
             string fullArgument = $"-c core.longpaths=true -c core.preloadIndex=true -c core.fscache=true -c index.threads=0 {gitCommandArgs.Argument}";
 
-            return await _commandExecutor.ExecuteAsync(_gitPath, fullArgument, gitCommandArgs.WorkingDirectory, outputHandler);
+            return await _commandExecutor.ExecuteAsync(_gitPath, fullArgument, gitCommandArgs.WorkingDirectory, outputHandler, cancellationToken);
         }
 
-        private async Task<GitCommandExecutionResult> ExecuteWithResultAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null)
+        private async Task<GitCommandExecutionResult> ExecuteWithResultAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null, System.Threading.CancellationToken cancellationToken = default)
         {
             if (gitCommandArgs == null)
             {
@@ -74,7 +74,7 @@ namespace GitWorkTree.Services
 
             string fullArgument = $"-c core.longpaths=true -c core.preloadIndex=true -c core.fscache=true -c index.threads=0 {gitCommandArgs.Argument}";
 
-            return await _commandExecutor.ExecuteWithResultAsync(_gitPath, fullArgument, gitCommandArgs.WorkingDirectory, outputHandler);
+            return await _commandExecutor.ExecuteWithResultAsync(_gitPath, fullArgument, gitCommandArgs.WorkingDirectory, outputHandler, cancellationToken);
         }
 
         public async Task<List<string>> GetWorkTreePathsAsync(string repositoryPath)
@@ -283,7 +283,7 @@ namespace GitWorkTree.Services
             return null;
         }
 
-        public async Task<(string Branch, string StatusSummary, List<string> Changes, List<GitCommitInfo> Outgoing)> GetWorkTreeDetailsAsync(string repositoryPath, string workTreePath)
+        public async Task<(string Branch, string StatusSummary, List<string> Changes, List<GitCommitInfo> Outgoing)> GetWorkTreeDetailsAsync(string repositoryPath, string workTreePath, System.Threading.CancellationToken cancellationToken = default)
         {
             string branch = "Unknown";
             int staged = 0;
@@ -357,7 +357,7 @@ namespace GitWorkTree.Services
                     if (indexStatus != ' ' && indexStatus != 'U') staged++;
                     if (workTreeStatus != ' ' && workTreeStatus != '?' && workTreeStatus != 'U') unstaged++;
                 }
-            }).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
 
             if (!statusSuccess)
             {
@@ -385,7 +385,7 @@ namespace GitWorkTree.Services
                             outgoing.Add(new GitCommitInfo(parts[0], parts[1], parts[2]));
                         }
                     }
-                }).ConfigureAwait(false);
+                }, cancellationToken).ConfigureAwait(false);
             }
 
             string statusSummary = $"{staged} staged, {unstaged + untracked} changes ({untracked} untracked) · ↑{ahead} ↓{behind}";

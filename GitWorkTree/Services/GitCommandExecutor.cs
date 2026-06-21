@@ -25,7 +25,7 @@ namespace GitWorkTree.Services
             }
         }
 
-        public async Task<bool> ExecuteAsync(string gitPath, string arguments, string workingDirectory, Action<string> outputHandler)
+        public async Task<bool> ExecuteAsync(string gitPath, string arguments, string workingDirectory, Action<string> outputHandler, System.Threading.CancellationToken cancellationToken = default)
         {
             int cmdId = System.Threading.Interlocked.Increment(ref _commandCounter);
             string logPrefix = $"[Cmd #{cmdId}]";
@@ -85,7 +85,19 @@ namespace GitWorkTree.Services
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
 
-                await process.WaitForExitAsync();
+                using var registration = cancellationToken.Register(() =>
+                {
+                    try
+                    {
+                        if (!process.HasExited)
+                        {
+                            process.Kill();
+                        }
+                    }
+                    catch { }
+                });
+
+                await process.WaitForExitAsync(cancellationToken);
                 stopwatch.Stop();
 
                 bool isError = process.ExitCode != 0;
@@ -108,7 +120,7 @@ namespace GitWorkTree.Services
             }
         }
 
-        public async Task<GitCommandExecutionResult> ExecuteWithResultAsync(string gitPath, string arguments, string workingDirectory, Action<string> outputHandler = null)
+        public async Task<GitCommandExecutionResult> ExecuteWithResultAsync(string gitPath, string arguments, string workingDirectory, Action<string> outputHandler = null, System.Threading.CancellationToken cancellationToken = default)
         {
             int cmdId = System.Threading.Interlocked.Increment(ref _commandCounter);
             string logPrefix = $"[Cmd #{cmdId}]";
@@ -168,7 +180,19 @@ namespace GitWorkTree.Services
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
 
-                await process.WaitForExitAsync();
+                using var registration = cancellationToken.Register(() =>
+                {
+                    try
+                    {
+                        if (!process.HasExited)
+                        {
+                            process.Kill();
+                        }
+                    }
+                    catch { }
+                });
+
+                await process.WaitForExitAsync(cancellationToken);
                 stopwatch.Stop();
 
                 bool isError = process.ExitCode != 0;

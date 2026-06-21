@@ -111,6 +111,53 @@ namespace GitWorkTree.View
             }
         }
 
+        private void CompareWithHead_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is GitChangeNode node && node.IsFile)
+            {
+                string fullPath = node.FullPath;
+                string fileRelativePath = node.RelativePath;
+                string statusPart = node.Status;
+
+                var vm = DataContext as ManageWorktreesViewModel;
+                if (vm == null || vm.SelectedWorktree == null) return;
+
+                ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                    if (statusPart == "??" || statusPart == "?")
+                    {
+                        // Untracked: Open normally in the editor
+                        await VS.Documents.OpenAsync(fullPath);
+                    }
+                    else
+                    {
+                        // Modified / Staged: Open comparison (HEAD content vs working file) using IVsDifferenceService
+                        var diffService = Package.GetGlobalService(typeof(SVsDifferenceService)) as IVsDifferenceService;
+                        if (diffService != null)
+                        {
+                            // Write HEAD file content to a temp file
+                            string tempFile = Path.Combine(Path.GetTempPath(), Path.GetFileName(fullPath) + "_HEAD");
+                            
+                            var gitService = new GitHelper(LoggingHelper.Instance);
+                            string headContent = await gitService.ShowFileContentAsync(vm.SelectedWorktree.FullPath, $"HEAD:{fileRelativePath}");
+                            if (headContent != null)
+                            {
+                                File.WriteAllText(tempFile, headContent);
+                                diffService.OpenComparisonWindow(tempFile, fullPath);
+                            }
+                            else
+                            {
+                                // Fallback open normally if show failed
+                                await VS.Documents.OpenAsync(fullPath);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         private void OpenContainingFolder_Click(object sender, RoutedEventArgs e)
         {
             if (sender is MenuItem menuItem && menuItem.DataContext is GitChangeNode node)

@@ -27,7 +27,7 @@ namespace GitWorkTree.Tests
 
             _mockCommandExecutor
                 .Setup(e => e.ExecuteWithResultAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Action<string>>()))
-                .ReturnsAsync(new GitCommandExecutionResult(true));
+                .ReturnsAsync(new GitCommandExecutionResult(true, ""));
 
             _gitHelper = new GitHelper(_mockLoggingService.Object, _mockCommandExecutor.Object, @"C:\git.exe");
         }

@@ -295,7 +295,7 @@ namespace GitWorkTree.Services
             List<GitCommitInfo> outgoing = new List<GitCommitInfo>();
 
             bool hasUpstream = false;
-            bool statusSuccess = await ExecuteAsync(new GitCommandArgs()
+            var statusResult = await ExecuteWithResultAsync(new GitCommandArgs()
             {
                 WorkingDirectory = workTreePath,
                 Argument = "status --porcelain -b"
@@ -359,9 +359,9 @@ namespace GitWorkTree.Services
                 }
             }, cancellationToken).ConfigureAwait(false);
 
-            if (!statusSuccess)
+            if (!statusResult.Success)
             {
-                throw new InvalidOperationException($"Git status command failed for worktree: {workTreePath}");
+                throw new InvalidOperationException(statusResult.StandardError);
             }
 
             // 3. Outgoing commits (git log @{u}..HEAD --pretty=format:"%H%x09%h%x09%s%x09%an%x09%ad" --date=short) if upstream is configured

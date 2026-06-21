@@ -85,6 +85,20 @@ namespace GitWorkTree.ViewModel
             }
         }
 
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    OnPropertyChanged(nameof(IsSelected));
+                }
+            }
+        }
+
         private bool _isFolder;
         public bool IsFolder
         {
@@ -305,6 +319,20 @@ namespace GitWorkTree.ViewModel
         {
             get => _detailPath;
             set { _detailPath = value; OnPropertyChanged(nameof(DetailPath)); }
+        }
+
+        private bool _hasDetailsError;
+        public bool HasDetailsError
+        {
+            get => _hasDetailsError;
+            set { _hasDetailsError = value; OnPropertyChanged(nameof(HasDetailsError)); }
+        }
+
+        private string _detailsErrorMessage;
+        public string DetailsErrorMessage
+        {
+            get => _detailsErrorMessage;
+            set { _detailsErrorMessage = value; OnPropertyChanged(nameof(DetailsErrorMessage)); }
         }
 
         private General _options;
@@ -722,12 +750,15 @@ namespace GitWorkTree.ViewModel
 
         private async Task LoadDetailsAsync(System.Threading.CancellationToken token)
         {
-            if (SelectedWorktree == null)
+            var worktree = SelectedWorktree;
+            if (worktree == null)
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 DetailBranchName = "";
                 DetailStatusSummary = "";
                 DetailPath = "";
+                HasDetailsError = false;
+                DetailsErrorMessage = "";
                 StagedCount = 0;
                 ChangesCount = 0;
                 UntrackedCount = 0;
@@ -747,8 +778,8 @@ namespace GitWorkTree.ViewModel
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 IsLoadingDetails = true;
-
-                var worktree = SelectedWorktree;
+                HasDetailsError = false;
+                DetailsErrorMessage = "";
 
                 var details = await _gitService.GetWorkTreeDetailsAsync(ActiveRepositoryPath, worktree.FullPath, token).ConfigureAwait(false);
 
@@ -780,11 +811,20 @@ namespace GitWorkTree.ViewModel
             catch (Exception ex)
             {
                 await _loggingService?.WriteToOutputWindowAsync($"Failed to load details for {SelectedWorktree?.FolderName}: {ex.Message}");
+                if (SelectedWorktree == worktree && version == _detailsLoadVersion)
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    HasDetailsError = true;
+                    DetailsErrorMessage = ex.Message;
+                }
             }
             finally
             {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                IsLoadingDetails = false;
+                if (SelectedWorktree == worktree && version == _detailsLoadVersion)
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    IsLoadingDetails = false;
+                }
             }
         }
 

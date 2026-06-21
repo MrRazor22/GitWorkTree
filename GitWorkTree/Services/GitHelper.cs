@@ -393,31 +393,6 @@ namespace GitWorkTree.Services
             return (branch, statusSummary, changes, outgoing);
         }
 
-        public async Task<GitOperationResult<bool>> IsWorktreeDirtyAsync(string worktreePath)
-        {
-            bool isDirty = false;
-            var result = await ExecuteWithResultAsync(new GitCommandArgs()
-            {
-                WorkingDirectory = worktreePath,
-                Argument = "status --porcelain -uno"
-            }, (line) =>
-            {
-                if (!string.IsNullOrWhiteSpace(line))
-                {
-                    isDirty = true;
-                }
-            }).ConfigureAwait(false);
-
-            if (result.Success)
-            {
-                return new GitOperationResult<bool>(true, isDirty);
-            }
-            else
-            {
-                return new GitOperationResult<bool>(false, false, result.StandardError);
-            }
-        }
-
         public async Task<string> ShowFileContentAsync(string repositoryPath, string revisionAndFilePath)
         {
             var contentBuilder = new StringBuilder();

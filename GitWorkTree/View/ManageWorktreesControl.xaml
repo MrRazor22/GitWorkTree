@@ -474,7 +474,7 @@
             </Grid.ColumnDefinitions>
 
             <ProgressBar Height="2" IsIndeterminate="True" VerticalAlignment="Top" Panel.ZIndex="999"
-                         Visibility="{Binding IsAnyLoading, Converter={StaticResource BoolToVis}}"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
                          Background="Transparent" BorderThickness="0" 
                          Foreground="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
 
@@ -654,27 +654,18 @@
                                     </Grid.Style>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-   
-                                    <!-- Status / Dirty indicators -->
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
-                                        <!-- Bullet indicator for Dirty worktree -->
-                                        <Ellipse Width="6" Height="6" Fill="{DynamicResource {x:Static vsshell:VsBrushes.AccentBorderKey}}" Margin="0,0,2,0" VerticalAlignment="Center" Visibility="{Binding WorktreeItem.IsDirty, Converter={StaticResource BoolToVis}}" ToolTip="Has uncommitted changes"/>
-                                        <!-- Warning icon for refresh error -->
-                                        <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.StatusWarning}" Width="14" Height="14" Margin="0,0,2,0" VerticalAlignment="Center" Visibility="{Binding WorktreeItem.HasRefreshError, Converter={StaticResource BoolToVis}}" ToolTip="{Binding WorktreeItem.ErrorSummary}"/>
-                                    </StackPanel>
-   
-                                    <!-- Branch Icon -->
-                                    <imaging:CrispImage Grid.Column="1" Moniker="{x:Static catalog:KnownMonikers.Branch}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
 
-                                    <TextBlock Grid.Column="2" Text="{Binding WorktreeItem.FolderName}" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="12"/>
-   
-                                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
+                                    <!-- Branch Icon -->
+                                    <imaging:CrispImage Grid.Column="0" Moniker="{x:Static catalog:KnownMonikers.Branch}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+
+                                    <TextBlock Grid.Column="1" Text="{Binding WorktreeItem.FolderName}" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="12"/>
+
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
                                         <!-- Current Badge -->
-                                        <Border CornerRadius="10" BorderThickness="1" 
+                                        <Border CornerRadius="3" BorderThickness="1" 
                                                 BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}" 
                                                 Background="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}" 
                                                 Padding="5,1" Margin="2,0"
@@ -682,7 +673,7 @@
                                             <TextBlock Text="current" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.HighlightTextKey}}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                                         </Border>
                                         <!-- Main Badge -->
-                                        <Border CornerRadius="10" BorderThickness="1" 
+                                        <Border CornerRadius="3" BorderThickness="1" 
                                                 BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}" 
                                                 Background="Transparent" 
                                                 Padding="5,1" Margin="2,0"
@@ -953,6 +944,78 @@
                                                     <Setter TargetName="StatusText" Property="Foreground" Value="#E05B5B"/>
                                                     <Setter TargetName="RowGrid" Property="ToolTip" Value="Deleted"/>
                                                 </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="??">
+                                                    <Setter TargetName="StatusText" Property="Foreground" Value="Gray"/>
+                                                    <Setter TargetName="RowGrid" Property="ToolTip" Value="Untracked"/>
+                                                </DataTrigger>
+                                            </HierarchicalDataTemplate.Triggers>
+                                        </HierarchicalDataTemplate>
+                                    </TreeView.Resources>
+                                </TreeView>
+                            </Expander>
+
+                            <!-- Untracked Files List -->
+                            <Expander Margin="0,0,0,6" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}">
+                                <Expander.Header>
+                                    <TextBlock Text="{Binding UntrackedCount, StringFormat='Untracked Files ({0})'}" 
+                                               FontFamily="{DynamicResource {x:Static vsshell:VsFonts.CaptionFontFamilyKey}}"
+                                               FontSize="{DynamicResource {x:Static vsshell:VsFonts.CaptionFontSizeKey}}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"/>
+                                </Expander.Header>
+                                <Expander.Style>
+                                    <Style TargetType="Expander" BasedOn="{StaticResource VsExpanderStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UntrackedCount}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Expander.Style>
+                                <TreeView Name="UntrackedChangesTreeView" ItemsSource="{Binding UntrackedChangesTree}" MouseDoubleClick="ChangesTreeView_MouseDoubleClick"
+                                          Background="Transparent" BorderThickness="0" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          VirtualizingPanel.IsVirtualizing="True"
+                                          VirtualizingPanel.VirtualizationMode="Recycling"
+                                          VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                                          ScrollViewer.CanContentScroll="True">
+                                    <TreeView.ItemContainerStyle>
+                                        <Style TargetType="TreeViewItem" BasedOn="{StaticResource VsTreeViewItemStyle}">
+                                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                        </Style>
+                                    </TreeView.ItemContainerStyle>
+                                    <TreeView.Resources>
+                                        <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
+                                            <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,6,0">
+                                                    <!-- Folder Icon -->
+                                                    <imaging:CrispImage x:Name="FolderIcon" Moniker="{x:Static catalog:KnownMonikers.FolderClosed}" Width="14" Height="14" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                                    <!-- File Icon -->
+                                                    <imaging:CrispImage x:Name="FileIcon" Moniker="{x:Static catalog:KnownMonikers.TextFile}" Width="14" Height="14" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                                </StackPanel>
+
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="11" Style="{StaticResource PrimaryTextBlockStyle}"/>
+
+                                                <!-- Status Text (far right) -->
+                                                <TextBlock Grid.Column="2" x:Name="StatusText" Text="{Binding Status}" Margin="12,0,4,0" VerticalAlignment="Center" FontSize="11" FontWeight="Bold" Visibility="Collapsed"/>
+                                            </Grid>
+
+                                            <HierarchicalDataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsFolder}" Value="True">
+                                                    <Setter TargetName="FolderIcon" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsFile}" Value="True">
+                                                    <Setter TargetName="FileIcon" Property="Visibility" Value="Visible"/>
+                                                    <Setter TargetName="StatusText" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+
+                                                <!-- Colors and ToolTips for status -->
                                                 <DataTrigger Binding="{Binding Status}" Value="??">
                                                     <Setter TargetName="StatusText" Property="Foreground" Value="Gray"/>
                                                     <Setter TargetName="RowGrid" Property="ToolTip" Value="Untracked"/>

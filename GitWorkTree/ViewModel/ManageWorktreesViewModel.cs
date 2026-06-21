@@ -45,86 +45,13 @@ namespace GitWorkTree.ViewModel
             }
         }
 
-        private bool _isLoadingStatus;
-        public bool IsLoadingStatus
-        {
-            get => _isLoadingStatus;
-            set
-            {
-                if (_isLoadingStatus != value)
-                {
-                    _isLoadingStatus = value;
-                    OnPropertyChanged(nameof(IsLoadingStatus));
-                }
-            }
-        }
-
-        private bool _isDirty;
-        public bool IsDirty
-        {
-            get => _isDirty;
-            set
-            {
-                if (_isDirty != value)
-                {
-                    _isDirty = value;
-                    OnPropertyChanged(nameof(IsDirty));
-                }
-            }
-        }
-
-        private bool _hasRefreshError;
-        public bool HasRefreshError
-        {
-            get => _hasRefreshError;
-            set
-            {
-                if (_hasRefreshError != value)
-                {
-                    _hasRefreshError = value;
-                    OnPropertyChanged(nameof(HasRefreshError));
-                }
-            }
-        }
-
-        private string _lastErrorMessage = string.Empty;
-        public string LastErrorMessage
-        {
-            get => _lastErrorMessage;
-            set
-            {
-                if (_lastErrorMessage != value)
-                {
-                    _lastErrorMessage = value;
-                    OnPropertyChanged(nameof(LastErrorMessage));
-                }
-            }
-        }
-
-        private string _errorSummary = string.Empty;
-        public string ErrorSummary
-        {
-            get => _errorSummary;
-            set
-            {
-                if (_errorSummary != value)
-                {
-                    _errorSummary = value;
-                    OnPropertyChanged(nameof(ErrorSummary));
-                }
-            }
-        }
-
-        public DateTime LastStatusCheckUtc { get; set; } = DateTime.MinValue;
-
-        public WorktreeItemViewModel(string fullPath, string folderName, bool isMain, bool isCurrent, string branchName = null, bool isDirty = false)
+        public WorktreeItemViewModel(string fullPath, string folderName, bool isMain, bool isCurrent, string branchName = null)
         {
             FullPath = fullPath;
             FolderName = folderName;
             IsMain = isMain;
             IsCurrent = isCurrent;
             _branchName = branchName;
-            _isDirty = isDirty;
         }
     }
 
@@ -218,15 +145,7 @@ namespace GitWorkTree.ViewModel
         public bool IsLoading
         {
             get => _isLoading;
-            set { _isLoading = value; OnPropertyChanged(nameof(IsLoading)); OnPropertyChanged(nameof(IsAnyLoading)); }
-        }
-
-        private bool _isRefreshing;
-
-        public bool IsRefreshing
-        {
-            get => _isRefreshing;
-            set { _isRefreshing = value; OnPropertyChanged(nameof(IsRefreshing)); OnPropertyChanged(nameof(IsAnyLoading)); }
+            set { _isLoading = value; OnPropertyChanged(nameof(IsLoading)); }
         }
 
         private bool _isLoadingDetails;
@@ -235,10 +154,6 @@ namespace GitWorkTree.ViewModel
             get => _isLoadingDetails;
             set { _isLoadingDetails = value; OnPropertyChanged(nameof(IsLoadingDetails)); }
         }
-
-        private static readonly TimeSpan StatusRefreshCache = TimeSpan.FromSeconds(30);
-
-        public bool IsAnyLoading => IsLoading || IsRefreshing;
 
         private ManageWorktreesState _currentState = ManageWorktreesState.WarmingUp;
         public ManageWorktreesState CurrentState
@@ -254,7 +169,6 @@ namespace GitWorkTree.ViewModel
             }
         }
 
-        private System.Threading.CancellationTokenSource _enrichmentCts;
         private System.Threading.CancellationTokenSource _debounceCts;
         private bool _refreshInProgress;
         private bool _refreshPending;
@@ -262,14 +176,6 @@ namespace GitWorkTree.ViewModel
         private readonly object _refreshLock = new object();
         private bool _isDialogOrCommandActive;
         private DateTime _lastDialogCloseTimeUtc = DateTime.MinValue;
-
-        private class WorktreeFailureInfo
-        {
-            public int FailureCount { get; set; }
-            public DateTime NextRetryTimeUtc { get; set; }
-        }
-        private readonly Dictionary<string, WorktreeFailureInfo> _failureTracking = new Dictionary<string, WorktreeFailureInfo>(StringComparer.OrdinalIgnoreCase);
-        private readonly object _failureLock = new object();
 
         public ObservableCollection<WorktreeItemViewModel> RawWorktrees { get; } = new ObservableCollection<WorktreeItemViewModel>();
         public ObservableCollection<HierarchyNode> WorktreeHierarchy { get; } = new ObservableCollection<HierarchyNode>();
@@ -412,6 +318,7 @@ namespace GitWorkTree.ViewModel
         public ObservableCollection<string> Changes { get; } = new ObservableCollection<string>();
         public ObservableCollection<GitChangeNode> StagedChangesTree { get; } = new ObservableCollection<GitChangeNode>();
         public ObservableCollection<GitChangeNode> UnstagedChangesTree { get; } = new ObservableCollection<GitChangeNode>();
+        public ObservableCollection<GitChangeNode> UntrackedChangesTree { get; } = new ObservableCollection<GitChangeNode>();
         public ObservableCollection<GitCommitInfo> Outgoing { get; } = new ObservableCollection<GitCommitInfo>();
 
         public ManageWorktreesViewModel() : this(null, null, null) { }
@@ -639,28 +546,6 @@ namespace GitWorkTree.ViewModel
                 CurrentState = ManageWorktreesState.LoadingWorktrees;
             }
 
-            // Clear the failure tracking only when user explicitly invokes refresh (isManual == true)
-            if (isManual)
-            {
-                lock (_failureLock)
-                {
-                    _failureTracking.Clear();
-                }
-            }
-
-            // 1. Cancel previous enrichment
-            if (_enrichmentCts != null)
-            {
-                try
-                {
-                    _enrichmentCts.Cancel();
-                    _enrichmentCts.Dispose();
-                }
-                catch { }
-            }
-            _enrichmentCts = new System.Threading.CancellationTokenSource();
-            var token = _enrichmentCts.Token;
-
             try
             {
                 IsLoading = true;
@@ -714,9 +599,6 @@ namespace GitWorkTree.ViewModel
                     }
                 }
 
-                // Preserve existing items state to prevent flickering
-                var existingItemsMap = RawWorktrees.ToDictionary(x => x.FullPath, StringComparer.OrdinalIgnoreCase);
-
                 RawWorktrees.Clear();
 
                 string normalizedMainRepoPath = Path.GetFullPath(mainRepoPath).TrimEnd('\\', '/');
@@ -735,26 +617,6 @@ namespace GitWorkTree.ViewModel
                         branchName: info.Branch
                     );
 
-                    if (existingItemsMap.TryGetValue(info.Path, out var cached))
-                    {
-                        item.IsDirty = cached.IsDirty;
-                        if (!isManual)
-                        {
-                            item.HasRefreshError = cached.HasRefreshError;
-                            item.LastErrorMessage = cached.LastErrorMessage;
-                            item.ErrorSummary = cached.ErrorSummary;
-                            item.LastStatusCheckUtc = cached.LastStatusCheckUtc;
-                        }
-                        else
-                        {
-                            // Clear warning status and status check cache on manual refresh
-                            item.HasRefreshError = false;
-                            item.LastErrorMessage = string.Empty;
-                            item.ErrorSummary = string.Empty;
-                            item.LastStatusCheckUtc = DateTime.MinValue;
-                        }
-                    }
-
                     RawWorktrees.Add(item);
                 }
 
@@ -772,191 +634,16 @@ namespace GitWorkTree.ViewModel
 
                 IsLoading = false;
                 _loggingService?.SetCommandStatusBusy(false);
-
-                // 2. Start background enrichment for dirty states
-                IsRefreshing = true;
-                await EnrichWorktreesAsync(RawWorktrees.ToList(), token, isManual);
             }
             catch (Exception ex)
             {
                 await _loggingService?.WriteToOutputWindowAsync($"Failed to load worktrees: {ex.Message}");
                 IsLoading = false;
-                IsRefreshing = false;
                 _loggingService?.SetCommandStatusBusy(false);
                 CurrentState = ManageWorktreesState.NoRepository;
             }
         }
 
-        private bool ShouldSkipEnrichment(WorktreeItemViewModel item, bool isManual)
-        {
-            // Skip checking if this is an auto-refresh and the status check was done recently (within 30s)
-            if (!isManual && DateTime.UtcNow - item.LastStatusCheckUtc < StatusRefreshCache)
-            {
-                return true;
-            }
-
-            // Skip checking if we are in the temporary failure retry backoff period
-            lock (_failureLock)
-            {
-                if (_failureTracking.TryGetValue(item.FullPath, out var failInfo))
-                {
-                    if (DateTime.UtcNow < failInfo.NextRetryTimeUtc)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        private async Task EnrichWorktreesAsync(List<WorktreeItemViewModel> items, System.Threading.CancellationToken token, bool isManual)
-        {
-            try
-            {
-                // 1. Process active/current worktree first and await it
-                var currentItem = items.FirstOrDefault(x => x.IsCurrent);
-                if (currentItem != null && !ShouldSkipEnrichment(currentItem, isManual))
-                {
-                    await EnrichSingleItemAsync(currentItem, token, isManual).ConfigureAwait(false);
-                }
-
-                // 2. Process other worktrees with strict concurrency throttling of 2 (letting tasks run naturally)
-                using (var semaphore = new System.Threading.SemaphoreSlim(2))
-                {
-                    var otherItems = items.Where(x => !x.IsCurrent && !ShouldSkipEnrichment(x, isManual)).ToList();
-                    var tasks = otherItems.Select(async item =>
-                    {
-                        await semaphore.WaitAsync(token).ConfigureAwait(false);
-                        try
-                        {
-                            await EnrichSingleItemAsync(item, token, isManual).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            semaphore.Release();
-                        }
-                    });
-
-                    await Task.WhenAll(tasks).ConfigureAwait(false);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore
-            }
-            catch (Exception ex)
-            {
-                _loggingService?.WriteToOutputWindowAsync($"Enrichment failed: {ex.Message}");
-            }
-            finally
-            {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                IsRefreshing = false;
-            }
-        }
-
-        private async Task EnrichSingleItemAsync(WorktreeItemViewModel item, System.Threading.CancellationToken token, bool isManual)
-        {
-            try
-            {
-                token.ThrowIfCancellationRequested();
-
-                if (ShouldSkipEnrichment(item, isManual))
-                {
-                    return;
-                }
-
-                token.ThrowIfCancellationRequested();
-                item.IsLoadingStatus = true;
-
-                // Missing Directory Fast Path: skip Git execution entirely
-                if (!System.IO.Directory.Exists(item.FullPath))
-                {
-                    item.IsDirty = false;
-                    item.HasRefreshError = true;
-                    item.ErrorSummary = "Worktree folder missing.";
-                    item.LastErrorMessage = $"Directory not found: {item.FullPath}";
-                    lock (_failureLock)
-                    {
-                        _failureTracking[item.FullPath] = new WorktreeFailureInfo { FailureCount = 1, NextRetryTimeUtc = DateTime.UtcNow.AddMinutes(2) };
-                    }
-                    return;
-                }
-
-                var result = await _gitService.IsWorktreeDirtyAsync(item.FullPath).ConfigureAwait(false);
-                token.ThrowIfCancellationRequested();
-
-                if (result.Success)
-                {
-                    item.IsDirty = result.Value;
-                    item.HasRefreshError = false;
-                    item.LastErrorMessage = string.Empty;
-                    item.ErrorSummary = string.Empty;
-
-                    lock (_failureLock)
-                    {
-                        _failureTracking.Remove(item.FullPath);
-                    }
-                }
-                else
-                {
-                    item.IsDirty = false;
-                    item.HasRefreshError = true;
-                    item.LastErrorMessage = result.ErrorMessage;
-                    item.ErrorSummary = "Unable to refresh worktree status. See Output window for details.";
-
-                    int currentFailCount = 1;
-                    lock (_failureLock)
-                    {
-                        if (_failureTracking.TryGetValue(item.FullPath, out var failInfo))
-                        {
-                            failInfo.FailureCount++;
-                            currentFailCount = failInfo.FailureCount;
-                        }
-                        else
-                        {
-                            failInfo = new WorktreeFailureInfo { FailureCount = 1 };
-                            _failureTracking[item.FullPath] = failInfo;
-                        }
-
-                        TimeSpan backoffDuration;
-                        if (currentFailCount == 1)
-                        {
-                            backoffDuration = TimeSpan.FromSeconds(30);
-                        }
-                        else if (currentFailCount == 2)
-                        {
-                            backoffDuration = TimeSpan.FromMinutes(2);
-                        }
-                        else
-                        {
-                            backoffDuration = TimeSpan.FromMinutes(5);
-                        }
-
-                        failInfo.NextRetryTimeUtc = DateTime.UtcNow.Add(backoffDuration);
-                    }
-
-                    _loggingService?.WriteToOutputWindowAsync(
-                        $"Failed to refresh status for {item.FolderName} ({item.FullPath}). " +
-                        $"Error: {result.ErrorMessage}. Backoff attempt: {currentFailCount}. Skipping checks for the next retry interval."
-                    );
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore
-            }
-            catch (Exception ex)
-            {
-                _loggingService?.WriteToOutputWindowAsync($"Failed to get status for {item.FolderName}: {ex.Message}");
-            }
-            finally
-            {
-                item.LastStatusCheckUtc = DateTime.UtcNow;
-                item.IsLoadingStatus = false;
-            }
-        }
 
         private void RefreshHierarchy()
         {
@@ -1022,6 +709,7 @@ namespace GitWorkTree.ViewModel
                 Changes.Clear();
                 StagedChangesTree.Clear();
                 UnstagedChangesTree.Clear();
+                UntrackedChangesTree.Clear();
                 Outgoing.Clear();
                 return;
             }
@@ -1043,15 +731,6 @@ namespace GitWorkTree.ViewModel
 
                 if (SelectedWorktree != worktree) return;
 
-                // Clear the worktree's failure/warning state only after a successful load
-                worktree.HasRefreshError = false;
-                worktree.ErrorSummary = string.Empty;
-                worktree.LastErrorMessage = string.Empty;
-                lock (_failureLock)
-                {
-                    _failureTracking.Remove(worktree.FullPath);
-                }
-
                 DetailBranchName = details.Branch;
                 DetailStatusSummary = details.StatusSummary;
                 DetailPath = worktree.FullPath;
@@ -1064,8 +743,6 @@ namespace GitWorkTree.ViewModel
 
                 Outgoing.Clear();
                 foreach (var commit in details.Outgoing) Outgoing.Add(commit);
-
-                worktree.IsDirty = details.Changes != null && details.Changes.Count > 0;
             }
             catch (OperationCanceledException)
             {
@@ -1074,16 +751,6 @@ namespace GitWorkTree.ViewModel
             catch (Exception ex)
             {
                 await _loggingService?.WriteToOutputWindowAsync($"Failed to load details for {SelectedWorktree?.FolderName}: {ex.Message}");
-                if (SelectedWorktree != null)
-                {
-                    SelectedWorktree.HasRefreshError = true;
-                    SelectedWorktree.ErrorSummary = "Unable to refresh worktree status. See Output window for details.";
-                    SelectedWorktree.LastErrorMessage = ex.Message;
-                    lock (_failureLock)
-                    {
-                        _failureTracking[SelectedWorktree.FullPath] = new WorktreeFailureInfo { FailureCount = 1 };
-                    }
-                }
             }
             finally
             {
@@ -1357,10 +1024,12 @@ namespace GitWorkTree.ViewModel
         {
             StagedChangesTree.Clear();
             UnstagedChangesTree.Clear();
+            UntrackedChangesTree.Clear();
             if (porcelainChanges == null || porcelainChanges.Count == 0) return;
 
             var stagedRoot = new GitChangeNode { Name = "Staged Changes", IsCategory = true };
             var unstagedRoot = new GitChangeNode { Name = "Changes", IsCategory = true };
+            var untrackedRoot = new GitChangeNode { Name = "Untracked Files", IsCategory = true };
 
             foreach (var change in porcelainChanges)
             {
@@ -1391,23 +1060,30 @@ namespace GitWorkTree.ViewModel
                     continue;
                 }
 
-                bool isStaged = statusPart[0] != ' ' && statusPart[0] != '?';
-                bool isUnstaged = statusPart[1] != ' ';
-
-                if (isStaged)
+                if (statusPart == "??")
                 {
-                    AddPathToTree(stagedRoot, fileRelativePath, statusPart[0].ToString());
+                    AddPathToTree(untrackedRoot, fileRelativePath, "??");
                 }
-                if (isUnstaged)
+                else
                 {
-                    string status = (statusPart == "??") ? "??" : statusPart[1].ToString();
-                    AddPathToTree(unstagedRoot, fileRelativePath, status);
+                    bool isStaged = statusPart[0] != ' ';
+                    bool isUnstaged = statusPart[1] != ' ';
+
+                    if (isStaged)
+                    {
+                        AddPathToTree(stagedRoot, fileRelativePath, statusPart[0].ToString());
+                    }
+                    if (isUnstaged)
+                    {
+                        AddPathToTree(unstagedRoot, fileRelativePath, statusPart[1].ToString());
+                    }
                 }
             }
 
             // Recursively update node properties (IsFolder, IsFile)
             UpdateNodeTypes(stagedRoot);
             UpdateNodeTypes(unstagedRoot);
+            UpdateNodeTypes(untrackedRoot);
 
             foreach (var child in stagedRoot.Children)
             {
@@ -1416,6 +1092,10 @@ namespace GitWorkTree.ViewModel
             foreach (var child in unstagedRoot.Children)
             {
                 UnstagedChangesTree.Add(child);
+            }
+            foreach (var child in untrackedRoot.Children)
+            {
+                UntrackedChangesTree.Add(child);
             }
         }
 

@@ -54,5 +54,34 @@ namespace GitWorkTree.Tests
             Assert.AreEqual(1, viewModel.StagedChangesTree.Count);
             Assert.AreEqual("staged_new.cs", viewModel.StagedChangesTree.First().Name);
         }
+
+        [TestMethod]
+        public void BuildChangesTree_WithUntrackedFile_ParsesCorrectlyIntoUntrackedTree()
+        {
+            // Arrange
+            var mockServiceProvider = new Mock<IServiceProvider>();
+            var viewModel = new ManageWorktreesViewModel(
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object,
+                mockServiceProvider.Object
+            );
+
+            var mockChanges = new List<string>
+            {
+                "?? untracked_file.cs"
+            };
+
+            // Act
+            var method = typeof(ManageWorktreesViewModel).GetMethod("BuildChangesTree", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(method, "BuildChangesTree method should exist");
+            method.Invoke(viewModel, new object[] { mockChanges });
+
+            // Assert
+            Assert.AreEqual(0, viewModel.UnstagedChangesTree.Count);
+            Assert.AreEqual(0, viewModel.StagedChangesTree.Count);
+            Assert.AreEqual(1, viewModel.UntrackedChangesTree.Count);
+            Assert.AreEqual("untracked_file.cs", viewModel.UntrackedChangesTree.First().Name);
+        }
     }
 }

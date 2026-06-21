@@ -300,6 +300,83 @@ namespace GitWorkTree.View
                 }
             }
         }
+
+        private bool _clearingSelection = false;
+
+        private void ChangesTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (_clearingSelection) return;
+            if (e.NewValue == null) return;
+
+            _clearingSelection = true;
+            try
+            {
+                var activeTreeView = sender as TreeView;
+                var vm = DataContext as ManageWorktreesViewModel;
+                if (vm != null)
+                {
+                    if (activeTreeView != StagedChangesTreeView)
+                    {
+                        ClearNodeSelection(vm.StagedChangesTree);
+                    }
+                    if (activeTreeView != UnstagedChangesTreeView)
+                    {
+                        ClearNodeSelection(vm.UnstagedChangesTree);
+                    }
+                    if (activeTreeView != UntrackedChangesTreeView)
+                    {
+                        ClearNodeSelection(vm.UntrackedChangesTree);
+                    }
+                }
+
+                if (OutgoingListBox != null && OutgoingListBox.SelectedItem != null)
+                {
+                    OutgoingListBox.SelectedItem = null;
+                }
+            }
+            finally
+            {
+                _clearingSelection = false;
+            }
+        }
+
+        private void OutgoingListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_clearingSelection) return;
+            if (OutgoingListBox.SelectedItem == null) return;
+
+            _clearingSelection = true;
+            try
+            {
+                var vm = DataContext as ManageWorktreesViewModel;
+                if (vm != null)
+                {
+                    ClearNodeSelection(vm.StagedChangesTree);
+                    ClearNodeSelection(vm.UnstagedChangesTree);
+                    ClearNodeSelection(vm.UntrackedChangesTree);
+                }
+            }
+            finally
+            {
+                _clearingSelection = false;
+            }
+        }
+
+        private void ClearNodeSelection(System.Collections.IEnumerable nodes)
+        {
+            if (nodes == null) return;
+            foreach (var item in nodes)
+            {
+                if (item is GitChangeNode node)
+                {
+                    node.IsSelected = false;
+                    if (node.Children != null && node.Children.Count > 0)
+                    {
+                        ClearNodeSelection(node.Children);
+                    }
+                }
+            }
+        }
     }
 
     internal static class GuidList

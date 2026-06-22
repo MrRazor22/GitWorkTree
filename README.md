@@ -126,3 +126,44 @@ Accessible via **Git > Settings > Source Control > Git Worktree**
 ---
 
 This keeps your multi-branch Git workflow clean and fully integrated without leaving Visual Studio.
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+New changesimages:
+create worktree window:
+<img width="637" height="281" alt="image" src="https://github.com/user-attachments/assets/2066f619-9922-4bbe-b6d5-7c3d4b99fbd2" />
+
+settings window:
+<img width="969" height="567" alt="image" src="https://github.com/user-attachments/assets/4eff89dc-f4b9-402b-8780-db026eb5d708" />
+
+Two options appear under **Git > Git Worktree*:
+<img width="619" height="438" alt="image" src="https://github.com/user-attachments/assets/838028e6-179b-4f01-89fd-7c8ce4d18fdc" />
+
+Warning on remove (when change there - fprce remove):
+<img width="413" height="192" alt="image" src="https://github.com/user-attachments/assets/56642b8a-9c06-4c5f-b8f1-8230851b7a21" />
+
+output window for logs
+<img width="1127" height="146" alt="image" src="https://github.com/user-attachments/assets/d632f0a3-fb3e-4ec0-8f08-7fdff6901941" />
+
+Manage worktree window:
+Tree view:
+<img width="357" height="682" alt="image" src="https://github.com/user-attachments/assets/c0181020-8ac3-4f39-9842-73f0b725471b" />
+
+expanded full manage worktree window iwth details pane:
+<img width="1185" height="681" alt="image" src="https://github.com/user-attachments/assets/96ac6cd5-1565-4683-a05c-fe06504b439f" />
+
+tree vew each worktree context window:
+<img width="534" height="316" alt="image" src="https://github.com/user-attachments/assets/cd9f5397-efc5-4461-b993-b56a02727ebc" />
+
+Changes section:
+Staged and Changes with context menu:
+<img width="532" height="206" alt="image" src="https://github.com/user-attachments/assets/7b3e226c-7796-44b2-85b4-066e45e4c01a" />
+
+untracked with context menu:
+<img width="774" height="149" alt="image" src="https://github.com/user-attachments/assets/2d60f557-d1f0-4119-a99f-e4a0a89b030b" />
+
+Outgoing commits with context menu:
+<img width="672" height="184" alt="image" src="https://github.com/user-attachments/assets/32ef68e6-9de7-4957-b09d-8a133a3e1519" />
+
+

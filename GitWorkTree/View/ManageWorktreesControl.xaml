@@ -186,7 +186,7 @@
 
         <!-- Shared TreeViewItem Style for full-width theme-aware highlighting -->
         <Style x:Key="VsTreeViewItemStyle" TargetType="TreeViewItem">
-            <Setter Property="Padding" Value="2"/>
+            <Setter Property="Padding" Value="2,0"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -199,13 +199,23 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <!-- Bd Border spans the full width of the parent (stretching) -->
-                            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="3,0,0,0" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True" TextElement.Foreground="{TemplateBinding Foreground}">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="0" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True" TextElement.Foreground="{TemplateBinding Foreground}">
                                 <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="16"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <ToggleButton x:Name="Expander" ClickMode="Press" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <!-- Selection indicator bar -->
+                                    <Border x:Name="SelectionIndicator" 
+                                            HorizontalAlignment="Left" 
+                                            VerticalAlignment="Center" 
+                                            Width="3" 
+                                            Height="16" 
+                                            CornerRadius="1.5"
+                                            Background="Transparent"
+                                            Margin="1,0,0,0"/>
+                                    <Grid Margin="6,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="16"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ToggleButton x:Name="Expander" ClickMode="Press" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}">
                                         <ToggleButton.Style>
                                             <Style TargetType="ToggleButton">
                                                 <Setter Property="Focusable" Value="False"/>
@@ -233,6 +243,7 @@
                                         </ToggleButton.Style>
                                     </ToggleButton>
                                     <ContentPresenter Grid.Column="1" x:Name="PART_Header" ContentSource="Header" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                    </Grid>
                                 </Grid>
                             </Border>
                             <ItemsPresenter Grid.Row="1" x:Name="ItemsHost" Margin="16,0,0,0"/>
@@ -246,7 +257,7 @@
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarMouseOverBackgroundGradientKey}}"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
+                                <Setter TargetName="SelectionIndicator" Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"/>
                             </Trigger>
                             <MultiTrigger>
@@ -255,7 +266,7 @@
                                     <Condition Property="IsSelectionActive" Value="False"/>
                                 </MultiTrigger.Conditions>
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarMouseOverBackgroundGradientKey}}"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
+                                <Setter TargetName="SelectionIndicator" Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"/>
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
@@ -385,6 +396,7 @@
 
                 <!-- Repository link header similar to Visual Studio's layout, docked to the right -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,6,0">
+                    <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.GitRepository}" Width="16" Height="16" Margin="0,0,4,0" VerticalAlignment="Center"/>
                     <TextBlock Text="Repository:" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <TextBlock TextWrapping="NoWrap" FontSize="11" VerticalAlignment="Center">
                         <Hyperlink Command="{Binding ExplorePathCommand}" CommandParameter="{Binding ActiveRepositoryPath}" TextDecorations="None">
@@ -696,7 +708,7 @@
                     <TreeView.Resources>
                         <!-- Directory / Folder node representation -->
                         <HierarchicalDataTemplate DataType="{x:Type viewmodel:HierarchyNode}" ItemsSource="{Binding Items}">
-                            <Grid HorizontalAlignment="Stretch" Margin="2,0">
+                            <Grid HorizontalAlignment="Stretch" Margin="2,0" MinHeight="22">
                                 <!-- Folder representation -->
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <StackPanel.Style>
@@ -721,7 +733,7 @@
                                 </StackPanel>
                                 
                                 <!-- Leaf Worktree Item representation -->
-                                <Grid HorizontalAlignment="Stretch">
+                                <Grid HorizontalAlignment="Stretch" MinHeight="22">
                                     <Grid.Style>
                                         <Style TargetType="Grid">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -743,11 +755,11 @@
  
                                      <TextBlock Grid.Column="1" Text="{Binding WorktreeItem.FolderName}" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="12" TextTrimming="CharacterEllipsis"/>
 
-                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="4,0,0,0">
+                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Stretch" HorizontalAlignment="Right" Margin="4,0,0,0">
                                          <!-- Current Badge -->
                                          <Border CornerRadius="3" BorderThickness="1" 
                                                  Padding="5,1" Margin="2,0"
-                                                 Visibility="{Binding WorktreeItem.IsCurrent, Converter={StaticResource BoolToVis}}">
+                                                 VerticalAlignment="Center" Visibility="{Binding WorktreeItem.IsCurrent, Converter={StaticResource BoolToVis}}">
                                              <Border.Style>
                                                  <Style TargetType="Border">
                                                      <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}"/>
@@ -760,7 +772,7 @@
                                                      </Style.Triggers>
                                                  </Style>
                                              </Border.Style>
-                                             <TextBlock Text="current" FontSize="10" FontWeight="Bold" VerticalAlignment="Center">
+                                             <TextBlock Text="current" FontSize="11" FontWeight="Bold" VerticalAlignment="Center">
                                                  <TextBlock.Style>
                                                      <Style TargetType="TextBlock">
                                                          <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightTextKey}}"/>
@@ -774,11 +786,9 @@
                                              </TextBlock>
                                          </Border>
                                          <!-- Main Badge -->
-                                         <Border CornerRadius="3" BorderThickness="1" 
-                                                 Background="#A15C00" BorderBrush="#A15C00"
-                                                 Padding="5,1" Margin="2,0"
+                                         <Border CornerRadius="3" BorderThickness="0" Background="#A15C00" VerticalAlignment="Center" Padding="5,1" Margin="2,0"
                                                  Visibility="{Binding WorktreeItem.IsMain, Converter={StaticResource BoolToVis}}">
-                                             <TextBlock Text="main" FontSize="10" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                             <TextBlock Text="main" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
                                          </Border>
                                      </StackPanel>
                                 </Grid>
@@ -939,7 +949,7 @@
                                     </TreeView.ItemContainerStyle>
                                     <TreeView.Resources>
                                         <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
-                                            <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch">
+                                            <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch" MinHeight="22">
                                                 <Grid.ContextMenu>
                                                     <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
                                                         <MenuItem Header="Open" Click="OpenWithVisualStudio_Click">
@@ -1080,7 +1090,7 @@
                                      </TreeView.ItemContainerStyle>
                                      <TreeView.Resources>
                                          <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
-                                                                                         <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch">
+                                                                                         <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch" MinHeight="22">
                                                  <Grid.ContextMenu>
                                                      <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
                                                          <MenuItem Header="Open" Click="OpenWithVisualStudio_Click">
@@ -1230,7 +1240,7 @@
                                      </TreeView.ItemContainerStyle>
                                      <TreeView.Resources>
                                          <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
-                                                                                         <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch">
+                                                                                         <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch" MinHeight="22">
                                                  <Grid.ContextMenu>
                                                      <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
                                                          <MenuItem Header="Open" Click="OpenWithVisualStudio_Click">

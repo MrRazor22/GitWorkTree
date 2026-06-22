@@ -10,6 +10,16 @@ A Visual Studio extension that provides an intuitive interface for managing Git 
 
 ---
 
+## 🌟 Why Git Worktree Manager?
+
+Visual Studio's default Git interface doesn't natively expose worktree management. This extension bridges that gap seamlessly:
+
+* **Zero Dependencies**: You **don't need Git installed on your PC** or available in your `PATH`—the extension directly leverages Visual Studio's built-in Git.
+* **No External Clients**: Manage everything from inside the IDE without needing third-party Git clients or terminal commands.
+* **Automatic Long Paths**: Works out of the box with Windows long paths by running commands with process-scoped configuration, without altering your global Git settings.
+
+---
+
 ## 📍 Accessing Git Worktrees
 
 Access the Git Worktree tools directly from the Visual Studio menu under **Git > Git Worktree** or use the default hotkeys:
@@ -103,10 +113,9 @@ All Git execution commands, warnings, and background updates are cleanly logged 
 ## 📦 Requirements
 
 * Visual Studio 2022 (17.14 or later)
-* Git installed and available in `PATH`
-* Windows long paths support enabled (recommended)
+* Active Git repository or solution open in Visual Studio
 
-To enable global Git long paths support in Windows:
+*Note: The extension automatically runs Git commands on Windows with process-scoped `core.longpaths=true` so you don't need to change your global configuration. If you experience "filename too long" issues in external tools or terminals, you can enable global support with:*
 ```bash
 git config --global core.longpaths true
 ```

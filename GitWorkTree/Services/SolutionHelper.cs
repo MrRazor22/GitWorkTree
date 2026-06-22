@@ -109,7 +109,18 @@ namespace GitWorkTree.Services
             {
                 await _loggingService.WriteToOutputWindowAsync($"Opening {newSolutionPath} in new VS instance", false);
             }
-            System.Diagnostics.Process.Start("devenv.exe", NormalizePath(solutionFiles[0]));
+            string devenvPath = System.Diagnostics.Process.GetCurrentProcess()
+                                       .MainModule?
+                                       .FileName;
+
+            if (!string.IsNullOrEmpty(devenvPath))
+            {
+                System.Diagnostics.Process.Start(devenvPath, NormalizePath(solutionFiles[0]));
+            }
+            else
+            {
+                System.Diagnostics.Process.Start("devenv.exe", NormalizePath(solutionFiles[0]));
+            }
             return true;
         }
 

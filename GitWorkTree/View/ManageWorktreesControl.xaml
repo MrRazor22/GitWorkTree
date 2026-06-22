@@ -775,31 +775,10 @@
                                          </Border>
                                          <!-- Main Badge -->
                                          <Border CornerRadius="3" BorderThickness="1" 
-                                                 Background="Transparent" 
+                                                 Background="#A15C00" BorderBrush="#A15C00"
                                                  Padding="5,1" Margin="2,0"
                                                  Visibility="{Binding WorktreeItem.IsMain, Converter={StaticResource BoolToVis}}">
-                                             <Border.Style>
-                                                 <Style TargetType="Border">
-                                                     <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ActiveBorderKey}}"/>
-                                                     <Style.Triggers>
-                                                         <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
-                                                             <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightTextKey}}"/>
-                                                         </DataTrigger>
-                                                     </Style.Triggers>
-                                                 </Style>
-                                             </Border.Style>
-                                             <TextBlock Text="main" FontSize="10" FontWeight="Bold" VerticalAlignment="Center">
-                                                 <TextBlock.Style>
-                                                     <Style TargetType="TextBlock">
-                                                         <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.GrayTextKey}}"/>
-                                                         <Style.Triggers>
-                                                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
-                                                                 <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.HighlightTextKey}}"/>
-                                                             </DataTrigger>
-                                                         </Style.Triggers>
-                                                     </Style>
-                                                 </TextBlock.Style>
-                                             </TextBlock>
+                                             <TextBlock Text="main" FontSize="10" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
                                          </Border>
                                      </StackPanel>
                                 </Grid>

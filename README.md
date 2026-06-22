@@ -50,7 +50,7 @@ Create new worktrees easily with the **Create Worktree** dialog:
 Manage all your worktrees in a dedicated sidebar/tool window:
 
 * Displays worktrees grouped by repository.
-* Clearly identifies the active worktrees with badges (e.g. `CURRENT`, `MAIN`).
+* Clearly identifies the current and main worktrees with badges (CURRENT, MAIN).
 * Integrated search and filter bar lets you locate worktrees quickly by branch or folder name.
 
 ![Manage Worktrees](https://github.com/user-attachments/assets/f8693857-ce44-4fd6-9969-1fb79bcf4b2a)
@@ -73,7 +73,7 @@ Selecting a worktree reveals its details, helping you see its status without ope
 
 Right-click any worktree node to trigger context menu actions:
 
-* **Open in VS**: Open the selected worktree in a new Visual Studio instance.
+* **Open in Visual Studio**: Open the selected worktree in a new Visual Studio instance.
 * **Open in Explorer**: Reveal the folder in Windows File Explorer.
 * **Copy Path**: Copy the absolute worktree path to clipboard.
 * **Remove / Force Remove**: Clean up the worktree safely. The extension blocks removing the active or main worktrees, and prompts for confirmation if there are uncommitted changes.
@@ -86,9 +86,9 @@ Right-click any worktree node to trigger context menu actions:
 
 Configure the default behaviors under **Git > Settings > Source Control > Git Worktree**:
 
-* Set a default worktree root directory.
-* Set worktree sub-folders (e.g. `.worktrees`) to automatically ignore them and keep parent repos clean.
-* Toggle default window loading behavior.
+* **Default Worktree Directory**: Set an absolute path where new worktrees will be created. If left empty, defaults to a sibling `<repo>_Worktrees` folder. *(Ignored when a Worktree Sub-Folder is specified).*
+* **Worktree Sub-Folder**: Define a folder created inside the repository itself (e.g. `.worktrees`) to hold worktrees. *(When set, this takes precedence over the Default Worktree Directory).*
+* **Preserve Branch Hierarchy**: Toggle whether to preserve the branch folder structure in worktree paths (e.g. `feature/foo` becomes `Worktrees\feature\foo` vs `Worktrees\feature-foo`).
 
 ![Settings](https://github.com/user-attachments/assets/4eff89dc-f4b9-402b-8780-db026eb5d708)
 

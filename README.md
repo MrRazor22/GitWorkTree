@@ -121,10 +121,10 @@ Requires the .NET 10 SDK.
 
 ```bash
 # Clone the repository
-git clone https://github.com/iAmBipinPaul/GitWorktreeManager.git
+git clone https://github.com/MrRazor22/GitWorkTree.git
 
 # Open in Visual Studio
-start GitWorktreeManager.sln
+start GitWorkTree.sln
 
 # Build
 dotnet build

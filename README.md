@@ -76,19 +76,9 @@ Right-click any worktree node to trigger context menu actions:
 * **Open in VS**: Open the selected worktree in a new Visual Studio instance.
 * **Open in Explorer**: Reveal the folder in Windows File Explorer.
 * **Copy Path**: Copy the absolute worktree path to clipboard.
-* **Remove / Force Remove**: Safely clean up the worktree.
+* **Remove / Force Remove**: Clean up the worktree safely. The extension blocks removing the active or main worktrees, and prompts for confirmation if there are uncommitted changes.
 
 ![Quick Actions](https://github.com/user-attachments/assets/cd9f5397-efc5-4461-b993-b56a02727ebc)
-
----
-
-## 🛡️ Safety Features
-
-* **Force Remove Dialog**: Prevents accidental data loss by prompting a confirmation dialog when attempting to remove worktrees with uncommitted changes.
-* **Protected States**: Prevents deletion of the currently active worktree or the main worktree.
-* **Lock Detection**: Identifies and handles locked worktrees gracefully.
-
-![Safety Features](https://github.com/user-attachments/assets/56642b8a-9c06-4c5f-b8f1-8230851b7a21)
 
 ---
 

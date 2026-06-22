@@ -117,7 +117,7 @@ This project is licensed under the MIT License.
 
 ## 🛠️ Development Setup
 
-Requires the .NET 10 SDK version pinned in `global.json`.
+Requires the .NET 10 SDK.
 
 ```bash
 # Clone the repository

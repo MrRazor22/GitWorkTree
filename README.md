@@ -53,7 +53,7 @@ Manage all your worktrees in a dedicated sidebar/tool window:
 * Clearly identifies the active worktrees with badges (e.g. `CURRENT`, `MAIN`).
 * Integrated search and filter bar lets you locate worktrees quickly by branch or folder name.
 
-![Manage Worktrees](https://github.com/user-attachments/assets/96ac6cd5-1565-4683-a05c-fe06504b439f)
+![Manage Worktrees](https://github.com/user-attachments/assets/f8693857-ce44-4fd6-9969-1fb79bcf4b2a)
 
 ---
 
@@ -65,7 +65,7 @@ Selecting a worktree reveals its details, helping you see its status without ope
 * **Untracked Files**: View new untracked files.
 * **Outgoing Commits**: Inspect commits that are ready to push.
 
-![Worktree Details](https://github.com/user-attachments/assets/7b3e226c-7796-44b2-85b4-066e45e4c01a)
+![Worktree Details](https://github.com/user-attachments/assets/96ac6cd5-1565-4683-a05c-fe06504b439f)
 
 ---
 

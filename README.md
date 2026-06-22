@@ -6,17 +6,19 @@ A Visual Studio extension that provides an intuitive interface for managing Git 
 ===
 | IDE | Marketplace | Description |
 | :--- | :--- | :--- |
-| **Visual Studio** | [Git Worktree Manager](https://marketplace.visualstudio.com/) | Extension for Visual Studio 2022 (17.14+) |
+| **Visual Studio** | [Git Worktree Manager](https://marketplace.visualstudio.com/items?itemName=MrRazer22.git-worktree) | Extension for Visual Studio 2022 (17.14+) |
 
 ---
 
 ## 🌟 Why Git Worktree Manager?
 
-Visual Studio's default Git interface doesn't natively expose worktree management. This extension bridges that gap seamlessly:
+Visual Studio's default Git interface doesn't natively expose worktree management. This extension bridges that gap:
 
-* **Zero Dependencies**: You **don't need Git installed on your PC** or available in your `PATH`—the extension directly leverages Visual Studio's built-in Git.
-* **No External Clients**: Manage everything from inside the IDE without needing third-party Git clients or terminal commands.
-* **Automatic Long Paths**: Works out of the box with Windows long paths by running commands with process-scoped configuration, without altering your global Git settings.
+* **Zero Setup & Dependencies**: You **don't need Git installed on your PC** or configured in your `PATH`—it uses Visual Studio's built-in Git automatically.
+* **Side-by-Side Multi-Branch Workflows**: Work on multiple features or bug fixes simultaneously in separate, clean folders without stash/checkout/rebuild cycles.
+* **Seamless VS Integration**: Create, switch, prune, and manage worktrees entirely from the IDE. Open solutions in new Visual Studio instances with a single click.
+* **Repository-Aware Hierarchy**: Easily browse all your worktrees cleanly grouped by parent repository and branch.
+* **Smart Path Display**: Automatically shows the shortest unique path for each worktree, making them easy to identify at a glance even when sharing common parent directories.
 
 ---
 
@@ -48,7 +50,7 @@ Create new worktrees easily with the **Create Worktree** dialog:
 Manage all your worktrees in a dedicated sidebar/tool window:
 
 * Displays worktrees grouped by repository.
-* Clearly identifies the current active worktree with badges (e.g. `CURRENT`, `MAIN`, `LOCKED`).
+* Clearly identifies the active worktrees with badges (e.g. `CURRENT`, `MAIN`).
 * Integrated search and filter bar lets you locate worktrees quickly by branch or folder name.
 
 ![Manage Worktrees](https://github.com/user-attachments/assets/96ac6cd5-1565-4683-a05c-fe06504b439f)
@@ -57,7 +59,7 @@ Manage all your worktrees in a dedicated sidebar/tool window:
 
 ## 📊 Worktree Details
 
-Selecting a worktree reveals its details, helping you see its status without switching branches:
+Selecting a worktree reveals its details, helping you see its status without opening the worktree:
 
 * **Staged & Changes**: View files that have changes.
 * **Untracked Files**: View new untracked files.
@@ -104,7 +106,7 @@ Configure the default behaviors under **Git > Settings > Source Control > Git Wo
 
 ## 🪵 Logging
 
-All Git execution commands, warnings, and background updates are cleanly logged to Visual Studio's **Output Window** under the **Git Worktree** pane.
+All Git execution commands, warnings, and diagnostic messages are cleanly logged to Visual Studio's **Output Window** under the **Git Worktree** pane.
 
 ![Logging](https://github.com/user-attachments/assets/d632f0a3-fb3e-4ec0-8f08-7fdff6901941)
 
@@ -115,10 +117,11 @@ All Git execution commands, warnings, and background updates are cleanly logged 
 * Visual Studio 2022 (17.14 or later)
 * Active Git repository or solution open in Visual Studio
 
-*Note: The extension automatically runs Git commands on Windows with process-scoped `core.longpaths=true` so you don't need to change your global configuration. If you experience "filename too long" issues in external tools or terminals, you can enable global support with:*
-```bash
-git config --global core.longpaths true
-```
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
 
 ---
 
@@ -139,9 +142,3 @@ dotnet build
 # Run tests
 dotnet test
 ```
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.

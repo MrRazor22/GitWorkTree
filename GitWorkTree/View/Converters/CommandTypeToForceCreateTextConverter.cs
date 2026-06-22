@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Windows.Data;
 using System.Windows;
 using GitWorkTree.Commands;
@@ -90,4 +90,28 @@ namespace GitWorkTree.View.Converters
         }
     }
 
+    public class OpenBehaviorToStringConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is OpenBehavior behavior)
+            {
+                switch (behavior)
+                {
+                    case OpenBehavior.DoNotOpen:
+                        return "Do not open";
+                    case OpenBehavior.NewVSWindow:
+                        return "New VS Window";
+                    case OpenBehavior.CurrentWindow:
+                        return "Current Window";
+                }
+            }
+            return string.Empty;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

@@ -1,4 +1,4 @@
-﻿using GitWorkTree.ViewModel;
+using GitWorkTree.ViewModel;
 using Microsoft.VisualStudio.PlatformUI;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -29,20 +29,20 @@ namespace GitWorkTree.View
 
             await Task.Delay(300); // Introduce a delay to reduce the frequency of filtering
 
-            var branches = (DataContext as WorkTreeDialogViewModel).Branches_Worktrees;
-            cmb.ItemsSource = await FilterBranchNamesAsync(cmb.Text, branches.ToList(), filterCancellationTokenSource.Token); ;
-
-
+            var vm = DataContext as WorkTreeDialogViewModel;
+            if (vm == null || vm.Branches_Worktrees == null) return;
+            var branches = vm.Branches_Worktrees;
+            cmb.ItemsSource = await FilterBranchNamesAsync(cmb.Text, branches.ToList(), filterCancellationTokenSource.Token);
         }
 
-        private async Task<List<string>> FilterBranchNamesAsync(string filter, List<string> Branches, CancellationToken cancellationToken)
+        private async Task<List<BranchInfo>> FilterBranchNamesAsync(string filter, List<BranchInfo> Branches, CancellationToken cancellationToken)
         {
             return await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
                 return Branches
-                .Where(p => string.IsNullOrEmpty(filter) || p.ToLower().Contains(filter.ToLower())).ToList();
+                .Where(p => string.IsNullOrEmpty(filter) || p.Name.ToLower().Contains(filter.ToLower())).ToList();
             }, cancellationToken);
         }
 
@@ -50,6 +50,45 @@ namespace GitWorkTree.View
         {
             Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri));
             e.Handled = true;
+        }
+
+        private void ButtonCreate_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (sender is Button button && button.ContextMenu != null)
+            {
+                button.ContextMenu.PlacementTarget = button;
+                button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+                button.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void ButtonOpen_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (sender is Button button && button.ContextMenu != null)
+            {
+                button.ContextMenu.PlacementTarget = button;
+                button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+                button.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void Window_Loaded(object sender, System.Windows.RoutedEventArgs e)
+        {
+            var vm = DataContext as WorkTreeDialogViewModel;
+            if (vm != null && vm.IsNewBranchMode && NewBranchTextBox != null)
+            {
+                NewBranchTextBox.Focus();
+                NewBranchTextBox.SelectAll();
+            }
+        }
+
+        private void NewBranchRadioButton_Checked(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (NewBranchTextBox != null)
+            {
+                NewBranchTextBox.Focus();
+                NewBranchTextBox.SelectAll();
+            }
         }
     }
 }

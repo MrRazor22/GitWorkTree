@@ -1,34 +1,15 @@
-﻿using GitWorkTree.Helpers;
+using GitWorkTree.Services;
 using System;
-using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace GitWorkTree.ViewModel
 {
     public class RelayCommand : ICommand
     {
+        private readonly string _commandName;
         private readonly Func<object, bool> _execute;
-        private readonly Func<object, Task<bool>> _executeAsync;
         private readonly Predicate<object> _canExecute;
-        private static bool _isExecuting;
-        private LoggingHelper outputWindow = LoggingHelper.Instance;
-
-        // Event to handle command result
-        public event EventHandler<bool> CommandExecuted;
-
-        // Constructor for synchronous command
-        public RelayCommand(Func<object, bool> execute, Predicate<object> canExecute = null)
-        {
-            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            _canExecute = canExecute;
-        }
-
-        // Constructor for asynchronous command
-        public RelayCommand(Func<object, Task<bool>> executeAsync, Predicate<object> canExecute = null)
-        {
-            _executeAsync = executeAsync ?? throw new ArgumentNullException(nameof(executeAsync));
-            _canExecute = canExecute;
-        }
+        private readonly ILoggingService _loggingService;
 
         public event EventHandler CanExecuteChanged
         {
@@ -36,48 +17,51 @@ namespace GitWorkTree.ViewModel
             remove { CommandManager.RequerySuggested -= value; }
         }
 
+        public RelayCommand(string commandName, Func<object, bool> execute, Predicate<object> canExecute = null, ILoggingService loggingService = null)
+        {
+            _commandName = commandName;
+            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+            _canExecute = canExecute;
+            _loggingService = loggingService;
+        }
+
+        public RelayCommand(Func<object, bool> execute, Predicate<object> canExecute = null, ILoggingService loggingService = null)
+            : this("GitWorkTree Action", execute, canExecute, loggingService)
+        {
+        }
+
         public bool CanExecute(object parameter)
         {
-            if (!_isExecuting && (_canExecute == null || _canExecute(parameter))) return true;
-            outputWindow.SetCommandStatusBusy();
-            return false;
+            return _canExecute == null || _canExecute(parameter);
         }
 
-        public async void Execute(object parameter)
+        public void Execute(object parameter)
         {
-            if (!CanExecute(parameter))
-            {
-                return;
-            }
-            bool result = false;
-            try
-            {
-                _isExecuting = true;
+            if (!CanExecute(parameter)) return;
 
-                if (_execute != null)
+            bool result = false;
+            using (var session = _loggingService?.StartSession(_commandName))
+            {
+                try
                 {
                     result = _execute(parameter);
+                    if (session != null)
+                    {
+                        Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() => session.CompleteAsync(result));
+                    }
                 }
-                else if (_executeAsync != null)
+                catch (Exception ex)
                 {
-                    result = await _executeAsync(parameter);
+                    if (session != null)
+                    {
+                        Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(async () =>
+                        {
+                            await session.LogAsync($"Command execution failed: {ex.Message}", true);
+                            await session.CompleteAsync(false);
+                        });
+                    }
                 }
-
-                // Raise the CommandExecuted event with the result
-                CommandExecuted?.Invoke(this, result);
-            }
-            catch (Exception ex)
-            {
-                outputWindow.WriteToOutputWindowAsync($"{Vsix.Name} Command execution failed: {ex.Message}", result = false);
-            }
-            finally
-            {
-                outputWindow.SetCommandCompletionStatus(result);
-                _isExecuting = false;
-                CommandManager.InvalidateRequerySuggested();
             }
         }
-
-
     }
 }

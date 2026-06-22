@@ -1,44 +1,129 @@
-﻿<platform:DialogWindow  x:Class="GitWorkTree.View.WorkTreeDialogWindow"
+<platform:DialogWindow  x:Class="GitWorkTree.View.WorkTreeDialogWindow"
                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                         xmlns:platform="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+                        xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
                         xmlns:toolkit="clr-namespace:Community.VisualStudio.Toolkit;assembly=Community.VisualStudio.Toolkit"
                         xmlns:viewmodel="clr-namespace:GitWorkTree.ViewModel"
                         xmlns:usercontrols="clr-namespace:GitWorkTree.View.UserControls"
-                        xmlns:converters="clr-namespace:GitWorkTree.View.Converters" 
+                        xmlns:converters="clr-namespace:GitWorkTree.View.Converters"
+                        xmlns:imaging="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.Imaging"
+                        xmlns:catalog="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.ImageCatalog"
                         toolkit:Themes.UseVsTheme="True"
+                        Background="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}"
+                        Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
                         mc:Ignorable="d"
                         Title="{Binding WindowTitle}"
-                        Width="600"
-                        Height="300"
-                        FontSize="15"
-                        FontWeight="DemiBold"
-                        WindowStyle="SingleBorderWindow"
-                        ResizeMode="NoResize">
+                          Width="650"
+                          MinHeight="250"
+                          SizeToContent="Height"
+                          FontSize="15"
+                          FontWeight="DemiBold"
+                          WindowStyle="SingleBorderWindow"
+                          ResizeMode="NoResize"
+                          Loaded="Window_Loaded">
     <Window.DataContext>
         <viewmodel:WorkTreeDialogViewModel/>
     </Window.DataContext>
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <converters:CommandTypeToBranchWorktreeLableConverter x:Key="CommandTypeToBranchWorktreeLableConverter"/>
         <converters:CommandTypeToForceCheckBoxTextConverter x:Key="CommandTypeToForceCheckBoxTextConverter"/>
         <converters:CommandTypeToCreateRemoveButtonTextConverter x:Key="CommandTypeToCreateRemoveButtonTextConverter"/>
         <converters:CreateCommandTypeVisibilityConverter x:Key="CreateCommandTypeVisibilityConverter"/>
         <converters:ManageCommandTypeVisibilityConverter x:Key="ManageCommandTypeVisibilityConverter"/>
+
+        <ControlTemplate x:Key="ErrorTemplate">
+            <Border BorderBrush="Red" BorderThickness="1">
+                <AdornedElementPlaceholder x:Name="placeholder"/>
+            </Border>
+        </ControlTemplate>
+
+        <Style TargetType="usercontrols:FolderEntry">
+            <Setter Property="Validation.ErrorTemplate" Value="{StaticResource ErrorTemplate}"/>
+            <Style.Triggers>
+                <Trigger Property="Validation.HasError" Value="true">
+                    <Setter Property="ToolTip" Value="{Binding RelativeSource={x:Static RelativeSource.Self}, Path=(Validation.Errors)[0].ErrorContent}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Dropdown arrow geometry for the split-button chevron -->
+        <Geometry x:Key="ArrowDownGeometry">M 0 0 L 3 3 L 6 0</Geometry>
+
+        <Style x:Key="DropdownArrowPathStyle" TargetType="Path">
+            <Setter Property="Stroke" Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Action icon style: maps OpenBehavior string to a VS KnownMoniker CrispImage -->
+        <Style x:Key="ActionIconContentStyle" TargetType="ContentControl">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Content}" Value="DoNotOpen">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate>
+                                <imaging:CrispImage Width="14" Height="14"
+                                    Moniker="{x:Static catalog:KnownMonikers.Add}"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Content}" Value="CurrentWindow">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate>
+                                <imaging:CrispImage Width="14" Height="14"
+                                    Moniker="{x:Static catalog:KnownMonikers.Solution}"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Content}" Value="NewVSWindow">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate>
+                                <imaging:CrispImage Width="14" Height="14"
+                                    Moniker="{x:Static catalog:KnownMonikers.VisualStudio}"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Content}" Value="Explorer">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate>
+                                <imaging:CrispImage Width="14" Height="14"
+                                    Moniker="{x:Static catalog:KnownMonikers.FolderOpened}"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="10">
+        <!-- Dialog-level indeterminate loading indicator (active when busy) -->
+        <ProgressBar Height="2" IsIndeterminate="True" VerticalAlignment="Top" Panel.ZIndex="1000"
+                     Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}"
+                     Background="Transparent" BorderThickness="0" 
+                     Foreground="{DynamicResource {x:Static vsshell:VsBrushes.HighlightKey}}"/>
+
         <Grid Grid.Row="0" Margin="10">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*"></RowDefinition>
-                <RowDefinition Height="*"></RowDefinition>
-                <RowDefinition Height="*"></RowDefinition>
-                <RowDefinition Height="*"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
             </Grid.RowDefinitions>
 
 
-            <Grid Grid.Row="0">
+            <Grid Grid.Row="0" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="20*"></ColumnDefinition>
                     <ColumnDefinition Width="80*"></ColumnDefinition>
@@ -54,94 +139,296 @@
             </Grid>
 
 
-            <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="20*"></ColumnDefinition>
-                    <ColumnDefinition Width="80*"></ColumnDefinition>
-                </Grid.ColumnDefinitions>
-                <TextBlock FontWeight="SemiBold" Text="{Binding CommandType, Converter={StaticResource CommandTypeToBranchWorktreeLableConverter}}" 
-                       d:Background="White" Grid.Row="1" Grid.Column="0" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left">
-                </TextBlock>
-                <ComboBox Name="BranchName" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
-                      ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch_Worktree, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
-                      Padding="5" d:Background="White" Grid.Row="1" Grid.Column="1" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
-                      VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True" >
-                    <ComboBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <VirtualizingStackPanel/>
-                        </ItemsPanelTemplate>
-                    </ComboBox.ItemsPanel>
-                </ComboBox>
+            <Grid Grid.Row="1" Margin="0,0,0,12" IsEnabled="{Binding IsNotBusy}">
+                <!-- If commandType is Manage, we show standard layout. If commandType is Create, we show the radio buttons. -->
+                <Grid Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="25*"></ColumnDefinition>
+                        <ColumnDefinition Width="75*"></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Row 0: New Branch Selection -->
+                    <RadioButton Grid.Row="0" Grid.Column="0" GroupName="BranchMode" IsChecked="{Binding IsNewBranchMode}" Checked="NewBranchRadioButton_Checked" Content="New Branch:" VerticalAlignment="Center" FontSize="14" Margin="0,0,0,10"/>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,2,0,10" VerticalAlignment="Center">
+                        <TextBox x:Name="NewBranchTextBox" Margin="0" Padding="4" FontSize="14" IsEnabled="{Binding IsNewBranchMode}" Text="{Binding NewBranchName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" Validation.ErrorTemplate="{StaticResource ErrorTemplate}"/>
+                        <StackPanel Orientation="Horizontal" Margin="2,4,0,2">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=NewBranchTextBox, Path=(Validation.HasError)}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Path Width="12" Height="12" Fill="Red" Data="M6,0 C2.68,0 0,2.68 0,6 C0,9.32 2.68,12 6,12 C9.32,12 12,9.32 12,6 C12,2.68 9.32,0 6,0 Z M6.5,9 H5.5 V8 H6.5 V9 Z M6.5,7 H5.5 V3 H6.5 V7 Z" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ElementName=NewBranchTextBox, Path=(Validation.Errors)[0].ErrorContent}" Foreground="Red" FontSize="11" VerticalAlignment="Center" FontWeight="Normal"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Row 1: Existing Branch Selection -->
+                    <RadioButton Grid.Row="1" Grid.Column="0" GroupName="BranchMode" IsChecked="{Binding IsExistingBranchMode}" Content="Base Branch:" VerticalAlignment="Center" FontSize="14"/>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,2,0,2" VerticalAlignment="Center">
+                        <ComboBox Name="BranchName" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
+                                  ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                                  Padding="5" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
+                                  VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True"
+                                  Validation.ErrorTemplate="{StaticResource ErrorTemplate}"
+                                  Validation.ValidationAdornerSiteFor="{Binding RelativeSource={RelativeSource Self}}">
+                            <ComboBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel/>
+                                </ItemsPanelTemplate>
+                            </ComboBox.ItemsPanel>
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <!-- Branch Icon -->
+                                        <Path Grid.Column="0" Width="12" Height="12" Margin="0,0,8,0" VerticalAlignment="Center" Stretch="Uniform"
+                                              Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+                                              Data="M9,2.5 A1.5,1.5 0 0,0 7.5,1 A1.5,1.5 0 0,0 6.1,2 L4.5,2 A1.5,1.5 0 0,0 3,3.5 L3,4.5 A1.5,1.5 0 0,0 4.5,6 L6,6 L6,8.5 A1.5,1.5 0 0,0 7.5,10 A1.5,1.5 0 0,0 9,8.5 A1.5,1.5 0 0,0 7.5,7 L6.5,7 L6.5,3.5 L7.5,3.5 A1.5,1.5 0 0,0 9,2.5 Z M4.5,5 A0.5,0.5 0 0,1 4,4.5 L4,3.5 A0.5,0.5 0 0,1 4.5,3 L6,3 L6,5 Z M7.5,2 A0.5,0.5 0 0,1 8,2.5 A0.5,0.5 0 0,1 7.5,3 A0.5,0.5 0 0,1 7,2.5 A0.5,0.5 0 0,1 7.5,2 Z M7.5,8 A0.5,0.5 0 0,1 8,8.5 A0.5,0.5 0 0,1 7.5,9 A0.5,0.5 0 0,1 7,8.5 A0.5,0.5 0 0,1 7.5,8 Z"/>
+                                        <!-- Branch Name -->
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13"/>
+                                        <!-- Worktree indicator: native VS icon, theme-safe -->
+                                        <imaging:CrispImage Grid.Column="2" Margin="8,0,2,0" Width="12" Height="12"
+                                              VerticalAlignment="Center"
+                                              Moniker="{x:Static catalog:KnownMonikers.Link}"
+                                              ToolTip="Branch already has a linked worktree"
+                                              Visibility="{Binding HasLinkedWorktree, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <StackPanel Orientation="Horizontal" Margin="2,4,0,2">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=BranchName, Path=(Validation.HasError)}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Path Width="12" Height="12" Fill="Red" Data="M6,0 C2.68,0 0,2.68 0,6 C0,9.32 2.68,12 6,12 C9.32,12 12,9.32 12,6 C12,2.68 9.32,0 6,0 Z M6.5,9 H5.5 V8 H6.5 V9 Z M6.5,7 H5.5 V3 H6.5 V7 Z" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ElementName=BranchName, Path=(Validation.Errors)[0].ErrorContent}" Foreground="Red" FontSize="11" VerticalAlignment="Center" FontWeight="Normal"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="20*"></ColumnDefinition>
+                        <ColumnDefinition Width="80*"></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock FontWeight="SemiBold" Text="{Binding CommandType, Converter={StaticResource CommandTypeToBranchWorktreeLableConverter}}" 
+                           Grid.Column="0" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left">
+                    </TextBlock>
+                    <StackPanel Grid.Column="1" Margin="0,2,0,2" VerticalAlignment="Center">
+                        <ComboBox Name="BranchNameManage" IsEditable="True" PreviewKeyDown="BranchName_PreviewKeyDown"
+                              ItemsSource="{Binding Branches_Worktrees}" SelectedItem="{Binding SelectedBranch, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                              Padding="5" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Stretch"      
+                              VirtualizingPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True"
+                              Validation.ErrorTemplate="{StaticResource ErrorTemplate}"
+                              Validation.ValidationAdornerSiteFor="{Binding RelativeSource={RelativeSource Self}}">
+                            <ComboBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel/>
+                                </ItemsPanelTemplate>
+                            </ComboBox.ItemsPanel>
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <!-- Branch Icon -->
+                                        <Path Grid.Column="0" Width="12" Height="12" Margin="0,0,8,0" VerticalAlignment="Center" Stretch="Uniform"
+                                              Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+                                              Data="M9,2.5 A1.5,1.5 0 0,0 7.5,1 A1.5,1.5 0 0,0 6.1,2 L4.5,2 A1.5,1.5 0 0,0 3,3.5 L3,4.5 A1.5,1.5 0 0,0 4.5,6 L6,6 L6,8.5 A1.5,1.5 0 0,0 7.5,10 A1.5,1.5 0 0,0 9,8.5 A1.5,1.5 0 0,0 7.5,7 L6.5,7 L6.5,3.5 L7.5,3.5 A1.5,1.5 0 0,0 9,2.5 Z M4.5,5 A0.5,0.5 0 0,1 4,4.5 L4,3.5 A0.5,0.5 0 0,1 4.5,3 L6,3 L6,5 Z M7.5,2 A0.5,0.5 0 0,1 8,2.5 A0.5,0.5 0 0,1 7.5,3 A0.5,0.5 0 0,1 7,2.5 A0.5,0.5 0 0,1 7.5,2 Z M7.5,8 A0.5,0.5 0 0,1 8,8.5 A0.5,0.5 0 0,1 7.5,9 A0.5,0.5 0 0,1 7,8.5 A0.5,0.5 0 0,1 7.5,8 Z"/>
+                                        <!-- Branch Name -->
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13"/>
+                                        <!-- Worktree indicator: native VS icon, theme-safe -->
+                                        <imaging:CrispImage Grid.Column="2" Margin="8,0,2,0" Width="12" Height="12"
+                                              VerticalAlignment="Center"
+                                              Moniker="{x:Static catalog:KnownMonikers.Link}"
+                                              ToolTip="Branch already has a linked worktree"
+                                              Visibility="{Binding HasLinkedWorktree, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <StackPanel Orientation="Horizontal" Margin="2,4,0,2">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=BranchNameManage, Path=(Validation.HasError)}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Path Width="12" Height="12" Fill="Red" Data="M6,0 C2.68,0 0,2.68 0,6 C0,9.32 2.68,12 6,12 C9.32,12 12,9.32 12,6 C12,2.68 9.32,0 6,0 Z M6.5,9 H5.5 V8 H6.5 V9 Z M6.5,7 H5.5 V3 H6.5 V7 Z" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ElementName=BranchNameManage, Path=(Validation.Errors)[0].ErrorContent}" Foreground="Red" FontSize="11" VerticalAlignment="Center" FontWeight="Normal"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
             </Grid>
 
 
-            <Grid Grid.Row="2" >
+            <Grid Grid.Row="2" IsEnabled="{Binding IsNotBusy}">
                 <Grid d:Visibility="Collapsed"
                 Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}" Height="auto" Width="auto">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="20*"></ColumnDefinition>
                         <ColumnDefinition Width="80*"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
-                    <TextBlock d:Visibility="Visible"
-                        FontWeight="SemiBold" Name="Path" Text="Path:"  
-                       d:Background="White" Grid.Row="2" Grid.Column="0" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Left" >
-                    </TextBlock>
-                    <usercontrols:FolderEntry x:Name="folderEntry" d:Visibility="Visible"
-                    FolderPath="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" 
-                     Grid.Row="2" Grid.Column="1"  Description="Folder for branch worktree" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                        <TextBlock d:Visibility="Visible"
+                            FontWeight="SemiBold" Name="Path" Text="Path:"  
+                            FontSize="14" VerticalAlignment="Center" />
+                        <Button Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" 
+                                Command="{Binding OpenOptionsCommand}"
+                                Margin="4,0,0,0" VerticalAlignment="Center" Padding="1" Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                ToolTip="Path settings (Default Directory, Sub-Folder, Branch Hierarchy) can be configured in Tools > Options > GitWorkTree. Click to open settings.">
+                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.StatusInformation}" 
+                                                Width="14" Height="14" />
+                        </Button>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,2,0,2" VerticalAlignment="Center">
+                        <usercontrols:FolderEntry x:Name="folderEntry" d:Visibility="Visible"
+                            FolderPath="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" 
+                            Description="Folder for branch worktree"
+                            Validation.ErrorTemplate="{StaticResource ErrorTemplate}" />
+                        <StackPanel Orientation="Horizontal" Margin="2,4,0,2">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=folderEntry, Path=(Validation.HasError)}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Path Width="12" Height="12" Fill="Red" Data="M6,0 C2.68,0 0,2.68 0,6 C0,9.32 2.68,12 6,12 C9.32,12 12,9.32 12,6 C12,2.68 9.32,0 6,0 Z M6.5,9 H5.5 V8 H6.5 V9 Z M6.5,7 H5.5 V3 H6.5 V7 Z" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ElementName=folderEntry, Path=(Validation.Errors)[0].ErrorContent}" Foreground="Red" FontSize="11" VerticalAlignment="Center" FontWeight="Normal"/>
+                        </StackPanel>
+                    </StackPanel>
                 </Grid>
 
                 <Grid d:Visibility="Visible"
                     Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}" Height="auto" Width="auto">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="auto"></ColumnDefinition>
                         <ColumnDefinition Width="*"></ColumnDefinition>
-                        <ColumnDefinition Width="*"></ColumnDefinition>
-                        <ColumnDefinition Width="1.3*"></ColumnDefinition>
+                        <ColumnDefinition Width="Auto"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
 
-                    <CheckBox x:Name="ManageLoadSolution" IsChecked="{Binding IfOpenInNewVisualStudio}"
-                       Content="Open in new window" FontSize="14" 
-                       Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" />
-
-                    <Button Content="Open" Grid.Column="3" FontSize="14" FontWeight="SemiBold"
-                        Command="{Binding OpenCommand}" Margin="7" />
+                    <Grid Grid.Column="1" Margin="7">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Command="{Binding OpenCommand}" CommandParameter="{Binding PreferredOpenAction}" FontSize="14" FontWeight="SemiBold" Padding="12,5">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ContentControl Content="{Binding PreferredOpenAction}" Style="{StaticResource ActionIconContentStyle}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Open" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="1" Click="ButtonOpen_Click" Width="20" Padding="0">
+                            <Path Data="{StaticResource ArrowDownGeometry}" Style="{StaticResource DropdownArrowPathStyle}"/>
+                            <Button.ContextMenu>
+                                <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                    <MenuItem Header="Open in Current Window" Command="{Binding OpenCommand}" CommandParameter="CurrentWindow">
+                                        <MenuItem.Icon>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Open in New VS Window" Command="{Binding OpenCommand}" CommandParameter="NewVSWindow">
+                                        <MenuItem.Icon>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Open in Explorer" Command="{Binding OpenCommand}" CommandParameter="Explorer">
+                                        <MenuItem.Icon>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.FolderOpened}" Width="16" Height="16"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                    </Grid>
                 </Grid>
 
             </Grid>
 
+            <Grid Grid.Row="3" Margin="7">
 
-            <Grid Grid.Row="3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="auto"></ColumnDefinition>
-                    <ColumnDefinition Width="*"></ColumnDefinition>
-                    <ColumnDefinition Width="*"></ColumnDefinition>
-                    <ColumnDefinition Width="*"></ColumnDefinition>
-                </Grid.ColumnDefinitions>
 
-                <CheckBox x:Name="ForceCreateRemove" IsChecked="{Binding IsForceCreateRemove}" FontSize="14" d:Visibility="Visible"
-                      Content="{Binding CommandType, Converter={StaticResource CommandTypeToForceCheckBoxTextConverter}}"
-                      Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="Prune" Command="{Binding PruneCommand}" Content="Prune" Margin="0,0,7,0"
+                            Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"
+                            FontSize="14" FontWeight="SemiBold" Padding="12,5" IsEnabled="{Binding IsNotBusy}" />
 
-                <CheckBox x:Name="CreateLoadSolution" IsChecked="{Binding IfOpenInNewVisualStudio}" Margin="2" d:Visibility="Visible"
-                      Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}" 
-                        IsEnabled="{Binding OptionsSaved.IsLoadSolution}"
-                      Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" >
-                    <TextBlock Text="Open in new window" FontSize="14" TextWrapping="Wrap" TextAlignment="Right"/>
-                </CheckBox>
+                    <!-- Create Split Button (Visible in Create mode / ManageCommandTypeVisibilityConverter) -->
+                    <Grid Visibility="{Binding CommandType, Converter={StaticResource ManageCommandTypeVisibilityConverter}}" Margin="0,0,7,0" IsEnabled="{Binding IsNotBusy}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Command="{Binding CreateCommand}" CommandParameter="{Binding PreferredCreateAction}" 
+                                FontSize="14" FontWeight="SemiBold" Padding="12,5">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ContentControl Content="{Binding PreferredCreateAction}" Style="{StaticResource ActionIconContentStyle}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Create" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="1" Click="ButtonCreate_Click" Width="20" Padding="0">
+                            <Path Data="{StaticResource ArrowDownGeometry}" Style="{StaticResource DropdownArrowPathStyle}"/>
+                            <Button.ContextMenu>
+                                <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                    <MenuItem Header="Create Only" Command="{Binding CreateCommand}" CommandParameter="DoNotOpen">
+                                        <MenuItem.Icon>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Add}" Width="16" Height="16"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Create and Open in Current Window" Command="{Binding CreateCommand}" CommandParameter="CurrentWindow">
+                                        <MenuItem.Icon>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Create and Open in New VS Window" Command="{Binding CreateCommand}" CommandParameter="NewVSWindow">
+                                        <MenuItem.Icon>
+                                            <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                    </Grid>
 
-                <Button x:Name="Prune" Command="{Binding PruneCommand}" Margin="7"
-                      Content="Prune" Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"
-                    Grid.Column="1" FontSize="14" FontWeight="SemiBold" />
+                    <!-- Remove Button (Visible in Manage mode / CreateCommandTypeVisibilityConverter) -->
+                    <Button Content="Remove" Command="{Binding RemoveCommand}" Margin="0,0,7,0"
+                            Visibility="{Binding CommandType, Converter={StaticResource CreateCommandTypeVisibilityConverter}}"
+                            FontSize="14" FontWeight="SemiBold" Padding="12,5"
+                            Name="buttonRemove" IsEnabled="{Binding IsNotBusy}" />
 
-                <Button Content="{Binding CommandType, Converter={StaticResource CommandTypeToCreateRemoveButtonTextConverter}}" Command="{Binding CreateCommand}"
-                    Grid.Column="2" FontSize="14" FontWeight="SemiBold"
-                    Margin="7"
-                    Name="button2" />
-
-                <Button Content="Cancel" Grid.Column="3" FontSize="14" FontWeight="SemiBold"
-                    Command="{Binding CancelCommand}" Margin="7"
-                    Name="button3" />
+                    <Button Content="Cancel" FontSize="14" FontWeight="SemiBold" Padding="12,5"
+                            Command="{Binding CancelCommand}" Name="button3" />
+                </StackPanel>
             </Grid>
 
         </Grid>

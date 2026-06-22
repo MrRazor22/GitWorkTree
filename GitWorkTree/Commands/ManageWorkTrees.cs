@@ -1,5 +1,5 @@
-﻿using GitWorkTree.Commands;
-using GitWorkTree.Helpers;
+using GitWorkTree.Commands;
+using GitWorkTree.Services;
 
 namespace GitWorkTree
 {
@@ -9,13 +9,18 @@ namespace GitWorkTree
         protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            CommandExecutor commandExecution = null;
             try
             {
-                commandExecution = new CommandExecutor(CommandType.Manage);
+                ToolWindowPane window = await Package.FindToolWindowAsync(
+                    typeof(GitWorkTree.View.ManageWorktreesToolWindow),
+                    0,
+                    create: true,
+                    cancellationToken: Package.DisposalToken);
 
-                if (commandExecution.PreRequisite())
-                    commandExecution.Execute();
+                if (window?.Frame is Microsoft.VisualStudio.Shell.Interop.IVsWindowFrame frame)
+                {
+                    Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(frame.Show());
+                }
             }
             catch (Exception ex)
             {

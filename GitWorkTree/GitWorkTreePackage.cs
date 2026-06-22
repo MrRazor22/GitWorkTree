@@ -1,4 +1,4 @@
-﻿global using Community.VisualStudio.Toolkit;
+global using Community.VisualStudio.Toolkit;
 global using Microsoft.VisualStudio.Shell;
 global using System;
 global using Task = System.Threading.Tasks.Task;
@@ -8,11 +8,12 @@ using System.Threading;
 
 namespace GitWorkTree
 {
-    [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
+     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
     [InstalledProductRegistration(Vsix.Name, Vsix.Description, Vsix.Version)]
     [ProvideOptionPage(typeof(OptionsProvider.GeneralOptions), "Source Control", "Git WorkTree", 101, 102, true, new string[0], ProvidesLocalizedCategoryName = false, SupportsProfiles = true)]
     [ProvideProfile(typeof(OptionsProvider.GeneralOptions), "Source Control", "Git WorkTree", 101, 102, isToolsOptionPage: true)]
     [ProvideMenuResource("Menus.ctmenu", 1)]
+    [ProvideToolWindow(typeof(GitWorkTree.View.ManageWorktreesToolWindow), Style = VsDockStyle.Tabbed, Window = "3ae090d6-c2c7-435e-8511-4b7ab2dae5ce")]
     [Guid(PackageGuids.guidGitWorkTreePackageString)]
     public sealed class GitWorkTreePackage : ToolkitPackage
     {

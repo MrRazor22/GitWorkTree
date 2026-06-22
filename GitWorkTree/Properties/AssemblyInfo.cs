@@ -1,4 +1,4 @@
-﻿using GitWorkTree;
+using GitWorkTree;
 using System.Reflection;
 using System.Runtime.InteropServices;
 

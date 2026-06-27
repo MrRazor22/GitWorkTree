@@ -9,12 +9,15 @@ namespace GitWorkTree.Services
 {
     public class GitCommandExecutor : IGitCommandExecutor
     {
+        private const string DefaultGitPerformanceFlags = "-c core.longpaths=true -c core.preloadIndex=true -c core.fscache=true -c index.threads=0";
         private static int _commandCounter = 0;
         private readonly ILoggingService _loggingService;
+        private readonly IGitPathResolver _pathResolver;
 
-        public GitCommandExecutor(ILoggingService loggingService)
+        public GitCommandExecutor(ILoggingService loggingService, IGitPathResolver pathResolver = null)
         {
             _loggingService = loggingService;
+            _pathResolver = pathResolver ?? new GitPathResolver();
         }
 
         private async Task LogMessageAsync(ILoggingService outputWindow, string message, bool showOutputPane = false)
@@ -25,106 +28,17 @@ namespace GitWorkTree.Services
             }
         }
 
-        public async Task<bool> ExecuteAsync(string gitPath, string arguments, string workingDirectory, Action<string> outputHandler, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<GitCommandExecutionResult> ExecuteAsync(string arguments, string workingDirectory, Action<string> outputHandler = null, System.Threading.CancellationToken cancellationToken = default)
         {
             int cmdId = System.Threading.Interlocked.Increment(ref _commandCounter);
             string logPrefix = $"[Cmd #{cmdId}]";
             ILoggingService outputWindow = _loggingService ?? LoggingHelper.Instance;
 
-            if (string.IsNullOrEmpty(workingDirectory))
+            if (string.IsNullOrEmpty(arguments))
             {
-                await LogMessageAsync(outputWindow, $"{logPrefix} The working directory is invalid or not loaded yet");
-                return false;
+                await LogMessageAsync(outputWindow, $"{logPrefix} The Git command arguments are null or empty");
+                return new GitCommandExecutionResult(false, "The Git command arguments are null or empty");
             }
-
-            if (!File.Exists(gitPath))
-            {
-                await LogMessageAsync(outputWindow, $"{logPrefix} Git executable not found at: {gitPath}", true);
-                return false;
-            }
-
-            await LogMessageAsync(outputWindow, $"{logPrefix} Executing Git command: {arguments}", false);
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-            try
-            {
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = gitPath,
-                    Arguments = arguments,
-                    WorkingDirectory = workingDirectory,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true
-                };
-
-                using var process = new Process { StartInfo = startInfo };
-                var outputBuilder = new StringBuilder();
-                var errorBuilder = new StringBuilder();
-
-                process.OutputDataReceived += (s, e) =>
-                {
-                    if (e.Data != null)
-                    {
-                        outputBuilder.AppendLine(e.Data);
-                        outputHandler?.Invoke(e.Data);
-                    }
-                };
-
-                process.ErrorDataReceived += (s, e) =>
-                {
-                    if (e.Data != null)
-                    {
-                        errorBuilder.AppendLine(e.Data);
-                        _ = LogMessageAsync(outputWindow, $"{logPrefix} {e.Data}");
-                    }
-                };
-
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-
-                using var registration = cancellationToken.Register(() =>
-                {
-                    try
-                    {
-                        if (!process.HasExited)
-                        {
-                            process.Kill();
-                        }
-                    }
-                    catch { }
-                });
-
-                await process.WaitForExitAsync(cancellationToken);
-                stopwatch.Stop();
-
-                bool isError = process.ExitCode != 0;
-
-                if (isError && errorBuilder.Length == 0)
-                {
-                    await LogMessageAsync(outputWindow, $"{logPrefix} Git failed but no error output captured.", true);
-                }
-
-                var status = isError ? "Failed" : "Completed";
-                await LogMessageAsync(outputWindow, $"{logPrefix} {status} (ExitCode={process.ExitCode}, {stopwatch.ElapsedMilliseconds}ms): git {arguments}");
-
-                return !isError;
-            }
-            catch (Exception ex)
-            {
-                stopwatch.Stop();
-                await LogMessageAsync(outputWindow, $"{logPrefix} Failed (Exception after {stopwatch.ElapsedMilliseconds}ms during git {arguments}): {ex.Message}", true);
-                return false;
-            }
-        }
-
-        public async Task<GitCommandExecutionResult> ExecuteWithResultAsync(string gitPath, string arguments, string workingDirectory, Action<string> outputHandler = null, System.Threading.CancellationToken cancellationToken = default)
-        {
-            int cmdId = System.Threading.Interlocked.Increment(ref _commandCounter);
-            string logPrefix = $"[Cmd #{cmdId}]";
-            ILoggingService outputWindow = _loggingService ?? LoggingHelper.Instance;
 
             if (string.IsNullOrEmpty(workingDirectory))
             {
@@ -132,13 +46,15 @@ namespace GitWorkTree.Services
                 return new GitCommandExecutionResult(false, "The working directory is invalid or not loaded yet");
             }
 
-            if (!File.Exists(gitPath))
+            string gitPath = _pathResolver.GetGitPath();
+            if (Path.IsPathRooted(gitPath) && !File.Exists(gitPath))
             {
                 await LogMessageAsync(outputWindow, $"{logPrefix} Git executable not found at: {gitPath}", true);
                 return new GitCommandExecutionResult(false, $"Git executable not found at: {gitPath}");
             }
 
-            await LogMessageAsync(outputWindow, $"{logPrefix} Executing Git command: {arguments}", false);
+            string fullArgument = $"{DefaultGitPerformanceFlags} {arguments}";
+            await LogMessageAsync(outputWindow, $"{logPrefix} Executing Git command: {fullArgument}", false);
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             try
@@ -146,7 +62,7 @@ namespace GitWorkTree.Services
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = gitPath,
-                    Arguments = arguments,
+                    Arguments = fullArgument,
                     WorkingDirectory = workingDirectory,
                     UseShellExecute = false,
                     CreateNoWindow = true,
@@ -203,14 +119,14 @@ namespace GitWorkTree.Services
                 }
 
                 var status = isError ? "Failed" : "Completed";
-                await LogMessageAsync(outputWindow, $"{logPrefix} {status} (ExitCode={process.ExitCode}, {stopwatch.ElapsedMilliseconds}ms): git {arguments}");
+                await LogMessageAsync(outputWindow, $"{logPrefix} {status} (ExitCode={process.ExitCode}, {stopwatch.ElapsedMilliseconds}ms): git {fullArgument}");
 
                 return new GitCommandExecutionResult(!isError, errorBuilder.ToString().Trim());
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                await LogMessageAsync(outputWindow, $"{logPrefix} Failed (Exception after {stopwatch.ElapsedMilliseconds}ms during git {arguments}): {ex.Message}", true);
+                await LogMessageAsync(outputWindow, $"{logPrefix} Failed (Exception after {stopwatch.ElapsedMilliseconds}ms during git {fullArgument}): {ex.Message}", true);
                 return new GitCommandExecutionResult(false, ex.Message);
             }
         }

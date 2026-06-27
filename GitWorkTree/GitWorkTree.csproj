@@ -53,6 +53,8 @@
     <Compile Include="Services\IGitCommandExecutor.cs" />
     <Compile Include="Services\GitCommandExecutor.cs" />
     <Compile Include="Services\IGitService.cs" />
+    <Compile Include="Services\IGitPathResolver.cs" />
+    <Compile Include="Services\GitPathResolver.cs" />
     <Compile Include="Services\ILoggingService.cs" />
     <Compile Include="Services\ISolutionService.cs" />
     <Compile Include="Services\SolutionHelper.cs" />

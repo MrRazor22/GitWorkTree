@@ -11,12 +11,6 @@ using Path = System.IO.Path;
 
 namespace GitWorkTree.Services
 {
-    public class GitCommandArgs
-    {
-        public string Argument { get; set; }
-        public string WorkingDirectory { get; set; }
-    }
-
     public static class GitHelperExtensions
     {
         public static string ToFolderFormat(this string branchName, bool preserveHierarchy)
@@ -41,75 +35,45 @@ namespace GitWorkTree.Services
     {
         private readonly ILoggingService _loggingService;
         private readonly IGitCommandExecutor _commandExecutor;
-        private readonly string _gitPath;
 
-        public GitHelper(ILoggingService loggingService, IGitCommandExecutor commandExecutor = null, string gitPath = null)
+        public GitHelper(ILoggingService loggingService, IGitCommandExecutor commandExecutor = null)
         {
             _loggingService = loggingService;
             _commandExecutor = commandExecutor ?? new GitCommandExecutor(loggingService);
-            if (gitPath != null)
-            {
-                _gitPath = gitPath;
-            }
-            else
-            {
-                string baseDir = System.AppDomain.CurrentDomain.BaseDirectory;
-                string vs2017plusGit = Path.Combine(baseDir, @"CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe");
-                string vs2015Git = Path.Combine(baseDir, @"Extensions\3rdParty\Git\cmd\git.exe");
-
-                if (File.Exists(vs2017plusGit))
-                {
-                    _gitPath = vs2017plusGit;
-                }
-                else if (File.Exists(vs2015Git))
-                {
-                    _gitPath = vs2015Git;
-                }
-                else
-                {
-                    _gitPath = "git.exe"; // Fallback to system Git from PATH
-                }
-            }
         }
 
-        private async Task<bool> ExecuteAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<string> GetRepositoryPathAsync(string solutionPath)
         {
-            if (gitCommandArgs == null)
+            try
             {
-                _loggingService?.WriteToOutputWindowAsync("The Git command arguments are null");
-                return false;
+                if (string.IsNullOrWhiteSpace(solutionPath)) return null;
+                if (File.Exists(solutionPath))
+                {
+                    solutionPath = Path.GetDirectoryName(solutionPath);
+                }
+                var gitFolderPath = await GetGitFolderDirectoryAsync(solutionPath).ConfigureAwait(false);
+
+                string gitFileName = Path.GetFileName(gitFolderPath);
+                if (gitFileName != null && gitFileName.Equals(".git", StringComparison.OrdinalIgnoreCase))
+                    return solutionPath;
+                else if (gitFolderPath != null && gitFolderPath.Replace('\\', '/').Contains(".git/worktrees"))
+                    return Path.GetFullPath(Path.Combine(gitFolderPath, "..", "..", ".."));
+                return null;
             }
-
-            string fullArgument = $"-c core.longpaths=true -c core.preloadIndex=true -c core.fscache=true -c index.threads=0 {gitCommandArgs.Argument}";
-
-            return await _commandExecutor.ExecuteAsync(_gitPath, fullArgument, gitCommandArgs.WorkingDirectory, outputHandler, cancellationToken);
-        }
-
-        private async Task<GitCommandExecutionResult> ExecuteWithResultAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null, System.Threading.CancellationToken cancellationToken = default)
-        {
-            if (gitCommandArgs == null)
+            catch (Exception ex)
             {
-                _loggingService?.WriteToOutputWindowAsync("The Git command arguments are null");
-                return new GitCommandExecutionResult(false, "The Git command arguments are null");
+                _loggingService?.WriteToOutputWindowAsync($"Failed to get repository path: {ex.Message}");
+                return null;
             }
-
-            string fullArgument = $"-c core.longpaths=true -c core.preloadIndex=true -c core.fscache=true -c index.threads=0 {gitCommandArgs.Argument}";
-
-            return await _commandExecutor.ExecuteWithResultAsync(_gitPath, fullArgument, gitCommandArgs.WorkingDirectory, outputHandler, cancellationToken);
         }
 
         public async Task<List<string>> GetWorkTreePathsAsync(string repositoryPath)
         {
             List<string> workTreePaths = new List<string>();
-            var isCompleted = await ExecuteAsync(new GitCommandArgs()
-            {
-                WorkingDirectory = repositoryPath,
-                Argument = "worktree list --porcelain",
-            }, (line) =>
+            var result = await _commandExecutor.ExecuteAsync("worktree list --porcelain", repositoryPath, (line) =>
             {
                 if (line.StartsWith("worktree "))
                 {
-                    // everything after "worktree " is the path (can contain spaces)
                     string rawPath = line.Substring("worktree ".Length).Trim();
                     if (!string.IsNullOrEmpty(rawPath))
                     {
@@ -123,7 +87,7 @@ namespace GitWorkTree.Services
                     }
                 }
             });
-            return isCompleted ? workTreePaths : null;
+            return result.Success ? workTreePaths : null;
         }
 
         public async Task<List<WorktreeInfo>> GetWorktreesAsync(string repositoryPath)
@@ -131,11 +95,7 @@ namespace GitWorkTree.Services
             var worktrees = new List<WorktreeInfo>();
             WorktreeInfo current = null;
 
-            var isCompleted = await ExecuteAsync(new GitCommandArgs()
-            {
-                WorkingDirectory = repositoryPath,
-                Argument = "worktree list --porcelain",
-            }, (line) =>
+            var result = await _commandExecutor.ExecuteAsync("worktree list --porcelain", repositoryPath, (line) =>
             {
                 if (string.IsNullOrWhiteSpace(line))
                 {
@@ -182,7 +142,7 @@ namespace GitWorkTree.Services
                 worktrees.Add(current);
             }
 
-            if (isCompleted)
+            if (result.Success)
             {
                 foreach (var w in worktrees)
                 {
@@ -205,11 +165,7 @@ namespace GitWorkTree.Services
         public async Task<List<string>> GetBranchesAsync(string repositoryPath)
         {
             List<string> branches = new List<string>();
-            var isCompleted = await ExecuteAsync(new GitCommandArgs()
-            {
-                WorkingDirectory = repositoryPath,
-                Argument = "--no-pager branch -a --no-color"
-            }, (line) =>
+            var result = await _commandExecutor.ExecuteAsync("--no-pager branch -a --no-color", repositoryPath, (line) =>
             {
                 if (!string.IsNullOrWhiteSpace(line))
                 {
@@ -217,17 +173,13 @@ namespace GitWorkTree.Services
                     branches.Add(branchName);
                 }
             });
-            if (isCompleted) return branches;
+            if (result.Success) return branches;
             else return null;
         }
 
         public async Task<GitOperationResult> CreateBranchAsync(string repositoryPath, string newBranchName, string sourceBranchName)
         {
-            var result = await ExecuteWithResultAsync(new GitCommandArgs()
-            {
-                Argument = $"branch {newBranchName} {sourceBranchName.ToGitCommandExecutableFormat()}",
-                WorkingDirectory = repositoryPath
-            }, (line) =>
+            var result = await _commandExecutor.ExecuteAsync($"branch {newBranchName} {sourceBranchName.ToGitCommandExecutableFormat()}", repositoryPath, (line) =>
             {
                 _loggingService?.WriteToOutputWindowAsync(line);
             });
@@ -236,25 +188,16 @@ namespace GitWorkTree.Services
 
         public async Task<GitOperationResult> DeleteBranchAsync(string repositoryPath, string branchName)
         {
-            var result = await ExecuteWithResultAsync(new GitCommandArgs()
-            {
-                Argument = $"branch -D {branchName}",
-                WorkingDirectory = repositoryPath
-            }, (line) =>
+            var result = await _commandExecutor.ExecuteAsync($"branch -D {branchName}", repositoryPath, (line) =>
             {
                 _loggingService?.WriteToOutputWindowAsync(line);
             });
             return new GitOperationResult(result.Success, result.StandardError);
         }
 
-        public async Task<GitOperationResult> CreateWorkTreeAsync
-            (string repositoryPath, string branchName, string workTreePath)
+        public async Task<GitOperationResult> CreateWorkTreeAsync(string repositoryPath, string branchName, string workTreePath)
         {
-            var result = await ExecuteWithResultAsync(new GitCommandArgs()
-            {
-                Argument = $"worktree add {SolutionHelper.NormalizePath(workTreePath)} {branchName.ToGitCommandExecutableFormat()}",
-                WorkingDirectory = repositoryPath
-            }, (line) =>
+            var result = await _commandExecutor.ExecuteAsync($"worktree add {SolutionHelper.NormalizePath(workTreePath)} {branchName.ToGitCommandExecutableFormat()}", repositoryPath, (line) =>
             {
                 _loggingService?.WriteToOutputWindowAsync(line);
             });
@@ -264,11 +207,7 @@ namespace GitWorkTree.Services
         public async Task<GitOperationResult> RemoveWorkTreeAsync(string repositoryPath, string workTreePath, bool shouldForceCreate)
         {
             string force = shouldForceCreate ? "-f " : "";
-            var result = await ExecuteWithResultAsync(new GitCommandArgs()
-            {
-                Argument = $"worktree remove {force}{SolutionHelper.NormalizePath(workTreePath)}",
-                WorkingDirectory = repositoryPath
-            }, (line) =>
+            var result = await _commandExecutor.ExecuteAsync($"worktree remove {force}{SolutionHelper.NormalizePath(workTreePath)}", repositoryPath, (line) =>
             {
                 _loggingService?.WriteToOutputWindowAsync(line);
             });
@@ -277,11 +216,7 @@ namespace GitWorkTree.Services
 
         public async Task<GitOperationResult> PruneAsync(string repositoryPath)
         {
-            var result = await ExecuteWithResultAsync(new GitCommandArgs()
-            {
-                Argument = "worktree prune --expire=now",
-                WorkingDirectory = repositoryPath
-            }, (line) =>
+            var result = await _commandExecutor.ExecuteAsync("worktree prune --expire=now", repositoryPath, (line) =>
             {
                 _loggingService?.WriteToOutputWindowAsync(line);
             });
@@ -291,8 +226,7 @@ namespace GitWorkTree.Services
         public async Task<string> GetGitFolderDirectoryAsync(string currentSolutionPath)
         {
             string commandoutput = "";
-            var isCompleted = await ExecuteAsync(new GitCommandArgs() { WorkingDirectory = currentSolutionPath, Argument = "rev-parse --git-dir", },
-            (line) =>
+            var result = await _commandExecutor.ExecuteAsync("rev-parse --git-dir", currentSolutionPath, (line) =>
             {
                 if (!string.IsNullOrWhiteSpace(line))
                 {
@@ -300,11 +234,11 @@ namespace GitWorkTree.Services
                 }
             });
 
-            if (isCompleted) return commandoutput;
+            if (result.Success) return commandoutput;
             return null;
         }
 
-        public async Task<(string Branch, string StatusSummary, List<string> Changes, List<GitCommitInfo> Outgoing)> GetWorkTreeDetailsAsync(string repositoryPath, string workTreePath, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<WorktreeInfo> GetWorkTreeDetailsAsync(string repositoryPath, string workTreePath, System.Threading.CancellationToken cancellationToken = default)
         {
             string branch = "Unknown";
             int staged = 0;
@@ -316,20 +250,14 @@ namespace GitWorkTree.Services
             List<GitCommitInfo> outgoing = new List<GitCommitInfo>();
 
             bool hasUpstream = false;
-            var statusResult = await ExecuteWithResultAsync(new GitCommandArgs()
-            {
-                WorkingDirectory = workTreePath,
-                Argument = "status --porcelain -b"
-            }, (line) =>
+            var statusResult = await _commandExecutor.ExecuteAsync("status --porcelain -b", workTreePath, (line) =>
             {
                 if (string.IsNullOrWhiteSpace(line)) return;
 
                 if (line.StartsWith("## "))
                 {
-                    // If tracking branch is configured and not gone, line contains "..."
                     hasUpstream = line.Contains("...") && !line.Contains("[gone]");
 
-                    // Parse branch name, e.g. "master...origin/master [ahead 1]" -> "master"
                     string branchPart = line.Substring(3).Trim();
                     int bracketIdx = branchPart.IndexOf('[');
                     if (bracketIdx >= 0)
@@ -347,7 +275,6 @@ namespace GitWorkTree.Services
                         branch = branchPart;
                     }
 
-                    // Parse ahead/behind if present, e.g. ## master...origin/master [ahead 1, behind 2]
                     var match = Regex.Match(line, @"\[ahead\s+(\d+)\]");
                     if (match.Success) ahead = int.Parse(match.Groups[1].Value);
                     
@@ -385,14 +312,9 @@ namespace GitWorkTree.Services
                 throw new InvalidOperationException(statusResult.StandardError);
             }
 
-            // 3. Outgoing commits (git log @{u}..HEAD --pretty=format:"%H%x09%h%x09%s%x09%an%x09%ad" --date=short) if upstream is configured
             if (hasUpstream)
             {
-                await ExecuteAsync(new GitCommandArgs()
-                {
-                    WorkingDirectory = workTreePath,
-                    Argument = "log @{u}..HEAD --pretty=format:\"%H%x09%h%x09%s%x09%an%x09%ad\" --date=short -n 50"
-                }, (line) =>
+                await _commandExecutor.ExecuteAsync("log @{u}..HEAD --pretty=format:\"%H%x09%h%x09%s%x09%an%x09%ad\" --date=short -n 50", workTreePath, (line) =>
                 {
                     if (!string.IsNullOrWhiteSpace(line))
                     {
@@ -411,22 +333,25 @@ namespace GitWorkTree.Services
 
             string statusSummary = $"{staged} staged, {unstaged + untracked} changes ({untracked} untracked) · ↑{ahead} ↓{behind}";
 
-            return (branch, statusSummary, changes, outgoing);
+            return new WorktreeInfo
+            {
+                Path = workTreePath,
+                Branch = branch,
+                StatusSummary = statusSummary,
+                Changes = changes,
+                Outgoing = outgoing
+            };
         }
 
         public async Task<string> ShowFileContentAsync(string repositoryPath, string revisionAndFilePath)
         {
             var contentBuilder = new StringBuilder();
-            bool success = await ExecuteAsync(new GitCommandArgs()
-            {
-                WorkingDirectory = repositoryPath,
-                Argument = $"show {revisionAndFilePath}"
-            }, (line) =>
+            var result = await _commandExecutor.ExecuteAsync($"show {revisionAndFilePath}", repositoryPath, (line) =>
             {
                 contentBuilder.AppendLine(line);
             }).ConfigureAwait(false);
 
-            return success ? contentBuilder.ToString() : null;
+            return result.Success ? contentBuilder.ToString() : null;
         }
     }
 }

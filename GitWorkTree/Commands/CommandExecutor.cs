@@ -6,6 +6,7 @@ using System.Windows.Interop;
 using GitWorkTree.Services;
 using GitWorkTree.View;
 using System;
+using System.Threading.Tasks;
 
 namespace GitWorkTree.Commands
 {
@@ -29,10 +30,10 @@ namespace GitWorkTree.Commands
             _commandType = commandType;
             outputWindow = LoggingHelper.Instance;
             gitService = new GitHelper(outputWindow);
-            solutionService = new SolutionHelper(outputWindow, gitService);
+            solutionService = new SolutionHelper(outputWindow);
         }
 
-        public bool PreRequisite()
+        public async Task<bool> PreRequisiteAsync()
         {
             try
             {
@@ -40,7 +41,7 @@ namespace GitWorkTree.Commands
                 Assumes.Present(dte);
 
                 string solutionPath = dte.Solution?.FullName;
-                ActiveRepositoryPath = solutionService.GetRepositoryPath(solutionPath);
+                ActiveRepositoryPath = await gitService.GetRepositoryPathAsync(solutionPath).ConfigureAwait(false);
 
                 if (string.IsNullOrEmpty(ActiveRepositoryPath))
                 {

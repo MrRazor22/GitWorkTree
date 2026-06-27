@@ -376,7 +376,7 @@ namespace GitWorkTree.ViewModel
         {
             _loggingService = loggingService ?? LoggingHelper.Instance;
             _gitService = gitService ?? new GitHelper(_loggingService);
-            _solutionService = solutionService ?? new SolutionHelper(_loggingService, _gitService);
+            _solutionService = solutionService ?? new SolutionHelper(_loggingService);
             // ManageWorktreesViewModel is instantiated from XAML — no injection path at runtime,
             // so fall back to GlobalProvider when no explicit provider is supplied.
             _serviceProvider = serviceProvider ?? ServiceProvider.GlobalProvider;
@@ -411,17 +411,17 @@ namespace GitWorkTree.ViewModel
             InitializeRepositoryPath();
         }
 
-        private void ResolveActiveRepositoryPath()
+        private async Task ResolveActiveRepositoryPathAsync()
         {
             try
             {
-                ThreadHelper.ThrowIfNotOnUIThread();
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
                 EnvDTE80.DTE2 dte = Package.GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE80.DTE2;
                 if (dte != null)
                 {
                     string solutionPath = dte.Solution?.FullName;
-                    string resolved = _solutionService.GetRepositoryPath(solutionPath);
+                    string resolved = await _gitService.GetRepositoryPathAsync(solutionPath).ConfigureAwait(false);
                     if (!string.IsNullOrEmpty(resolved))
                     {
                         ActiveRepositoryPath = resolved;
@@ -439,7 +439,7 @@ namespace GitWorkTree.ViewModel
             try
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
-                ResolveActiveRepositoryPath();
+                _ = ResolveActiveRepositoryPathAsync();
 
                 SubscribeToGitExtEvents();
                 
@@ -589,7 +589,7 @@ namespace GitWorkTree.ViewModel
         private async Task RefreshInternalAsync(bool isManual)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            ResolveActiveRepositoryPath();
+            await ResolveActiveRepositoryPathAsync().ConfigureAwait(false);
             if (string.IsNullOrEmpty(ActiveRepositoryPath))
             {
                 CurrentState = ManageWorktreesState.NoRepository;
@@ -879,7 +879,7 @@ namespace GitWorkTree.ViewModel
             {
                 _isDialogOrCommandActive = true;
                 var createCommandExecutor = new CommandExecutor(CommandType.Create);
-                if (createCommandExecutor.PreRequisite())
+                if (await createCommandExecutor.PreRequisiteAsync().ConfigureAwait(false))
                 {
                     createCommandExecutor.Execute();
                     _lastDialogCloseTimeUtc = DateTime.UtcNow;
@@ -980,7 +980,7 @@ namespace GitWorkTree.ViewModel
             }
         }
 
-        private string ResolveCommitRepositoryPath(string worktreeFullPath, string activeRepositoryPath)
+        private async Task<string> ResolveCommitRepositoryPathAsync(string worktreeFullPath, string activeRepositoryPath)
         {
             if (!string.IsNullOrEmpty(activeRepositoryPath))
             {
@@ -989,7 +989,7 @@ namespace GitWorkTree.ViewModel
 
             if (!string.IsNullOrEmpty(worktreeFullPath))
             {
-                string resolved = _solutionService.GetRepositoryPath(worktreeFullPath);
+                string resolved = await _gitService.GetRepositoryPathAsync(worktreeFullPath).ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(resolved))
                 {
                     return resolved;
@@ -1029,7 +1029,7 @@ namespace GitWorkTree.ViewModel
             if (gitExt != null)
             {
                 string activeRepoPath = gitExt.ActiveRepositories?.FirstOrDefault()?.RepositoryPath;
-                string repoPath = ResolveCommitRepositoryPath(SelectedWorktree.FullPath, activeRepoPath);
+                string repoPath = await ResolveCommitRepositoryPathAsync(SelectedWorktree.FullPath, activeRepoPath).ConfigureAwait(false);
 
                 if (_loggingService != null)
                 {

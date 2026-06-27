@@ -22,6 +22,9 @@ namespace GitWorkTree
             await this.RegisterCommandsAsync();
             await InteractWithSettingsAsync();
             General.Saved += CommandExecutor.OnSettingsSaved;
+
+            var pathResolver = new Services.GitPathResolver();
+            await Services.LoggingHelper.Instance.WriteToOutputWindowAsync($"Using Git executable: {pathResolver.GetGitPath()}");
         }
         private async Task InteractWithSettingsAsync()
         {

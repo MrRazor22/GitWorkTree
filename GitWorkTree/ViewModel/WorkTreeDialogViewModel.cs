@@ -389,7 +389,7 @@ namespace GitWorkTree.ViewModel
         {
             _loggingService = loggingService ?? LoggingHelper.Instance;
             _gitService = gitService ?? new GitHelper(_loggingService);
-            _solutionService = solutionService ?? new SolutionHelper(_loggingService, _gitService);
+            _solutionService = solutionService ?? new SolutionHelper(_loggingService);
             _serviceProvider = serviceProvider;
 
             //init fields
@@ -595,8 +595,13 @@ namespace GitWorkTree.ViewModel
             try
             {
                 if (!(commandType == CommandType.Create)) return false;
+                if (string.IsNullOrEmpty(_activeRepositoryPath)) return false;
 
-                string worktreePath = Path.Combine(Directory.GetParent(_activeRepositoryPath).FullName, $"{_activeRepositoryPath}_Worktrees");
+                var parentDir = Directory.GetParent(_activeRepositoryPath);
+                string worktreePath = parentDir != null 
+                    ? Path.Combine(parentDir.FullName, $"{Path.GetFileName(_activeRepositoryPath)}_Worktrees")
+                    : $"{_activeRepositoryPath}_Worktrees";
+
                 string pathPrefix;
                 if (!String.IsNullOrWhiteSpace(optionsSaved.WorktreeSubFolder))
                     pathPrefix = Path.Combine(_activeRepositoryPath, optionsSaved.WorktreeSubFolder);

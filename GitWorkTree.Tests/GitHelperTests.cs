@@ -22,126 +22,98 @@ namespace GitWorkTree.Tests
             _mockCommandExecutor = new Mock<IGitCommandExecutor>();
 
             _mockCommandExecutor
-                .Setup(e => e.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Action<string>>()))
-                .ReturnsAsync(true);
-
-            _mockCommandExecutor
-                .Setup(e => e.ExecuteWithResultAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Action<string>>()))
+                .Setup(e => e.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Action<string>>(), default))
                 .ReturnsAsync(new GitCommandExecutionResult(true, ""));
 
-            _gitHelper = new GitHelper(_mockLoggingService.Object, _mockCommandExecutor.Object, @"C:\git.exe");
+            _gitHelper = new GitHelper(_mockLoggingService.Object, _mockCommandExecutor.Object);
         }
 
         [TestMethod]
-        public async Task GetWorkTreePathsAsync_PrependsLongPathsOption()
+        public async Task GetWorkTreePathsAsync_ExecutesWorktreeList()
         {
-            // Act
             await _gitHelper.GetWorkTreePathsAsync(RepoPath);
 
-            // Assert
             _mockCommandExecutor.Verify(e => e.ExecuteAsync(
-                @"C:\git.exe",
-                It.Is<string>(args => args.Contains("-c core.longpaths=true") && args.Contains("worktree list")),
+                It.Is<string>(args => args.Contains("worktree list")),
                 RepoPath,
-                It.IsAny<Action<string>>()), Times.Once);
+                It.IsAny<Action<string>>(), default), Times.Once);
         }
 
         [TestMethod]
-        public async Task GetBranchesAsync_PrependsLongPathsOption()
+        public async Task GetBranchesAsync_ExecutesBranchCommand()
         {
-            // Act
             await _gitHelper.GetBranchesAsync(RepoPath);
 
-            // Assert
             _mockCommandExecutor.Verify(e => e.ExecuteAsync(
-                @"C:\git.exe",
-                It.Is<string>(args => args.Contains("-c core.longpaths=true") && args.Contains("--no-pager branch")),
+                It.Is<string>(args => args.Contains("--no-pager branch")),
                 RepoPath,
-                It.IsAny<Action<string>>()), Times.Once);
+                It.IsAny<Action<string>>(), default), Times.Once);
         }
 
         [TestMethod]
-        public async Task CreateBranchAsync_PrependsLongPathsOption()
+        public async Task CreateBranchAsync_ExecutesBranchCreate()
         {
-            // Act
             await _gitHelper.CreateBranchAsync(RepoPath, "new-branch", "main");
 
-            // Assert
-            _mockCommandExecutor.Verify(e => e.ExecuteWithResultAsync(
-                @"C:\git.exe",
-                It.Is<string>(args => args.Contains("-c core.longpaths=true") && args.Contains("branch new-branch")),
+            _mockCommandExecutor.Verify(e => e.ExecuteAsync(
+                It.Is<string>(args => args.Contains("branch new-branch")),
                 RepoPath,
-                It.IsAny<Action<string>>()), Times.Once);
+                It.IsAny<Action<string>>(), default), Times.Once);
         }
 
         [TestMethod]
-        public async Task DeleteBranchAsync_PrependsLongPathsOption()
+        public async Task DeleteBranchAsync_ExecutesBranchDelete()
         {
-            // Act
             await _gitHelper.DeleteBranchAsync(RepoPath, "old-branch");
 
-            // Assert
-            _mockCommandExecutor.Verify(e => e.ExecuteWithResultAsync(
-                @"C:\git.exe",
-                It.Is<string>(args => args.Contains("-c core.longpaths=true") && args.Contains("branch -D old-branch")),
+            _mockCommandExecutor.Verify(e => e.ExecuteAsync(
+                It.Is<string>(args => args.Contains("branch -D old-branch")),
                 RepoPath,
-                It.IsAny<Action<string>>()), Times.Once);
+                It.IsAny<Action<string>>(), default), Times.Once);
         }
 
         [TestMethod]
-        public async Task CreateWorkTreeAsync_PrependsLongPathsOption()
+        public async Task CreateWorkTreeAsync_ExecutesWorktreeAdd()
         {
-            // Act
             await _gitHelper.CreateWorkTreeAsync(RepoPath, "feature-branch", @"C:\WT");
 
-            // Assert
-            _mockCommandExecutor.Verify(e => e.ExecuteWithResultAsync(
-                @"C:\git.exe",
-                It.Is<string>(args => args.Contains("-c core.longpaths=true") && args.Contains("worktree add")),
+            _mockCommandExecutor.Verify(e => e.ExecuteAsync(
+                It.Is<string>(args => args.Contains("worktree add")),
                 RepoPath,
-                It.IsAny<Action<string>>()), Times.Once);
+                It.IsAny<Action<string>>(), default), Times.Once);
         }
 
         [TestMethod]
-        public async Task RemoveWorkTreeAsync_PrependsLongPathsOption()
+        public async Task RemoveWorkTreeAsync_ExecutesWorktreeRemove()
         {
-            // Act
             await _gitHelper.RemoveWorkTreeAsync(RepoPath, @"C:\WT", false);
 
-            // Assert
-            _mockCommandExecutor.Verify(e => e.ExecuteWithResultAsync(
-                @"C:\git.exe",
-                It.Is<string>(args => args.Contains("-c core.longpaths=true") && args.Contains("worktree remove")),
+            _mockCommandExecutor.Verify(e => e.ExecuteAsync(
+                It.Is<string>(args => args.Contains("worktree remove")),
                 RepoPath,
-                It.IsAny<Action<string>>()), Times.Once);
+                It.IsAny<Action<string>>(), default), Times.Once);
         }
 
         [TestMethod]
-        public async Task PruneAsync_PrependsLongPathsOption()
+        public async Task PruneAsync_ExecutesWorktreePrune()
         {
-            // Act
             await _gitHelper.PruneAsync(RepoPath);
 
-            // Assert
-            _mockCommandExecutor.Verify(e => e.ExecuteWithResultAsync(
-                @"C:\git.exe",
-                It.Is<string>(args => args.Contains("-c core.longpaths=true") && args.Contains("worktree prune")),
+            _mockCommandExecutor.Verify(e => e.ExecuteAsync(
+                It.Is<string>(args => args.Contains("worktree prune")),
                 RepoPath,
-                It.IsAny<Action<string>>()), Times.Once);
+                It.IsAny<Action<string>>(), default), Times.Once);
         }
 
         [TestMethod]
-        public async Task GetGitFolderDirectoryAsync_PrependsLongPathsOption()
+        public async Task GetGitFolderDirectoryAsync_ExecutesRevParse()
         {
-            // Act
             await _gitHelper.GetGitFolderDirectoryAsync(RepoPath);
 
-            // Assert
             _mockCommandExecutor.Verify(e => e.ExecuteAsync(
-                @"C:\git.exe",
-                It.Is<string>(args => args.Contains("-c core.longpaths=true") && args.Contains("rev-parse")),
+                It.Is<string>(args => args.Contains("rev-parse")),
                 RepoPath,
-                It.IsAny<Action<string>>()), Times.Once);
+                It.IsAny<Action<string>>(), default), Times.Once);
         }
     }
 }

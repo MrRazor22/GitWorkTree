@@ -10,42 +10,16 @@ namespace GitWorkTree.Services
     public class SolutionHelper : ISolutionService
     {
         private readonly ILoggingService _loggingService;
-        private readonly IGitService _gitService;
 
-        public SolutionHelper(ILoggingService loggingService, IGitService gitService)
+        public SolutionHelper(ILoggingService loggingService)
         {
             _loggingService = loggingService;
-            _gitService = gitService;
         }
 
         public static string NormalizePath(string path) =>
              string.IsNullOrWhiteSpace(path) ? "\"\"" :
                  ((path = path.Trim().Trim('"').TrimEnd('\r', '\n'))
                   .Any(char.IsWhiteSpace) ? $"\"{path}\"" : path);
-
-        public string GetRepositoryPath(string solutionPath)
-        {
-            try
-            {
-                if (File.Exists(solutionPath))
-                {
-                    solutionPath = Path.GetDirectoryName(solutionPath);
-                }
-                var gitFolderPath = ThreadHelper.JoinableTaskFactory.Run(() => _gitService.GetGitFolderDirectoryAsync(solutionPath));
-
-                string gitFileName = Path.GetFileName(gitFolderPath);
-                if (gitFileName != null && gitFileName.Equals(".git")) // It's the main repository
-                    return solutionPath;
-                else if (gitFolderPath != null && gitFolderPath.Replace('\\', '/').Contains(".git/worktrees")) // It's a worktree, get the main repository path - three step outside
-                    return Path.GetFullPath(Path.Combine(gitFolderPath, "..", "..", ".."));
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _loggingService?.WriteToOutputWindowAsync($"Failed to get repository path: {ex.Message}");
-                return null;
-            }
-        }
 
         public async Task<bool> OpenSolution(string newSolutionPath, bool openInCurrentInstance)
         {
@@ -73,7 +47,7 @@ namespace GitWorkTree.Services
                     {
                         await _loggingService.WriteToOutputWindowAsync($"No solution file found, opening the folder {newSolutionPath}");
                     }
-                    solutionFiles = [newSolutionPath];
+                    solutionFiles = new string[] { newSolutionPath };
                 }
                 isError = await HandleOpenSolution(newSolutionPath, openInCurrentInstance, solutionFiles);
 

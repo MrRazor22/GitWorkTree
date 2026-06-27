@@ -1,4 +1,4 @@
-﻿using GitWorkTree.Commands;
+using GitWorkTree.Commands;
 using GitWorkTree.Services;
 
 namespace GitWorkTree
@@ -14,7 +14,7 @@ namespace GitWorkTree
             {
                 commandExecution = new CommandExecutor(CommandType.Create);
 
-                if (commandExecution.PreRequisite())
+                if (await commandExecution.PreRequisiteAsync())
                     commandExecution.Execute();
             }
             catch (Exception ex)

@@ -351,7 +351,7 @@
                         <Button Grid.Column="1" Click="ButtonOpen_Click" Width="20" Padding="0">
                             <Path Data="{StaticResource ArrowDownGeometry}" Style="{StaticResource DropdownArrowPathStyle}"/>
                             <Button.ContextMenu>
-                                <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                <ContextMenu>
                                     <MenuItem Header="Open in Current Window" Command="{Binding OpenCommand}" CommandParameter="CurrentWindow">
                                         <MenuItem.Icon>
                                             <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
@@ -399,7 +399,7 @@
                         <Button Grid.Column="1" Click="ButtonCreate_Click" Width="20" Padding="0">
                             <Path Data="{StaticResource ArrowDownGeometry}" Style="{StaticResource DropdownArrowPathStyle}"/>
                             <Button.ContextMenu>
-                                <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                <ContextMenu>
                                     <MenuItem Header="Create Only" Command="{Binding CreateCommand}" CommandParameter="DoNotOpen">
                                         <MenuItem.Icon>
                                             <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Add}" Width="16" Height="16"/>

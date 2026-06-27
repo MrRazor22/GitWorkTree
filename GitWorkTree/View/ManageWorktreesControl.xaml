@@ -568,7 +568,7 @@
                                 <DataTrigger Binding="{Binding IsFolder}" Value="False">
                                     <Setter Property="ContextMenu">
                                         <Setter.Value>
-                                            <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                            <ContextMenu>
                                                 <!-- MenuItem 1: Default/Preferred action -->
                                                 <MenuItem Command="{Binding PlacementTarget.Tag.OpenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
                                                     <MenuItem.Style>
@@ -950,7 +950,7 @@
                                         <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
                                             <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch" MinHeight="22">
                                                 <Grid.ContextMenu>
-                                                    <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                                    <ContextMenu>
                                                         <MenuItem Header="Open" Click="OpenWithVisualStudio_Click">
                                                             <MenuItem.Icon>
                                                                 <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
@@ -1091,7 +1091,7 @@
                                          <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
                                                                                          <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch" MinHeight="22">
                                                  <Grid.ContextMenu>
-                                                     <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                                     <ContextMenu>
                                                          <MenuItem Header="Open" Click="OpenWithVisualStudio_Click">
                                                              <MenuItem.Icon>
                                                                  <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
@@ -1241,7 +1241,7 @@
                                          <HierarchicalDataTemplate DataType="{x:Type viewmodel:GitChangeNode}" ItemsSource="{Binding Children}">
                                                                                          <Grid x:Name="RowGrid" Margin="2,0" HorizontalAlignment="Stretch" MinHeight="22">
                                                  <Grid.ContextMenu>
-                                                     <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                                     <ContextMenu>
                                                          <MenuItem Header="Open" Click="OpenWithVisualStudio_Click">
                                                              <MenuItem.Icon>
                                                                  <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.VisualStudio}" Width="16" Height="16"/>
@@ -1357,7 +1357,7 @@
                                           Background="Transparent" BorderThickness="0" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
                                           ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
                                     <ListView.ContextMenu>
-                                        <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                        <ContextMenu>
                                             <MenuItem Header="View Commit Details" Click="ViewCommitDetails_Click">
                                                 <MenuItem.Icon>
                                                     <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.History}" Width="16" Height="16"/>

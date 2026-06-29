@@ -73,7 +73,7 @@ namespace GitWorkTree.Services
                     {
                         await _loggingService.WriteToOutputWindowAsync($"No solution file found, opening the folder {newSolutionPath}");
                     }
-                    solutionFiles = [newSolutionPath];
+                    solutionFiles = new string[] { newSolutionPath };
                 }
                 isError = await HandleOpenSolution(newSolutionPath, openInCurrentInstance, solutionFiles);
 

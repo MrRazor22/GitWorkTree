@@ -47,8 +47,29 @@ namespace GitWorkTree.Services
         {
             _loggingService = loggingService;
             _commandExecutor = commandExecutor ?? new GitCommandExecutor(loggingService);
-            _gitPath = gitPath ?? Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory,
-                @"CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe");
+            if (gitPath != null)
+            {
+                _gitPath = gitPath;
+            }
+            else
+            {
+                string baseDir = System.AppDomain.CurrentDomain.BaseDirectory;
+                string vs2017plusGit = Path.Combine(baseDir, @"CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe");
+                string vs2015Git = Path.Combine(baseDir, @"Extensions\3rdParty\Git\cmd\git.exe");
+
+                if (File.Exists(vs2017plusGit))
+                {
+                    _gitPath = vs2017plusGit;
+                }
+                else if (File.Exists(vs2015Git))
+                {
+                    _gitPath = vs2015Git;
+                }
+                else
+                {
+                    _gitPath = "git.exe"; // Fallback to system Git from PATH
+                }
+            }
         }
 
         private async Task<bool> ExecuteAsync(GitCommandArgs gitCommandArgs, Action<string> outputHandler = null, System.Threading.CancellationToken cancellationToken = default)

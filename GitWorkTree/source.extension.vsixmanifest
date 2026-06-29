@@ -11,13 +11,31 @@
         <PreviewImage>Resources\icon.png</PreviewImage>
         <Tags>Visual Studio 2022, Git Worktree, Version Control, Git Branches, Productivity Tool, Code Management, Development Workflow, Collaboration, Branch Switching, Code Navigation, git,version control,git for visual studio,workflow,developer tools, multi-branch development,parallel development,code isolation,branch management</Tags>
     </Metadata>
-    <Installation>
-        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0, 18.0)">
-            <ProductArchitecture>amd64</ProductArchitecture>
-        </InstallationTarget>
-    </Installation>
+	<Installation>
+		<!-- VS 2015, VS 2017 & VS 2019 (32-bit) -->
+		<InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[14.0, 17.0)">
+			<ProductArchitecture>x86</ProductArchitecture>
+		</InstallationTarget>
+		<InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[14.0, 17.0)">
+			<ProductArchitecture>x86</ProductArchitecture>
+		</InstallationTarget>
+		<InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[14.0, 17.0)">
+			<ProductArchitecture>x86</ProductArchitecture>
+		</InstallationTarget>
+
+		<!-- VS 2022 & VS 2026 (64-bit) -->
+		<InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0, 19.0)">
+			<ProductArchitecture>amd64</ProductArchitecture>
+		</InstallationTarget>
+		<InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[17.0, 19.0)">
+			<ProductArchitecture>amd64</ProductArchitecture>
+		</InstallationTarget>
+		<InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.0, 19.0)">
+			<ProductArchitecture>amd64</ProductArchitecture>
+		</InstallationTarget>
+	</Installation>
     <Prerequisites>
-        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
+        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[15.0,)" DisplayName="Visual Studio core editor" />
     </Prerequisites>
     <Assets>
         <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />

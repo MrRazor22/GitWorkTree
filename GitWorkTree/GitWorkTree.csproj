@@ -27,6 +27,7 @@
     <StartAction>Program</StartAction>
     <StartProgram Condition="'$(DevEnvDir)' != ''">$(DevEnvDir)devenv.exe</StartProgram>
     <StartArguments>/rootsuffix Exp</StartArguments>
+    <DeployExtension Condition="'$(DeployExtension)' == ''">false</DeployExtension>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -126,7 +127,7 @@
       <Version>17.0.32322.3</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Shell.15.0" Version="17.0.31902.203" />
-    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.0.5232">
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.8.2041">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

@@ -28,6 +28,71 @@
         <viewmodel:WorkTreeDialogViewModel/>
     </Window.DataContext>
     <Window.Resources>
+        <!-- Custom VS Theme-Aware ContextMenu and MenuItem ControlTemplates -->
+        <Style TargetType="ContextMenu">
+            <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarMenuBackgroundGradientKey}}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarTextActiveKey}}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarMenuBorderKey}}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="Grid.IsSharedSizeScope" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="MenuItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarTextActiveKey}}"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderThickness="0"
+                                Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Icon"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Shortcut"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Icon Presenter (with transparent container) -->
+                                <ContentPresenter x:Name="Icon" ContentSource="Icon" VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                                <!-- Header Text Presenter -->
+                                <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+
+                                <!-- Input Gesture Text (e.g. Del) -->
+                                <TextBlock Grid.Column="2" Text="{TemplateBinding InputGestureText}" Margin="12,0,0,0" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarTextInactiveKey}}"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarMouseOverBackgroundGradientKey}}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarTextHoverKey}}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarTextInactiveKey}}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <converters:CommandTypeToBranchWorktreeLableConverter x:Key="CommandTypeToBranchWorktreeLableConverter"/>
         <converters:CommandTypeToForceCheckBoxTextConverter x:Key="CommandTypeToForceCheckBoxTextConverter"/>
@@ -351,7 +416,7 @@
                         <Button Grid.Column="1" Click="ButtonOpen_Click" Width="20" Padding="0">
                             <Path Data="{StaticResource ArrowDownGeometry}" Style="{StaticResource DropdownArrowPathStyle}"/>
                             <Button.ContextMenu>
-                                <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                <ContextMenu>
                                     <MenuItem Header="Open in Current Window" Command="{Binding OpenCommand}" CommandParameter="CurrentWindow">
                                         <MenuItem.Icon>
                                             <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Solution}" Width="16" Height="16"/>
@@ -399,7 +464,7 @@
                         <Button Grid.Column="1" Click="ButtonCreate_Click" Width="20" Padding="0">
                             <Path Data="{StaticResource ArrowDownGeometry}" Style="{StaticResource DropdownArrowPathStyle}"/>
                             <Button.ContextMenu>
-                                <ContextMenu Style="{DynamicResource {x:Static vsshell:VsResourceKeys.ContextMenuStyleKey}}">
+                                <ContextMenu>
                                     <MenuItem Header="Create Only" Command="{Binding CreateCommand}" CommandParameter="DoNotOpen">
                                         <MenuItem.Icon>
                                             <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Add}" Width="16" Height="16"/>

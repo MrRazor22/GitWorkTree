@@ -258,10 +258,13 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <!-- Branch Icon -->
-                                        <Path Grid.Column="0" Width="12" Height="12" Margin="0,0,8,0" VerticalAlignment="Center" Stretch="Uniform"
-                                              Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
-                                              Data="M9,2.5 A1.5,1.5 0 0,0 7.5,1 A1.5,1.5 0 0,0 6.1,2 L4.5,2 A1.5,1.5 0 0,0 3,3.5 L3,4.5 A1.5,1.5 0 0,0 4.5,6 L6,6 L6,8.5 A1.5,1.5 0 0,0 7.5,10 A1.5,1.5 0 0,0 9,8.5 A1.5,1.5 0 0,0 7.5,7 L6.5,7 L6.5,3.5 L7.5,3.5 A1.5,1.5 0 0,0 9,2.5 Z M4.5,5 A0.5,0.5 0 0,1 4,4.5 L4,3.5 A0.5,0.5 0 0,1 4.5,3 L6,3 L6,5 Z M7.5,2 A0.5,0.5 0 0,1 8,2.5 A0.5,0.5 0 0,1 7.5,3 A0.5,0.5 0 0,1 7,2.5 A0.5,0.5 0 0,1 7.5,2 Z M7.5,8 A0.5,0.5 0 0,1 8,8.5 A0.5,0.5 0 0,1 7.5,9 A0.5,0.5 0 0,1 7,8.5 A0.5,0.5 0 0,1 7.5,8 Z"/>
+                                        <!-- Branch/Tag Icon -->
+                                        <Grid Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Width="12" Height="12">
+                                            <Path x:Name="BranchIcon" Width="12" Height="12" Stretch="Uniform"
+                                                  Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+                                                  Data="M9,2.5 A1.5,1.5 0 0,0 7.5,1 A1.5,1.5 0 0,0 6.1,2 L4.5,2 A1.5,1.5 0 0,0 3,3.5 L3,4.5 A1.5,1.5 0 0,0 4.5,6 L6,6 L6,8.5 A1.5,1.5 0 0,0 7.5,10 A1.5,1.5 0 0,0 9,8.5 A1.5,1.5 0 0,0 7.5,7 L6.5,7 L6.5,3.5 L7.5,3.5 A1.5,1.5 0 0,0 9,2.5 Z M4.5,5 A0.5,0.5 0 0,1 4,4.5 L4,3.5 A0.5,0.5 0 0,1 4.5,3 L6,3 L6,5 Z M7.5,2 A0.5,0.5 0 0,1 8,2.5 A0.5,0.5 0 0,1 7.5,3 A0.5,0.5 0 0,1 7,2.5 A0.5,0.5 0 0,1 7.5,2 Z M7.5,8 A0.5,0.5 0 0,1 8,8.5 A0.5,0.5 0 0,1 7.5,9 A0.5,0.5 0 0,1 7,8.5 A0.5,0.5 0 0,1 7.5,8 Z"/>
+                                            <imaging:CrispImage x:Name="TagIcon" Width="12" Height="12" Moniker="{x:Static catalog:KnownMonikers.Tag}" Visibility="Collapsed"/>
+                                        </Grid>
                                         <!-- Branch Name -->
                                         <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13"/>
                                         <!-- Worktree indicator: native VS icon, theme-safe -->
@@ -271,6 +274,12 @@
                                               ToolTip="Branch already has a linked worktree"
                                               Visibility="{Binding HasLinkedWorktree, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsTag}" Value="True">
+                                            <Setter TargetName="BranchIcon" Property="Visibility" Value="Collapsed"/>
+                                            <Setter TargetName="TagIcon" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
@@ -319,10 +328,13 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <!-- Branch Icon -->
-                                        <Path Grid.Column="0" Width="12" Height="12" Margin="0,0,8,0" VerticalAlignment="Center" Stretch="Uniform"
-                                              Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
-                                              Data="M9,2.5 A1.5,1.5 0 0,0 7.5,1 A1.5,1.5 0 0,0 6.1,2 L4.5,2 A1.5,1.5 0 0,0 3,3.5 L3,4.5 A1.5,1.5 0 0,0 4.5,6 L6,6 L6,8.5 A1.5,1.5 0 0,0 7.5,10 A1.5,1.5 0 0,0 9,8.5 A1.5,1.5 0 0,0 7.5,7 L6.5,7 L6.5,3.5 L7.5,3.5 A1.5,1.5 0 0,0 9,2.5 Z M4.5,5 A0.5,0.5 0 0,1 4,4.5 L4,3.5 A0.5,0.5 0 0,1 4.5,3 L6,3 L6,5 Z M7.5,2 A0.5,0.5 0 0,1 8,2.5 A0.5,0.5 0 0,1 7.5,3 A0.5,0.5 0 0,1 7,2.5 A0.5,0.5 0 0,1 7.5,2 Z M7.5,8 A0.5,0.5 0 0,1 8,8.5 A0.5,0.5 0 0,1 7.5,9 A0.5,0.5 0 0,1 7,8.5 A0.5,0.5 0 0,1 7.5,8 Z"/>
+                                        <!-- Branch/Tag Icon -->
+                                        <Grid Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Width="12" Height="12">
+                                            <Path x:Name="BranchIcon" Width="12" Height="12" Stretch="Uniform"
+                                                  Fill="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+                                                  Data="M9,2.5 A1.5,1.5 0 0,0 7.5,1 A1.5,1.5 0 0,0 6.1,2 L4.5,2 A1.5,1.5 0 0,0 3,3.5 L3,4.5 A1.5,1.5 0 0,0 4.5,6 L6,6 L6,8.5 A1.5,1.5 0 0,0 7.5,10 A1.5,1.5 0 0,0 9,8.5 A1.5,1.5 0 0,0 7.5,7 L6.5,7 L6.5,3.5 L7.5,3.5 A1.5,1.5 0 0,0 9,2.5 Z M4.5,5 A0.5,0.5 0 0,1 4,4.5 L4,3.5 A0.5,0.5 0 0,1 4.5,3 L6,3 L6,5 Z M7.5,2 A0.5,0.5 0 0,1 8,2.5 A0.5,0.5 0 0,1 7.5,3 A0.5,0.5 0 0,1 7,2.5 A0.5,0.5 0 0,1 7.5,2 Z M7.5,8 A0.5,0.5 0 0,1 8,8.5 A0.5,0.5 0 0,1 7.5,9 A0.5,0.5 0 0,1 7,8.5 A0.5,0.5 0 0,1 7.5,8 Z"/>
+                                            <imaging:CrispImage x:Name="TagIcon" Width="12" Height="12" Moniker="{x:Static catalog:KnownMonikers.Tag}" Visibility="Collapsed"/>
+                                        </Grid>
                                         <!-- Branch Name -->
                                         <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13"/>
                                         <!-- Worktree indicator: native VS icon, theme-safe -->
@@ -332,6 +344,12 @@
                                               ToolTip="Branch already has a linked worktree"
                                               Visibility="{Binding HasLinkedWorktree, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsTag}" Value="True">
+                                            <Setter TargetName="BranchIcon" Property="Visibility" Value="Collapsed"/>
+                                            <Setter TargetName="TagIcon" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>

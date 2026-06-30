@@ -77,7 +77,6 @@ namespace GitWorkTree.Services
                     if (e.Data != null)
                     {
                         errorBuilder.AppendLine(e.Data);
-                        _ = LogMessageAsync(outputWindow, $"{logPrefix} {e.Data}");
                     }
                 };
 
@@ -101,6 +100,11 @@ namespace GitWorkTree.Services
                 stopwatch.Stop();
 
                 bool isError = process.ExitCode != 0;
+
+                if (errorBuilder.Length > 0)
+                {
+                    await LogMessageAsync(outputWindow, $"{logPrefix} Stderr output:\n{errorBuilder.ToString().Trim()}", isError);
+                }
 
                 if (isError && errorBuilder.Length == 0)
                 {
@@ -172,7 +176,6 @@ namespace GitWorkTree.Services
                     if (e.Data != null)
                     {
                         errorBuilder.AppendLine(e.Data);
-                        _ = LogMessageAsync(outputWindow, $"{logPrefix} {e.Data}");
                     }
                 };
 
@@ -196,6 +199,11 @@ namespace GitWorkTree.Services
                 stopwatch.Stop();
 
                 bool isError = process.ExitCode != 0;
+
+                if (errorBuilder.Length > 0)
+                {
+                    await LogMessageAsync(outputWindow, $"{logPrefix} Stderr output:\n{errorBuilder.ToString().Trim()}", isError);
+                }
 
                 if (isError && errorBuilder.Length == 0)
                 {

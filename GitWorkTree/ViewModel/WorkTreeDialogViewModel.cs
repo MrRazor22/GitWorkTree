@@ -79,6 +79,7 @@ namespace GitWorkTree.ViewModel
 
                     CommandManager.InvalidateRequerySuggested();
                     UpdateFolderPath();
+                    _ = PopulateBranches_Worktrees();
 
                     if (optionsSaved != null)
                     {
@@ -461,10 +462,41 @@ namespace GitWorkTree.ViewModel
             });
         }
 
+        private List<string> GetTags()
+        {
+            bool useFallback = false;
+            try
+            {
+                var factory = ThreadHelper.JoinableTaskFactory;
+                if (factory == null)
+                {
+                    useFallback = true;
+                }
+            }
+            catch
+            {
+                useFallback = true;
+            }
+
+            if (useFallback)
+            {
+                return _gitService.GetTagsAsync(_activeRepositoryPath).GetAwaiter().GetResult();
+            }
+
+            return ThreadHelper.JoinableTaskFactory.Run(async () =>
+            {
+                return await _gitService.GetTagsAsync(_activeRepositoryPath).ConfigureAwait(false);
+            });
+        }
+
         private async Task<bool> PopulateBranches_Worktrees()
         {
             try
             {
+                if (string.IsNullOrEmpty(_activeRepositoryPath))
+                {
+                    return false;
+                }
                 List<string> branches_Worktrees = GetBranches_Worktrees();
                 if (branches_Worktrees == null)
                 {
@@ -556,7 +588,23 @@ namespace GitWorkTree.ViewModel
                             originalRef = originalRef.Substring(1).Trim();
                         }
 
-                        Branches_Worktrees.Add(new BranchInfo(logicalName, originalRef, data.hasWorktree));
+                        Branches_Worktrees.Add(new BranchInfo(logicalName, originalRef, data.hasWorktree, isTag: false));
+                    }
+
+                    if (IsNewBranchMode)
+                    {
+                        List<string> tags = GetTags();
+                        if (tags != null)
+                        {
+                            foreach (var tag in tags)
+                            {
+                                if (!string.IsNullOrWhiteSpace(tag))
+                                {
+                                    string trimmedTag = tag.Trim();
+                                    Branches_Worktrees.Add(new BranchInfo(trimmedTag, $"refs/tags/{trimmedTag}", false, isTag: true));
+                                }
+                            }
+                        }
                     }
                 }
                 else
@@ -564,7 +612,7 @@ namespace GitWorkTree.ViewModel
                     foreach (var item in branches_Worktrees)
                     {
                         string path = item.Trim();
-                        Branches_Worktrees.Add(new BranchInfo(path, path, false));
+                        Branches_Worktrees.Add(new BranchInfo(path, path, false, isTag: false));
                     }
                 }
 
@@ -594,6 +642,10 @@ namespace GitWorkTree.ViewModel
         {
             try
             {
+                if (string.IsNullOrEmpty(_activeRepositoryPath))
+                {
+                    return false;
+                }
                 if (!(commandType == CommandType.Create)) return false;
 
                 string worktreePath = Path.Combine(Directory.GetParent(_activeRepositoryPath).FullName, $"{_activeRepositoryPath}_Worktrees");

@@ -221,6 +221,33 @@ namespace GitWorkTree.Services
             else return null;
         }
 
+        public async Task<List<string>> GetTagsAsync(string repositoryPath)
+        {
+            List<string> tags = new List<string>();
+            var result = await ExecuteWithResultAsync(new GitCommandArgs()
+            {
+                WorkingDirectory = repositoryPath,
+                Argument = "--no-pager tag"
+            }, (line) =>
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    tags.Add(line.Trim());
+                }
+            });
+
+            if (result.Success)
+            {
+                _loggingService?.WriteToOutputWindowAsync($"[GetTagsAsync] Succeeded. Fetched {tags.Count} tags.");
+                return tags;
+            }
+            else
+            {
+                _loggingService?.WriteToOutputWindowAsync($"[GetTagsAsync] Failed. Error: {result.StandardError}", true);
+                return null;
+            }
+        }
+
         public async Task<GitOperationResult> CreateBranchAsync(string repositoryPath, string newBranchName, string sourceBranchName)
         {
             var result = await ExecuteWithResultAsync(new GitCommandArgs()

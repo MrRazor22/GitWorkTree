@@ -36,6 +36,8 @@ namespace GitWorkTree.Tests
 
             _mockGitService.Setup(g => g.GetBranchesAsync(It.IsAny<string>()))
                 .ReturnsAsync(new List<string> { "main" });
+            _mockGitService.Setup(g => g.GetTagsAsync(It.IsAny<string>()))
+                .ReturnsAsync(new List<string>());
             _mockGitService.Setup(g => g.GetWorkTreePathsAsync(It.IsAny<string>()))
                 .ReturnsAsync(new List<string>());
         }
@@ -574,6 +576,59 @@ namespace GitWorkTree.Tests
             viewModel.IsNewBranchMode = false; // Switch back to Existing Branch Mode
             // It should detect "main" has a worktree, and auto-select the first one without: "feature/other"
             Assert.AreEqual("feature/other", viewModel.SelectedBranch.Name);
+        }
+
+        [TestMethod]
+        public void PopulateBranches_Worktrees_IncludesTags()
+        {
+            // Arrange
+            _mockGitService.Setup(g => g.GetBranchesAsync(It.IsAny<string>()))
+                .ReturnsAsync(new List<string> { "main", "feature/other" });
+            _mockGitService.Setup(g => g.GetTagsAsync(It.IsAny<string>()))
+                .ReturnsAsync(new List<string> { "v1.0.0", "v2.0.0" });
+
+            // Act
+            var viewModel = new WorkTreeDialogViewModel(
+                @"C:\repo",
+                CommandType.Create,
+                _options,
+                _mockGitService.Object,
+                _mockSolutionService.Object,
+                _mockLoggingService.Object
+            );
+
+            // Assert: Tags are NOT loaded by default (IsNewBranchMode is false)
+            Assert.AreEqual(2, viewModel.Branches_Worktrees.Count);
+            Assert.AreEqual("main", viewModel.Branches_Worktrees[0].Name);
+            Assert.AreEqual("feature/other", viewModel.Branches_Worktrees[1].Name);
+
+            // Act: Switch to New Branch Mode
+            viewModel.IsNewBranchMode = true;
+
+            // Assert: Now tags are loaded (2 branches + 2 tags = 4 items)
+            Assert.AreEqual(4, viewModel.Branches_Worktrees.Count);
+
+            // Verify branches
+            Assert.AreEqual("main", viewModel.Branches_Worktrees[0].Name);
+            Assert.IsFalse(viewModel.Branches_Worktrees[0].IsTag);
+
+            Assert.AreEqual("feature/other", viewModel.Branches_Worktrees[1].Name);
+            Assert.IsFalse(viewModel.Branches_Worktrees[1].IsTag);
+
+            // Verify tags
+            Assert.AreEqual("v1.0.0", viewModel.Branches_Worktrees[2].Name);
+            Assert.AreEqual("refs/tags/v1.0.0", viewModel.Branches_Worktrees[2].FullRef);
+            Assert.IsTrue(viewModel.Branches_Worktrees[2].IsTag);
+
+            Assert.AreEqual("v2.0.0", viewModel.Branches_Worktrees[3].Name);
+            Assert.AreEqual("refs/tags/v2.0.0", viewModel.Branches_Worktrees[3].FullRef);
+            Assert.IsTrue(viewModel.Branches_Worktrees[3].IsTag);
+
+            // Act: Switch back to Existing Branch Mode
+            viewModel.IsNewBranchMode = false;
+
+            // Assert: Tags are removed again
+            Assert.AreEqual(2, viewModel.Branches_Worktrees.Count);
         }
     }
 }

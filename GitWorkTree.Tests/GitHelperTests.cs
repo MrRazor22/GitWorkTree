@@ -61,6 +61,21 @@ namespace GitWorkTree.Tests
         }
 
         [TestMethod]
+        public async Task GetTagsAsync_PrependsLongPathsOption()
+        {
+            // Act
+            await _gitHelper.GetTagsAsync(RepoPath);
+
+            // Assert
+            _mockCommandExecutor.Verify(e => e.ExecuteWithResultAsync(
+                @"C:\git.exe",
+                It.Is<string>(args => args.Contains("-c core.longpaths=true") && args.Contains("--no-pager tag")),
+                RepoPath,
+                It.IsAny<Action<string>>(),
+                It.IsAny<System.Threading.CancellationToken>()), Times.Once);
+        }
+
+        [TestMethod]
         public async Task CreateBranchAsync_PrependsLongPathsOption()
         {
             // Act

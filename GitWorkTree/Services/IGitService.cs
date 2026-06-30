@@ -37,6 +37,7 @@ namespace GitWorkTree.Services
         Task<List<string>> GetWorkTreePathsAsync(string repositoryPath);
         Task<List<WorktreeInfo>> GetWorktreesAsync(string repositoryPath);
         Task<List<string>> GetBranchesAsync(string repositoryPath);
+        Task<List<string>> GetTagsAsync(string repositoryPath);
         Task<GitOperationResult> CreateBranchAsync(string repositoryPath, string newBranchName, string sourceBranchName);
         Task<GitOperationResult> DeleteBranchAsync(string repositoryPath, string branchName);
         Task<GitOperationResult> CreateWorkTreeAsync(string repositoryPath, string branchName, string workTreePath);

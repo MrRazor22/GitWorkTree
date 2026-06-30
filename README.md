@@ -6,7 +6,7 @@ A Visual Studio extension that provides an intuitive interface for managing Git 
 ===
 | IDE | Marketplace | Description |
 | :--- | :--- | :--- |
-| **Visual Studio** | [Git Worktree Manager](https://marketplace.visualstudio.com/items?itemName=MrRazer22.git-worktree) | Extension for Visual Studio 2022 (17.14+) |
+| **Visual Studio** | [Git Worktree Manager](https://marketplace.visualstudio.com/items?itemName=MrRazer22.git-worktree) | Extension for Visual Studio 2022 (17.0+) & Visual Studio 2026 |
 
 ---
 
@@ -37,9 +37,10 @@ Access the Git Worktree tools directly from the Visual Studio menu under **Git >
 
 Create new worktrees easily with the **Create Worktree** dialog:
 
-* Choose any branch from the searchable list.
+* **Dual Creation Modes**: Easily toggle between checking out a **Base Branch** (to review/debug an existing branch directly) or creating a **New Branch** (to start new work, letting you select any branch or Git tag as the base reference).
+* Choose any branch or Git tag from the searchable list.
 * Path is auto-generated based on the branch name, or you can customize it.
-* Toggle options to force creation or immediately open the new worktree in Visual Studio.
+* Choose how to open the new worktree (Open in Current Window, Open in New VS Window, or Open in File Explorer).
 
 ![Create Worktree](https://github.com/user-attachments/assets/2066f619-9922-4bbe-b6d5-7c3d4b99fbd2)
 
@@ -104,7 +105,7 @@ All Git execution commands, warnings, and diagnostic messages are cleanly logged
 
 ## 📦 Requirements
 
-* Visual Studio 2022 (17.14 or later)
+* Visual Studio 2022 (17.0 or later) or Visual Studio 2026
 * Active Git repository or solution open in Visual Studio
 
 ---
